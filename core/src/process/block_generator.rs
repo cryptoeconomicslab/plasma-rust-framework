@@ -9,8 +9,9 @@ pub enum Error {}
 pub struct BlockGenerator {}
 
 impl BlockGenerator {
-    pub fn generate(signed_transactions: Vec<SignedTransaction>) -> Result<Block, Error> {
+    pub fn generate(signed_transactions: &[SignedTransaction]) -> Result<Block, Error> {
         // TODO: caluculate merkle root
-        Ok(Block::new(signed_transactions, H256::zero()))
+        // copy all transactions
+        Ok(Block::new(signed_transactions.to_vec(), H256::zero()))
     }
 }

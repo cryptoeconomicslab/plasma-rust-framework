@@ -5,6 +5,7 @@ use super::state_update::StateUpdate;
 use bytes::Bytes;
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
+#[derive(Clone)]
 pub struct Transaction {
     state_update: StateUpdate,
     transaction_witness: Bytes,

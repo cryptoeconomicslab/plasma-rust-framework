@@ -27,7 +27,7 @@ impl Default for HttpOption {
     }
 }
 
-pub fn get_server(options: HttpOption) -> Result<Server, Error> {
+pub fn get_server(options: &HttpOption) -> Result<Server, Error> {
     let mut io = IoHandler::new();
 
     let rpc = PlasmaRpcImpl;

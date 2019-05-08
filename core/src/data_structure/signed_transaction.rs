@@ -4,6 +4,7 @@ extern crate rlp;
 use super::transaction::Transaction;
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
+#[derive(Clone)]
 pub struct SignedTransaction {
     pub transactions: Vec<Transaction>,
 }

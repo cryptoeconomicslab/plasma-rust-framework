@@ -5,6 +5,7 @@ use super::state_object::StateObject;
 use ethereum_types::Address;
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
+#[derive(Clone)]
 pub struct StateUpdate {
     start: u64,
     end: u64,

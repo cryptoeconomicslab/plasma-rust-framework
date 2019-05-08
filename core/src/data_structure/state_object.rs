@@ -5,6 +5,7 @@ use bytes::Bytes;
 use ethereum_types::Address;
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
+#[derive(Clone)]
 pub struct StateObject {
     predicate: Address,
     parameters: Bytes,

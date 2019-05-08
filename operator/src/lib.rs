@@ -25,6 +25,6 @@ pub fn entry() {
     env::set_var("RUST_LOG", "info");
     env_logger::init();
     println!("Hello, operator!!");
-    let server = get_server(Default::default()).expect("Unable to start rpc server.");
+    let server = get_server(&Default::default()).expect("Unable to start rpc server.");
     server.wait();
 }
