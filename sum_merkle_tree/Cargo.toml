@@ -1,0 +1,10 @@
+[package]
+name = "sum_merkle_tree"
+version = "0.1.0"
+authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
+edition = "2018"
+
+[dependencies]
+rust-crypto = "0.2.36"
+bytes = "0.4.12"
+byteorder = "1.3.1"

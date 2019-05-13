@@ -16,6 +16,7 @@ name = "plasma-chamber"
 members = [
 	"core",
 	"operator",
+	"sum_merkle_tree"
 ]
 
 [dependencies]
