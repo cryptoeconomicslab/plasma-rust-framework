@@ -47,20 +47,23 @@ pub enum SumMerkleNode {
     },
 }
 
+/// Caluculate hash of a node
+fn compute_node(end: u64, data: &Bytes) -> Bytes {
+    let mut wtr = vec![];
+    wtr.write_u64::<LittleEndian>(end).unwrap();
+    let mut buf = Bytes::new();
+    buf.extend_from_slice(&wtr);
+    buf.extend_from_slice(&data);
+    hash_leaf(&buf)
+}
+
 impl Hashable for SumMerkleNode {
     fn hash(&self) -> Bytes {
         match self {
-            SumMerkleNode::Leaf { end, data } => {
-                let mut wtr = vec![];
-                wtr.write_u64::<LittleEndian>(*end).unwrap();
-                let mut buf = Bytes::new();
-                buf.extend_from_slice(&wtr);
-                buf.extend_from_slice(&data.to_vec());
-                hash_leaf(&buf)
-            }
+            SumMerkleNode::Leaf { end, data } => compute_node(*end, data),
             SumMerkleNode::Node { left, right, .. } => {
-                let mut buf = left.hash();
-                buf.extend_from_slice(&right.hash().to_vec());
+                let mut buf = compute_node(left.get_end(), &left.hash());
+                buf.extend_from_slice(&compute_node(right.get_end(), &right.hash()));
                 hash_leaf(&buf)
             }
             SumMerkleNode::RightProofNode { left, .. } => left.clone(),
