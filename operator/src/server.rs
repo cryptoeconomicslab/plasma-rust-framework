@@ -31,7 +31,7 @@ impl Default for HttpOption {
 pub fn get_server(options: &HttpOption) -> Result<Server, Error> {
     let mut io = IoHandler::new();
 
-    let rpc = PlasmaRpcImpl;
+    let rpc: PlasmaRpcImpl = Default::default();
     io.extend_with(rpc.to_delegate());
 
     let parsed: Result<SocketAddr, Error> = options.url.parse().map_err(Into::into);

@@ -7,6 +7,7 @@
 
 /// error definition for plasma chain.
 use failure::{Backtrace, Context, Fail};
+use plasma_core::data_structure::error::Error as PlasmaCoreError;
 use std::fmt;
 use std::fmt::Display;
 use std::io::Error as IoError;
@@ -18,6 +19,8 @@ pub enum ErrorKind {
     Io,
     #[fail(display = "Parse error")]
     Parse,
+    #[fail(display = "Plasma Core")]
+    PlasmaCore,
 }
 
 #[derive(Debug)]
@@ -77,6 +80,14 @@ impl From<AddrParseError> for Error {
     fn from(error: AddrParseError) -> Error {
         Error {
             inner: error.context(ErrorKind::Parse),
+        }
+    }
+}
+
+impl From<PlasmaCoreError> for Error {
+    fn from(error: PlasmaCoreError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::PlasmaCore),
         }
     }
 }

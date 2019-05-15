@@ -9,6 +9,8 @@ extern crate failure;
 extern crate serde;
 extern crate serde_derive;
 
+/// plasma chain context data structure
+pub mod context;
 /// error definitions.
 pub mod error;
 /// APIs for JSON RPC.
