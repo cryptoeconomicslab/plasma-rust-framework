@@ -11,7 +11,6 @@ extern crate plasma_core;
 
 use jsonrpc_core::Result;
 use jsonrpc_derive::rpc;
-use plasma_core::data_structure::{Block, SignedTransaction};
 
 /// Plasma JSON RPC trait.
 #[rpc]
@@ -21,8 +20,8 @@ pub trait PlasmaRpc {
     fn protocol_version(&self) -> Result<String>;
     /// append signed transaction
     #[rpc(name = "sendTransaction")]
-    fn send_transaction(&self, signed_transaction: SignedTransaction) -> Result<bool>;
+    fn send_transaction(&self, message: String) -> Result<bool>;
     /// operator can generate block
     #[rpc(name = "generateBlock")]
-    fn generate_block(&self) -> Result<Block>;
+    fn generate_block(&self) -> Result<String>;
 }
