@@ -23,6 +23,26 @@ trait Hashable {
     fn hash(&self) -> Bytes;
 }
 
+/// SumMerkleNode is a node in merkle tree
+///
+///```text
+///  full tree
+///
+///           root
+///        /        \
+///      Node       Node
+///     /   \      /   \
+///   Leaf  Leaf Leaf  Leaf
+///
+///  branch and proof
+///
+///           root
+///        /        \
+///      Node     ProofNode
+///     /   \      
+///   Leaf  Leaf
+///```
+///
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SumMerkleNode {
     Leaf {
@@ -36,14 +56,9 @@ pub enum SumMerkleNode {
         right: Box<SumMerkleNode>,
     },
 
-    RightProofNode {
+    ProofNode {
         end: u64,
-        left: Bytes,
-    },
-
-    LeftProofNode {
-        end: u64,
-        right: Bytes,
+        data: Bytes,
     },
 }
 
@@ -66,24 +81,16 @@ impl Hashable for SumMerkleNode {
                 buf.extend_from_slice(&compute_node(right.get_end(), &right.hash()));
                 hash_leaf(&buf)
             }
-            SumMerkleNode::RightProofNode { left, .. } => left.clone(),
-            SumMerkleNode::LeftProofNode { right, .. } => right.clone(),
+            SumMerkleNode::ProofNode { data, .. } => data.clone(),
         }
     }
 }
 
 impl SumMerkleNode {
-    pub fn create_left_proof(right: &SumMerkleNode) -> SumMerkleNode {
-        SumMerkleNode::LeftProofNode {
-            end: right.get_end(),
-            right: right.hash(),
-        }
-    }
-
-    pub fn create_right_proof(left: &SumMerkleNode) -> SumMerkleNode {
-        SumMerkleNode::RightProofNode {
-            end: left.get_end(),
-            left: left.hash(),
+    pub fn create_proof_node(node: &SumMerkleNode) -> SumMerkleNode {
+        SumMerkleNode::ProofNode {
+            end: node.get_end(),
+            data: node.hash(),
         }
     }
 
@@ -114,8 +121,7 @@ impl SumMerkleNode {
         match self {
             SumMerkleNode::Leaf { end, .. } => *end,
             SumMerkleNode::Node { end, .. } => *end,
-            SumMerkleNode::RightProofNode { end, .. } => *end,
-            SumMerkleNode::LeftProofNode { end, .. } => *end,
+            SumMerkleNode::ProofNode { end, .. } => *end,
         }
     }
 }
@@ -184,7 +190,7 @@ impl SumMerkleTree {
                 let left_count = count.next_power_of_two() / 2;
                 if idx < left_count {
                     let mut proofs = Self::get_inclusion_proof_of_tree(left, idx, left_count);
-                    proofs.push(SumMerkleNode::create_left_proof(&right));
+                    proofs.push(SumMerkleNode::create_proof_node(&right));
                     proofs
                 } else {
                     let mut proofs = Self::get_inclusion_proof_of_tree(
@@ -192,15 +198,30 @@ impl SumMerkleTree {
                         idx - left_count,
                         count - left_count,
                     );
-                    proofs.push(SumMerkleNode::create_right_proof(&left));
+                    proofs.push(SumMerkleNode::create_proof_node(&left));
                     proofs
                 }
             }
-            SumMerkleNode::LeftProofNode { .. } => vec![],
-            SumMerkleNode::RightProofNode { .. } => vec![],
+            SumMerkleNode::ProofNode { .. } => vec![],
         }
     }
 
+    /// get_path
+    /// get_path converts index of leaf to binary.
+    /// ex) 1 -> 0b0001 -(revert)> [true, false, false, false]
+    /// It means right, left, left, left
+    ///
+    /// Another example.
+    /// 3 -> 0b11 -(revert)> [true, true]
+    /// It means right, right
+    ///
+    ///```text
+    ///        root
+    ///       /    \
+    ///     /  \  /  \
+    ///     0  1  2  3
+    /// ```
+    ///
     fn get_path(idx: usize, depth: usize, path: &mut Vec<bool>) {
         if depth == 0 {
             return;
@@ -226,8 +247,10 @@ impl SumMerkleTree {
         let mut computed = leaf.clone();
         for (i, item) in inclusion_proof.iter().enumerate() {
             if path[i] {
+                // leaf is in right
                 computed = SumMerkleNode::compute_parent(item, &computed)
             } else {
+                // leaf is in left
                 computed = SumMerkleNode::compute_parent(&computed, item)
             }
         }
