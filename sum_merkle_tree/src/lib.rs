@@ -75,7 +75,8 @@ fn compute_node(end: u64, data: &Bytes) -> Bytes {
 impl Hashable for SumMerkleNode {
     fn hash(&self) -> Bytes {
         match self {
-            SumMerkleNode::Leaf { end, data } => compute_node(*end, data),
+            SumMerkleNode::Leaf { data, .. } => data.clone(),
+            // H(H(left.end + left.data) + H(right.end + right.data))
             SumMerkleNode::Node { left, right, .. } => {
                 let mut buf = compute_node(left.get_end(), &left.hash());
                 buf.extend_from_slice(&compute_node(right.get_end(), &right.hash()));
@@ -273,19 +274,8 @@ impl SumMerkleTree {
 #[cfg(test)]
 mod tests {
     use super::Bytes;
-    use super::Hashable;
     use super::SumMerkleNode;
     use super::SumMerkleTree;
-
-    #[test]
-    fn test_hash() {
-        let hash_message = Bytes::from(&b"message"[..]);
-        let leaf = SumMerkleNode::Leaf {
-            end: 100,
-            data: hash_message,
-        };
-        assert_eq!(leaf.hash().len(), 32);
-    }
 
     #[test]
     fn test_compute_parent() {
