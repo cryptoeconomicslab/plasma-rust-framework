@@ -358,4 +358,22 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_failed_to_verify() {
+        let mut leaves = vec![];
+        for i in 0..100 {
+            leaves.push(SumMerkleNode::Leaf {
+                end: i * 100 + 100,
+                data: Bytes::from(&b"message"[..]),
+            })
+        }
+        let tree = SumMerkleTree::generate(&leaves);
+        let inclusion_proof = tree.get_inclusion_proof(5, 100);
+        assert_eq!(inclusion_proof.len(), 7);
+        assert_eq!(
+            SumMerkleTree::verify(&leaves[5].clone(), 7, inclusion_proof, &tree.get_root()).is_ok(),
+            false
+        );
+    }
+
 }
