@@ -64,10 +64,10 @@ pub enum SumMerkleNode {
 
 /// Caluculate hash of a node
 fn compute_node(end: u64, data: &Bytes) -> Bytes {
-    let mut wtr = vec![];
-    wtr.write_u64::<LittleEndian>(end).unwrap();
+    let mut end_writer = vec![];
+    end_writer.write_u64::<LittleEndian>(end).unwrap();
     let mut buf = Bytes::new();
-    buf.extend_from_slice(&wtr);
+    buf.extend_from_slice(&end_writer);
     buf.extend_from_slice(&data);
     hash_leaf(&buf)
 }
@@ -75,7 +75,7 @@ fn compute_node(end: u64, data: &Bytes) -> Bytes {
 impl Hashable for SumMerkleNode {
     fn hash(&self) -> Bytes {
         match self {
-            SumMerkleNode::Leaf { data, .. } => data.clone(),
+            SumMerkleNode::Leaf { data, .. } => hash_leaf(data),
             // H(H(left.end + left.data) + H(right.end + right.data))
             SumMerkleNode::Node { left, right, .. } => {
                 let mut buf = compute_node(left.get_end(), &left.hash());
@@ -231,6 +231,22 @@ impl SumMerkleTree {
         Self::get_path(idx.rotate_right(1), depth - 1, path)
     }
 
+    fn verify_and_get_parent(
+        left: &SumMerkleNode,
+        right: &SumMerkleNode,
+        _first_left_end: u64,
+    ) -> Result<SumMerkleNode, Error> {
+        /*
+        if left.get_end() > first_left_end {
+            return Err(Error::VerifyError);
+        }
+        */
+        if left.get_end() > right.get_end() {
+            return Err(Error::VerifyError);
+        }
+        Ok(SumMerkleNode::compute_parent(left, right))
+    }
+
     /// Verify whether leaf is included or not
     pub fn verify(
         leaf: &SumMerkleNode,
@@ -240,6 +256,7 @@ impl SumMerkleTree {
     ) -> Result<ImplicitBounds, Error> {
         let mut path: Vec<bool> = vec![];
         Self::get_path(idx, inclusion_proof.len(), path.as_mut());
+        println!("{:?}, {:?}", path, inclusion_proof);
         let first_left_end = path
             .iter()
             .position(|&p| p)
@@ -249,10 +266,10 @@ impl SumMerkleTree {
         for (i, item) in inclusion_proof.iter().enumerate() {
             if path[i] {
                 // leaf is in right
-                computed = SumMerkleNode::compute_parent(item, &computed)
+                computed = Self::verify_and_get_parent(item, &computed, first_left_end)?
             } else {
                 // leaf is in left
-                computed = SumMerkleNode::compute_parent(&computed, item)
+                computed = Self::verify_and_get_parent(&computed, item, first_left_end)?
             }
         }
         let is_last_leaf = 2u64.pow(inclusion_proof.len() as u32) - 1 == (idx as u64);
