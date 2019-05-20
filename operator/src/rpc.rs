@@ -5,5 +5,7 @@
 // This file is part of Plasma Chamber.
 //
 
+/// error definitions for json-rpc
+pub mod errors;
 pub mod plasmarpc;
 pub mod plasmarpcimpl;

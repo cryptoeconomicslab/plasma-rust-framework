@@ -9,6 +9,7 @@ extern crate jsonrpc_core;
 extern crate plasma_core;
 extern crate rlp;
 
+use super::errors;
 use super::plasmarpc::PlasmaRpc;
 use crate::context::ChainContext;
 use jsonrpc_core::{Error as JsonRpcError, ErrorCode, Result};
@@ -33,10 +34,8 @@ impl PlasmaRpc for PlasmaRpcImpl {
         Ok("0.1.0".into())
     }
     fn send_transaction(&self, message: String) -> Result<bool> {
-        let rlp_bytes =
-            hex::decode(message).map_err(|_err| JsonRpcError::new(ErrorCode::ParseError))?;
-        let transaction: Transaction =
-            rlp::decode(&rlp_bytes).map_err(|_err| JsonRpcError::new(ErrorCode::ParseError))?;
+        let rlp_bytes = hex::decode(message).map_err(errors::invalid_params)?;
+        let transaction: Transaction = rlp::decode(&rlp_bytes).map_err(errors::invalid_params)?;
         self.chain_context.append(&transaction);
         Ok(true)
     }
@@ -112,7 +111,7 @@ mod tests {
             "id": 1
         }"#;
         let response =
-            r#"{"jsonrpc":"2.0","error":{"code":-32700,"message":"Parse error"},"id":1}"#;
+            r#"{"jsonrpc":"2.0","error":{"code":-32602,"message":"RlpExpectedToBeList"},"id":1}"#;
         assert_eq!(io.handle_request_sync(&request), Some(response.to_string()));
     }
 
