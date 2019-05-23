@@ -5,7 +5,10 @@ rust:
 before_script:
   - rustup component add rustfmt
   - rustup component add clippy
+  - rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android
+
 script:
   - cargo fmt --all -- --check
   - cargo clippy --all --all-targets --all-features -- -D warnings
   - cargo test --all
+  - cd android;cargo build --target aarch64-linux-android --release;cd ../

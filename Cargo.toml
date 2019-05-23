@@ -12,8 +12,8 @@ path = "plasma-chamber/main.rs"
 name = "plasma-chamber"
 
 [workspace]
-
 members = [
+	"android",
 	"core",
 	"operator",
 	"sum_merkle_tree"
