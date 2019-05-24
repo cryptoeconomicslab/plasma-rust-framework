@@ -1,5 +1,5 @@
 [package]
-name = "rust_android_example"
+name = "plasma_core_android_lib"
 version = "0.1.0"
 authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"
@@ -15,5 +15,5 @@ ethereum-types = "0.4"
 lto = true
 
 [lib]
-name = "rust_android_example"
+name = "plasma_core_android_lib"
 crate-type = ["cdylib"]
