@@ -6,6 +6,7 @@ cache:
   cargo: true
   directories:
     - $HOME/.NDK
+  timeout: 300
 before_install:
   - sh ci.sh
 before_script:
