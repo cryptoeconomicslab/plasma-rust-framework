@@ -17,12 +17,14 @@ jobs:
     - stage: install_android_ndk
       before_install:
         - sh ci.sh
+      script: true
     - stage: install
       before_script:
         - rustup component add rustfmt
         - rustup component add clippy
         - rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android
         - cp ./android/config $HOME/.cargo/config
+      script: true
     - stage: test
       rust:
         - stable
