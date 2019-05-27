@@ -5,34 +5,35 @@ cache:
     - $HOME/.NDK
   timeout: 300
 stages:
-  - install_android_ndk
-  - install
   - tests
   - deploy
 jobs:
   include:
-    - stage: install_android_ndk
-      before_install:
-        - sh ci.sh
-      script: skip
-    - stage: install
+    - stage: tests
+      rust: stable
       before_script:
         - rustup component add rustfmt
         - rustup component add clippy
-        - rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android
-        - cp ./android/config $HOME/.cargo/config
-      script: skip
+      script:
+        - cargo fmt --all -- --check
+        - cargo clippy --all --all-targets --all-features -- -D warnings
+        - cargo test --all
     - stage: tests
-      rust:
-        - stable
-        - beta
+      rust: beta
+      before_script:
+        - rustup component add rustfmt
+        - rustup component add clippy
       script:
         - cargo fmt --all -- --check
         - cargo clippy --all --all-targets --all-features -- -D warnings
         - cargo test --all
     - stage: deploy
-      rust:
-        - stable
+      rust: stable
+      before_install:
+        - sh ci.sh
+      before_script:
+        - rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android
+        - cp ./android/config $HOME/.cargo/config
       script:
         - cd android;cargo build --target aarch64-linux-android --release;cargo build --target armv7-linux-androideabi --release;cargo build --target i686-linux-android --release;cd ../
       deploy:
