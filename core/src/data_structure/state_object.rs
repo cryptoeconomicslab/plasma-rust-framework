@@ -1,66 +1,70 @@
-extern crate ethereum_types;
+extern crate ethabi;
 extern crate rlp;
 
-use bytes::Bytes;
+use bytes::{BufMut, BytesMut};
+use ethabi::Token;
 use ethereum_types::Address;
-use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
+
+fn create_object_id(start: u64, end: u64) -> Vec<u8> {
+    let mut object_id_buf = BytesMut::with_capacity(64);
+    object_id_buf.put_u64_le(start);
+    object_id_buf.put_u64_le(end);
+    object_id_buf.to_vec()
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StateObject {
+    id: Vec<u8>,
     predicate: Address,
-    parameters: Vec<u8>,
+    data: Vec<u8>,
 }
 
 impl StateObject {
-    pub fn new(predicate: Address, parameters: &Bytes) -> StateObject {
+    pub fn from_range(start: u64, end: u64, predicate: Address, data: &[u8]) -> StateObject {
+        StateObject::new(&create_object_id(start, end), predicate, data)
+    }
+    pub fn new(object_id: &[u8], predicate: Address, data: &[u8]) -> StateObject {
         StateObject {
+            id: object_id.to_vec(),
             predicate,
-            parameters: parameters.to_vec(),
+            data: data.to_vec(),
         }
     }
-}
-
-impl Encodable for StateObject {
-    fn rlp_append(&self, s: &mut RlpStream) {
-        s.begin_list(2);
-        s.append(&self.predicate);
-        s.append(&self.parameters);
+    pub fn to_abi(&self) -> Vec<u8> {
+        ethabi::encode(&[
+            Token::Bytes(self.id.clone()),
+            Token::Address(self.predicate),
+            Token::Bytes(self.data.clone()),
+        ])
     }
-}
-
-impl Decodable for StateObject {
-    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
-        let predicate: Address = rlp.val_at(0)?;
-        let parameters: Vec<u8> = rlp.val_at(1)?;
-        Ok(StateObject {
-            predicate,
-            parameters,
-        })
+    pub fn from_abi(data: &[u8]) -> Result<Self, ethabi::Error> {
+        let decoded: Vec<Token> = ethabi::decode(
+            &[
+                ethabi::ParamType::Bytes,
+                ethabi::ParamType::Address,
+                ethabi::ParamType::Bytes,
+            ],
+            data,
+        )?;
+        let id = decoded[0].clone().to_bytes().unwrap();
+        let predicate = decoded[1].clone().to_address().unwrap();
+        let data = decoded[2].clone().to_bytes().unwrap();
+        Ok(StateObject::new(&id, predicate, &data))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Bytes;
-    use super::DecoderError;
     use super::StateObject;
     use ethereum_types::Address;
 
     #[test]
-    fn test_rlp_encode() {
-        let parameters_bytes = Bytes::from(&b"parameters"[..]);
-        let _state_object = StateObject::new(Address::zero(), &parameters_bytes);
-        let encoded = rlp::encode(&_state_object);
-        let _decoded: StateObject = rlp::decode(&encoded).unwrap();
-        assert_eq!(_decoded.predicate, _state_object.predicate);
-    }
-
-    #[test]
-    fn fail_to_decode() {
-        let animal = "cat";
-        let encoded = rlp::encode(&animal);
-        let decoded: Result<StateObject, DecoderError> = rlp::decode(&encoded);
-        assert_eq!(decoded.is_err(), true);
+    fn test_abi_encode() {
+        let parameters_bytes = Vec::from(&b"parameters"[..]);
+        let state_object = StateObject::from_range(0, 100, Address::zero(), &parameters_bytes);
+        let encoded = state_object.to_abi();
+        let decoded: StateObject = StateObject::from_abi(&encoded).unwrap();
+        assert_eq!(decoded.predicate, state_object.predicate);
     }
 
 }

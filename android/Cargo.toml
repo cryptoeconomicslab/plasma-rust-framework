@@ -8,8 +8,9 @@ edition = "2018"
 jni = { version = "0.10.2", default-features = false }
 plasma-core = { path="../core" }
 bytes = "0.4.12"
-rlp = "0.3.0"
-ethereum-types = "0.4"
+rlp = "0.4.0"
+ethereum-types = "^0.5.2"
+
 
 [profile.release]
 lto = true
