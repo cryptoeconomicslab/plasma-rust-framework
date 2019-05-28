@@ -7,7 +7,6 @@ edition = "2018"
 [dependencies]
 jni = { version = "0.10.2", default-features = false }
 plasma-core = { path="../core" }
-bytes = "0.4.12"
 rlp = "0.4.0"
 ethereum-types = "^0.5.2"
 

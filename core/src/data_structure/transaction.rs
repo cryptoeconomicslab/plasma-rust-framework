@@ -1,9 +1,8 @@
-extern crate crypto;
 extern crate ethereum_types;
 extern crate rlp;
+extern crate tiny_keccak;
 
-use crypto::digest::Digest;
-use crypto::sha3::Sha3;
+use tiny_keccak::Keccak;
 use ethabi::Token;
 use ethereum_types::Address;
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
@@ -73,12 +72,11 @@ impl Transaction {
         ))
     }
     pub fn create_method_id(value: &[u8]) -> Vec<u8> {
-        let mut hasher = Sha3::keccak256();
-        let mut result = vec![0u8; hasher.output_bits() / 8];
-        hasher.reset();
-        hasher.input(value);
-        hasher.result(result.as_mut_slice());
-        result.clone()
+        let mut hasher = Keccak::new_sha3_256();
+        hasher.update(value);
+        let mut result: [u8; 32] = [0; 32];
+        hasher.finalize(&mut result);
+        result.to_vec()
     }
 }
 

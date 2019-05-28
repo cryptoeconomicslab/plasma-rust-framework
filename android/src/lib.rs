@@ -1,7 +1,6 @@
 #![cfg(target_os = "android")]
 #![allow(non_snake_case)]
 
-use bytes::Bytes;
 use ethereum_types::Address;
 use jni::objects::{JObject, JString};
 use jni::sys::jstring;
@@ -19,9 +18,13 @@ pub unsafe extern "C" fn Java_com_example_android_MainActivity_hello(
         env.get_string(j_recipient).unwrap().as_ptr(),
     ));
 
-    let parameters_bytes = Bytes::from(&b"parameters"[..]);
-    let state_object = StateObject::new(Address::zero(), &parameters_bytes);
-    let _encoded = rlp::encode(&state_object);
+    let parameters_bytes = Vec::from(&b"parameters"[..]);
+    let state_object = StateObject::from_range(
+        0,
+        100,
+        Address::zero(),
+        &parameters_bytes);
+    let _encoded = state_object.to_abi();
 
     let output = env
         .new_string("Hello ".to_owned() + recipient.to_str().unwrap())
