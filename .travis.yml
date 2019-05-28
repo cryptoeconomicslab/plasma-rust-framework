@@ -35,7 +35,11 @@ jobs:
         - rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android
         - cp ./android/config $HOME/.cargo/config
       script:
-        - cd android;cargo build --target aarch64-linux-android --release;cargo build --target armv7-linux-androideabi --release;cargo build --target i686-linux-android --release;cd ../
+        - cd android
+        - cargo build --target aarch64-linux-android --release
+        - cargo build --target armv7-linux-androideabi --release
+        - cargo build --target i686-linux-android --release
+        - cd ../
       deploy:
         provider: bintray
         file: 'descriptor.json'
