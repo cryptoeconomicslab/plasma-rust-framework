@@ -15,6 +15,7 @@ name = "plasma-chamber"
 members = [
 	"android",
 	"core",
+	"db",
 	"operator",
 	"sum_merkle_tree"
 ]
