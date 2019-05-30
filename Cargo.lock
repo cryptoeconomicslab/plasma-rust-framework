@@ -774,6 +774,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "plasma-db"
+version = "0.1.0"
+dependencies = [
+ "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rlp 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "plasma-operator"
 version = "0.1.0"
 dependencies = [
