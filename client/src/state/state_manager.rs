@@ -81,6 +81,7 @@ mod tests {
     use super::StateManager;
     use ethereum_types::{Address, H256};
     use plasma_core::data_structure::{StateObject, StateUpdate, Transaction, Witness};
+    use predicate_plugins::OwnershipPredicate;
 
     fn create_state_update(start: u64, end: u64, block_number: u64) -> StateUpdate {
         StateUpdate::new(
@@ -96,13 +97,15 @@ mod tests {
     fn test_execute_transaction() {
         // make state update
         let state_update = create_state_update(0, 100, 1);
+        let parameters =
+            OwnershipPredicate::make_parameters(Address::zero(), Address::zero(), 5, 10);
         // make transaction
         let transaction = Transaction::new(
             Address::zero(),
             0,
             100,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &b"new state update"[..],
+            &parameters,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
 
@@ -117,13 +120,15 @@ mod tests {
     fn test_execute_transaction_for_partial_range() {
         // make state update
         let state_update = create_state_update(0, 100, 1);
+        let parameters =
+            OwnershipPredicate::make_parameters(Address::zero(), Address::zero(), 5, 10);
         // make transaction
         let transaction = Transaction::new(
             Address::zero(),
             0,
             20,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &b"new state update"[..],
+            &parameters,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
 
@@ -139,13 +144,15 @@ mod tests {
         // make state update
         let state_update1 = create_state_update(0, 100, 1);
         let state_update2 = create_state_update(100, 200, 2);
+        let parameters =
+            OwnershipPredicate::make_parameters(Address::zero(), Address::zero(), 5, 10);
         // make transaction
         let transaction = Transaction::new(
             Address::zero(),
             50,
             150,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &b"new state update"[..],
+            &parameters,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
 

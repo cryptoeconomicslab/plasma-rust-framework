@@ -140,6 +140,9 @@ impl Transaction {
     pub fn get_parameters(&self) -> &[u8] {
         &self.parameters
     }
+    pub fn get_plasma_contract_address(&self) -> Address {
+        self.plasma_contract_address
+    }
 }
 
 impl Encodable for Transaction {
