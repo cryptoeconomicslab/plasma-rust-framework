@@ -80,3 +80,46 @@ impl PredicatePlugin for OwnershipPredicate {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::OwnershipPredicate;
+    use crate::predicate::PredicatePlugin;
+    use ethereum_types::{Address, H256};
+    use plasma_core::data_structure::{StateObject, StateUpdate, Transaction, Witness};
+
+    #[test]
+    fn test_execute_state_transition() {
+        let start = 0;
+        let end = 1000;
+        let plasma_contract_address = Address::zero();
+        let predicate_address = Address::zero();
+        let alice_address = Address::zero();
+        // make state update
+        let state_update = StateUpdate::new(
+            &StateObject::new(predicate_address, &b"data"[..]),
+            start,
+            end,
+            10,
+            plasma_contract_address,
+        );
+        // make parameters
+        let parameters =
+            OwnershipPredicate::make_parameters(predicate_address, alice_address, 10, 20);
+        // make transaction
+        let transaction = Transaction::new(
+            plasma_contract_address,
+            start,
+            end,
+            Transaction::create_method_id(&b"send(address)"[..]),
+            &parameters,
+            &Witness::new(H256::zero(), H256::zero(), 0),
+        );
+
+        let predicate: OwnershipPredicate = Default::default();
+        let next_state_update = predicate.execute_state_transition(&state_update, &transaction);
+        assert_eq!(next_state_update.get_start(), transaction.get_start());
+        assert_eq!(next_state_update.get_end(), transaction.get_end());
+    }
+
+}
