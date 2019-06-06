@@ -16,6 +16,7 @@ jobs:
         - cargo fmt --all -- --check
         - cargo clippy --all --all-targets --all-features -- -D warnings
         - cargo test --all
+        - cargo doc --no-deps --document-private-items --all
     - stage: tests
       rust: beta
       before_script:
@@ -57,4 +58,4 @@ deploy:
   on:
     branch: master
   target_branch: gh-pages
-  local_dir: ./target/doc/plasma_core
+  local_dir: ./target/doc
