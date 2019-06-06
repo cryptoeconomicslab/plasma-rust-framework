@@ -22,6 +22,16 @@ impl Witness {
 }
 
 #[derive(Clone, Debug)]
+/// ## struct Transaction
+/// - has a `plasma_contract_address`
+/// - has a `start` (A range element)
+/// - has a `end` (A range element)
+/// - has a `method_id` (like ABI)
+/// - has many `parameters`
+/// - has a `witness` (signature, proof or some)
+/// - Traits
+///   - Encodable
+///   - Decodable
 pub struct Transaction {
     plasma_contract_address: Address,
     start: u64,
@@ -32,6 +42,11 @@ pub struct Transaction {
 }
 
 impl Transaction {
+    /// ### Transaction.new
+    /// A constructor of a Transaction struct
+    /// ```ignore
+    /// let tx = Transaction.new(plasma_contract_address, start, end ,method_id, &parameters, &witness);
+    /// ```
     pub fn new(
         plasma_contract_address: Address,
         start: u64,
@@ -49,6 +64,11 @@ impl Transaction {
             witness: witness.clone(),
         }
     }
+    /// ### tx.to_body_abi()
+    /// A function to convert the transaction instance to the body abi bytes
+    /// ```ignore
+    /// let body_abi = tx.to_body_abi()
+    /// ```
     pub fn to_body_abi(&self) -> Vec<u8> {
         ethabi::encode(&[
             Token::Address(self.plasma_contract_address),
@@ -58,6 +78,11 @@ impl Transaction {
             Token::Bytes(self.parameters.clone()),
         ])
     }
+    /// ### tx.to_abi()
+    /// A function to convert the transaction instance to the full abi bytes
+    /// ```ignore
+    /// let abi = tx.to_abi()
+    /// ```
     pub fn to_abi(&self) -> Vec<u8> {
         ethabi::encode(&[
             Token::Address(self.plasma_contract_address),
@@ -70,6 +95,11 @@ impl Transaction {
             Token::Uint(self.witness.s.into()),
         ])
     }
+    /// ### Transaction.from_abi()
+    /// A static function to convert the abi into a tx instance
+    /// ```ignore
+    /// let tx = Transaction.from_abi(&abi)
+    /// ```
     pub fn from_abi(data: &[u8]) -> Result<Self, Error> {
         let decoded = ethabi::decode(
             &[
@@ -124,6 +154,11 @@ impl Transaction {
             Err(Error::from(ErrorKind::AbiDecode))
         }
     }
+    /// ### Transaction.create_method_id()
+    /// A static function to generate method_id bytes from value
+    /// ```ignore
+    /// let method_id = Transaction.create_method_id(&value)
+    /// ```
     pub fn create_method_id(value: &[u8]) -> u8 {
         let mut hasher = Keccak::new_sha3_256();
         hasher.update(value);
@@ -131,9 +166,19 @@ impl Transaction {
         hasher.finalize(&mut result);
         result[0]
     }
+    /// ### tx.get_start()
+    /// A function to get start of a range of a tx instance
+    /// ```ignore
+    /// let start = tx.get_start();
+    /// ```
     pub fn get_start(&self) -> u64 {
         self.start
     }
+    /// ### tx.get_end()
+    /// A function to get end of a range of a tx instance
+    /// ```ignore
+    /// let end = tx.get_end();
+    /// ```
     pub fn get_end(&self) -> u64 {
         self.end
     }

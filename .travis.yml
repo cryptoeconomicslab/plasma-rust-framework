@@ -16,6 +16,7 @@ jobs:
         - cargo fmt --all -- --check
         - cargo clippy --all --all-targets --all-features -- -D warnings
         - cargo test --all
+        - cargo doc --no-deps --document-private-items --all
     - stage: tests
       rust: beta
       before_script:
@@ -28,7 +29,7 @@ jobs:
     - stage: deploy
       rust: stable
       before_install:
-        - sh ci.sh
+        - sh android-ci.sh
       before_script:
         - rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android
         - cp ./android/config $HOME/.cargo/config
@@ -48,3 +49,13 @@ jobs:
         on:
           branch: master
           rust: stable
+
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN  # Set in the settings page of your repository, as a secure variable
+  keep_history: true
+  on:
+    branch: master
+  target_branch: gh-pages
+  local_dir: ./target/doc

@@ -5,12 +5,23 @@ use ethereum_types::H256;
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
 #[derive(Clone, Debug)]
+/// ## struct Block
+/// - has many `transactions`
+/// - has a `merkle root hash`
+/// - Traits
+///   - Encodable
+///   - Decodable
 pub struct Block {
     transactions: Vec<Transaction>,
     root: H256,
 }
 
 impl Block {
+    /// ### Block.new
+    /// A constructor of a Block struct
+    /// ```ignore
+    /// let block = Block.new(&txs, root)
+    /// ```
     pub fn new(transactions: &[Transaction], root: H256) -> Block {
         Block {
             transactions: transactions.to_vec(),
