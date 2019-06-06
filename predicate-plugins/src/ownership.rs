@@ -1,30 +1,34 @@
-use crate::predicate::PredicatePlugin;
+use crate::{PredicateParameters, PredicatePlugin};
 use ethabi::{ParamType, Token};
-use ethereum_types::Address;
 use plasma_core::data_structure::{StateObject, StateUpdate, Transaction};
 
-/// Simple ownership predicate
-pub struct OwnershipPredicate {}
+/// Parameters of ownership predicate
+pub struct OwnershipPredicateParameters {
+    state_object: StateObject,
+    origin_block: u64,
+    max_block: u64,
+}
 
-impl OwnershipPredicate {
-    /// Make parameters for ownership predicate
-    pub fn make_parameters(
-        predicate: Address,
-        owner: Address,
-        origin_block: u64,
-        max_block: u64,
-    ) -> Vec<u8> {
-        ethabi::encode(&[
-            Token::Tuple(vec![
-                Token::Address(predicate),
-                Token::Bytes(owner.as_bytes().to_vec()),
-            ]),
-            Token::Uint(origin_block.into()),
-            Token::Uint(max_block.into()),
-        ])
+impl OwnershipPredicateParameters {
+    /// Creates new parameters object
+    pub fn new(state_object: StateObject, origin_block: u64, max_block: u64) -> Self {
+        OwnershipPredicateParameters {
+            state_object,
+            origin_block,
+            max_block,
+        }
     }
-    /// Parse parameters of ownership predicate
-    pub fn parse_parameters(data: &[u8]) -> Option<(StateObject, u64, u64)> {
+    pub fn get_state_object(&self) -> &StateObject {
+        &self.state_object
+    }
+    pub fn get_origin_block(&self) -> u64 {
+        self.origin_block
+    }
+    pub fn get_max_block(&self) -> u64 {
+        self.max_block
+    }
+    /// Parse parameters from ABI
+    pub fn decode(data: &[u8]) -> Option<Self> {
         ethabi::decode(
             &[
                 ParamType::Tuple(vec![ParamType::Address, ParamType::Bytes]),
@@ -43,13 +47,36 @@ impl OwnershipPredicate {
             {
                 StateObject::from_tuple(&state_object_tuple)
                     .ok()
-                    .map(|state_object| (state_object, origin_block.as_u64(), max_block.as_u64()))
+                    .map(|state_object| {
+                        OwnershipPredicateParameters::new(
+                            state_object,
+                            origin_block.as_u64(),
+                            max_block.as_u64(),
+                        )
+                    })
             } else {
                 None
             }
         })
     }
 }
+
+impl PredicateParameters for OwnershipPredicateParameters {
+    /// Make parameters for ownership predicate
+    fn encode(&self) -> Vec<u8> {
+        ethabi::encode(&[
+            Token::Tuple(vec![
+                Token::Address(self.get_state_object().get_predicate()),
+                Token::Bytes(self.get_state_object().get_data().to_vec()),
+            ]),
+            Token::Uint(self.origin_block.into()),
+            Token::Uint(self.max_block.into()),
+        ])
+    }
+}
+
+/// Simple ownership predicate
+pub struct OwnershipPredicate {}
 
 impl Default for OwnershipPredicate {
     fn default() -> Self {
@@ -65,14 +92,14 @@ impl PredicatePlugin for OwnershipPredicate {
     ) -> StateUpdate {
         // should parse transaction.parameters
         // make new state update
-        let (state_object, origin_block, max_block) =
-            Self::parse_parameters(transaction.get_parameters()).unwrap();
+        let parameters =
+            OwnershipPredicateParameters::decode(transaction.get_parameters()).unwrap();
         // Where does the function get pending block number from?
-        let pending_block_number = max_block;
-        assert!(input.get_block_number() <= origin_block);
-        assert!(pending_block_number <= max_block);
+        let pending_block_number = parameters.get_max_block();
+        assert!(input.get_block_number() <= parameters.get_origin_block());
+        assert!(pending_block_number <= parameters.get_max_block());
         StateUpdate::new(
-            &state_object,
+            parameters.get_state_object(),
             transaction.get_start(),
             transaction.get_end(),
             pending_block_number,
@@ -83,8 +110,8 @@ impl PredicatePlugin for OwnershipPredicate {
 
 #[cfg(test)]
 mod tests {
-    use super::OwnershipPredicate;
-    use crate::predicate::PredicatePlugin;
+    use super::{OwnershipPredicate, OwnershipPredicateParameters};
+    use crate::{PredicateParameters, PredicatePlugin};
     use ethereum_types::{Address, H256};
     use plasma_core::data_structure::{StateObject, StateUpdate, Transaction, Witness};
 
@@ -104,15 +131,19 @@ mod tests {
             plasma_contract_address,
         );
         // make parameters
-        let parameters =
-            OwnershipPredicate::make_parameters(predicate_address, alice_address, 10, 20);
+        let parameters = OwnershipPredicateParameters::new(
+            StateObject::new(predicate_address, &alice_address.as_bytes().to_vec()),
+            10,
+            20,
+        );
+        let parameters_bytes = parameters.encode();
         // make transaction
         let transaction = Transaction::new(
             plasma_contract_address,
             start,
             end,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &parameters,
+            &parameters_bytes,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
 

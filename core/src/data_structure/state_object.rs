@@ -50,8 +50,11 @@ impl StateObject {
         .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;
         Self::from_tuple(&decoded)
     }
-    pub fn get_predicate(&self) -> &Address {
-        &self.predicate
+    pub fn get_predicate(&self) -> Address {
+        self.predicate
+    }
+    pub fn get_data(&self) -> &[u8] {
+        &self.data
     }
 }
 
