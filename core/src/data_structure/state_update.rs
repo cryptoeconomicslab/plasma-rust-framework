@@ -17,14 +17,14 @@ pub struct StateUpdate {
 
 impl StateUpdate {
     pub fn new(
-        state_object: &StateObject,
+        state_object: StateObject,
         start: u64,
         end: u64,
         block_number: u64,
         plasma_contract: Address,
     ) -> Self {
         StateUpdate {
-            state_object: state_object.clone(),
+            state_object,
             start,
             end,
             block_number,
@@ -67,7 +67,7 @@ impl StateUpdate {
         ) = (state_object, start, end, block_number, plasma_contract)
         {
             Ok(StateUpdate::new(
-                &StateObject::from_abi(&state_object).unwrap(),
+                StateObject::from_abi(&state_object).unwrap(),
                 start.as_u64(),
                 end.as_u64(),
                 block_number.as_u64(),
@@ -102,7 +102,7 @@ mod tests {
         let parameters_bytes = Vec::from(&b"parameters"[..]);
         let state_object = StateObject::new(Address::zero(), &parameters_bytes);
 
-        let state_update = StateUpdate::new(&state_object, 0, 100, 1, Address::zero());
+        let state_update = StateUpdate::new(state_object, 0, 100, 1, Address::zero());
         let encoded = state_update.to_abi();
         let decoded: StateUpdate = StateUpdate::from_abi(&encoded).unwrap();
         assert_eq!(decoded.start, state_update.start);

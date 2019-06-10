@@ -84,7 +84,7 @@ mod tests {
 
     fn create_state_update(start: u64, end: u64, block_number: u64) -> StateUpdate {
         StateUpdate::new(
-            &StateObject::new(Address::zero(), &b"data"[..]),
+            StateObject::new(Address::zero(), &b"data"[..]),
             start,
             end,
             block_number,
