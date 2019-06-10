@@ -20,13 +20,13 @@ impl VerifiedStateUpdate {
         start: u64,
         end: u64,
         verified_block_number: u64,
-        state_update: &StateUpdate,
+        state_update: StateUpdate,
     ) -> Self {
         VerifiedStateUpdate {
             start,
             end,
             verified_block_number,
-            state_update: state_update.clone(),
+            state_update,
         }
     }
     pub fn from(verified_block_number: u64, state_update: &StateUpdate) -> Self {
@@ -77,7 +77,7 @@ impl VerifiedStateUpdate {
                 block_number.as_u64(),
                 start.as_u64(),
                 end.as_u64(),
-                &StateUpdate::from_abi(&state_update).unwrap(),
+                StateUpdate::from_abi(&state_update).unwrap(),
             ))
         } else {
             Err(Error::from(ErrorKind::AbiDecode))

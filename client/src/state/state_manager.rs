@@ -10,9 +10,9 @@ pub struct ResultOfExecuteTransaction {
 }
 
 impl ResultOfExecuteTransaction {
-    pub fn new(state_update: &StateUpdate, ranges: &[VerifiedStateUpdate]) -> Self {
+    pub fn new(state_update: StateUpdate, ranges: &[VerifiedStateUpdate]) -> Self {
         ResultOfExecuteTransaction {
-            state_update: Box::new(state_update.clone()),
+            state_update: Box::new(state_update),
             ranges: ranges.to_vec().into_boxed_slice(),
         }
     }
@@ -38,7 +38,7 @@ impl Default for StateManager {
 
 impl StateManager {
     /// force to put state update
-    pub fn deposit(&self, start: u64, end: u64, state_update: &StateUpdate) -> Result<(), Error> {
+    pub fn deposit(&self, start: u64, end: u64, state_update: StateUpdate) -> Result<(), Error> {
         self.db
             .put_verified_state_update(&VerifiedStateUpdate::new(start, end, 0, state_update))
     }
@@ -63,11 +63,11 @@ impl StateManager {
             })
             .collect();
         // new_state_updates should has same state_update
-        let new_state_update: &StateUpdate = &new_state_updates[0];
+        let new_state_update: StateUpdate = new_state_updates[0].clone();
         self.db
             .put_verified_state_update(&VerifiedStateUpdate::from(
                 new_state_update.get_block_number(),
-                new_state_update,
+                &new_state_update,
             ))?;
         Ok(ResultOfExecuteTransaction::new(
             new_state_update,
@@ -84,7 +84,7 @@ mod tests {
 
     fn create_state_update(start: u64, end: u64, block_number: u64) -> StateUpdate {
         StateUpdate::new(
-            &StateObject::new(Address::zero(), &b"data"[..]),
+            StateObject::new(Address::zero(), &b"data"[..]),
             start,
             end,
             block_number,
@@ -107,7 +107,7 @@ mod tests {
         );
 
         let state_manager: StateManager = Default::default();
-        let deposit_result = state_manager.deposit(0, 100, &state_update);
+        let deposit_result = state_manager.deposit(0, 100, state_update);
         assert!(deposit_result.is_ok());
         let result = state_manager.execute_transaction(&transaction);
         assert!(result.is_ok());
@@ -128,7 +128,7 @@ mod tests {
         );
 
         let state_manager: StateManager = Default::default();
-        let deposit_result = state_manager.deposit(0, 100, &state_update);
+        let deposit_result = state_manager.deposit(0, 100, state_update);
         assert!(deposit_result.is_ok());
         let result = state_manager.execute_transaction(&transaction);
         assert!(result.is_ok());
@@ -150,8 +150,8 @@ mod tests {
         );
 
         let state_manager: StateManager = Default::default();
-        assert!(state_manager.deposit(0, 100, &state_update1).is_ok());
-        assert!(state_manager.deposit(100, 200, &state_update2).is_ok());
+        assert!(state_manager.deposit(0, 100, state_update1).is_ok());
+        assert!(state_manager.deposit(100, 200, state_update2).is_ok());
         let result = state_manager.execute_transaction(&transaction);
         assert!(result.is_ok());
     }
