@@ -1,7 +1,9 @@
 extern crate crypto;
 
+mod index;
+
 use self::crypto::sha3::Sha3;
-use byteorder::{LittleEndian, WriteBytesExt};
+use self::index::Index;
 use bytes::Bytes;
 use crypto::digest::Digest;
 
@@ -44,42 +46,35 @@ trait Hashable {
 ///```
 ///
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum SumMerkleNode {
+pub enum SumMerkleNode<I: Index> {
     Leaf {
-        end: u64,
+        end: I,
         data: Bytes,
     },
 
     Node {
-        end: u64,
-        left: Box<SumMerkleNode>,
-        right: Box<SumMerkleNode>,
+        end: I,
+        left: Box<SumMerkleNode<I>>,
+        right: Box<SumMerkleNode<I>>,
     },
 
     ProofNode {
-        end: u64,
+        end: I,
         data: Bytes,
     },
 }
 
-/// Caluculate hash of a node
-fn compute_node(end: u64, data: &Bytes) -> Bytes {
-    let mut end_writer = vec![];
-    end_writer.write_u64::<LittleEndian>(end).unwrap();
-    let mut buf = Bytes::new();
-    buf.extend_from_slice(&end_writer);
-    buf.extend_from_slice(&data);
-    hash_leaf(&buf)
-}
-
-impl Hashable for SumMerkleNode {
+impl<I> Hashable for SumMerkleNode<I>
+where
+    I: Index,
+{
     fn hash(&self) -> Bytes {
         match self {
             SumMerkleNode::Leaf { data, .. } => hash_leaf(data),
             // H(H(left.end + left.data) + H(right.end + right.data))
             SumMerkleNode::Node { left, right, .. } => {
-                let mut buf = compute_node(left.get_end(), &left.hash());
-                buf.extend_from_slice(&compute_node(right.get_end(), &right.hash()));
+                let mut buf = SumMerkleNode::compute_node(left.get_end(), &left.hash());
+                buf.extend_from_slice(&SumMerkleNode::compute_node(right.get_end(), &right.hash()));
                 hash_leaf(&buf)
             }
             SumMerkleNode::ProofNode { data, .. } => data.clone(),
@@ -87,8 +82,19 @@ impl Hashable for SumMerkleNode {
     }
 }
 
-impl SumMerkleNode {
-    pub fn create_proof_node(node: &SumMerkleNode) -> SumMerkleNode {
+impl<I> SumMerkleNode<I>
+where
+    I: Index,
+{
+    /// Caluculate hash of a node
+    fn compute_node(offset: I, data: &Bytes) -> Bytes {
+        let mut buf = Bytes::new();
+        buf.extend_from_slice(&offset.encode_as_le());
+        buf.extend_from_slice(data);
+        hash_leaf(&buf)
+    }
+
+    pub fn create_proof_node(node: &Self) -> Self {
         SumMerkleNode::ProofNode {
             end: node.get_end(),
             data: node.hash(),
@@ -97,16 +103,16 @@ impl SumMerkleNode {
 
     pub fn create_empty() -> Self {
         SumMerkleNode::Leaf {
-            end: u64::max_value(),
+            end: I::max_value(),
             data: hash_leaf(&Bytes::from_static(&[0u8])),
         }
     }
 
-    pub fn create_leaf(end: u64, data: Bytes) -> Self {
+    pub fn create_leaf(end: I, data: Bytes) -> Self {
         SumMerkleNode::Leaf { end, data }
     }
 
-    pub fn create_node(end: u64, left: &SumMerkleNode, right: &SumMerkleNode) -> Self {
+    pub fn create_node(end: I, left: &Self, right: &Self) -> Self {
         SumMerkleNode::Node {
             end,
             left: Box::new(left.clone()),
@@ -114,11 +120,11 @@ impl SumMerkleNode {
         }
     }
 
-    pub fn compute_parent(left: &SumMerkleNode, right: &SumMerkleNode) -> SumMerkleNode {
+    pub fn compute_parent(left: &Self, right: &Self) -> Self {
         SumMerkleNode::create_node(right.get_end(), left, right)
     }
 
-    fn get_end(&self) -> u64 {
+    fn get_end(&self) -> I {
         match self {
             SumMerkleNode::Leaf { end, .. } => *end,
             SumMerkleNode::Node { end, .. } => *end,
@@ -128,14 +134,17 @@ impl SumMerkleNode {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ImplicitBounds {
-    implicit_start: u64,
-    implicit_end: u64,
+pub struct ImplicitBounds<I: Index> {
+    implicit_start: I,
+    implicit_end: I,
 }
 
-impl ImplicitBounds {
-    pub fn new(implicit_start: u64, implicit_end: u64) -> Self {
-        ImplicitBounds {
+impl<I> ImplicitBounds<I>
+where
+    I: Index,
+{
+    pub fn new(implicit_start: I, implicit_end: I) -> Self {
+        Self {
             implicit_start,
             implicit_end,
         }
@@ -143,13 +152,16 @@ impl ImplicitBounds {
 }
 
 #[derive(Debug)]
-pub struct SumMerkleTree {
-    tree: SumMerkleNode,
+pub struct SumMerkleTree<I: Index> {
+    tree: SumMerkleNode<I>,
 }
 
-impl SumMerkleTree {
+impl<I> SumMerkleTree<I>
+where
+    I: Index,
+{
     /// generate sum merkle tree
-    pub fn generate(leaves: &[SumMerkleNode]) -> SumMerkleTree {
+    pub fn generate(leaves: &[SumMerkleNode<I>]) -> Self {
         if leaves.len() <= 1 {
             return SumMerkleTree {
                 tree: leaves[0].clone(),
@@ -176,15 +188,15 @@ impl SumMerkleTree {
     }
 
     /// Returns inclusion proof for a leaf
-    pub fn get_inclusion_proof(&self, idx: usize, count: usize) -> Vec<SumMerkleNode> {
+    pub fn get_inclusion_proof(&self, idx: usize, count: usize) -> Vec<SumMerkleNode<I>> {
         SumMerkleTree::get_inclusion_proof_of_tree(&self.tree, idx, count)
     }
 
     fn get_inclusion_proof_of_tree(
-        tree: &SumMerkleNode,
+        tree: &SumMerkleNode<I>,
         idx: usize,
         count: usize,
-    ) -> Vec<SumMerkleNode> {
+    ) -> Vec<SumMerkleNode<I>> {
         match tree {
             SumMerkleNode::Leaf { .. } => vec![],
             SumMerkleNode::Node { left, right, .. } => {
@@ -232,10 +244,10 @@ impl SumMerkleTree {
     }
 
     fn verify_and_get_parent(
-        left: &SumMerkleNode,
-        right: &SumMerkleNode,
-        _first_left_end: u64,
-    ) -> Result<SumMerkleNode, Error> {
+        left: &SumMerkleNode<I>,
+        right: &SumMerkleNode<I>,
+        _first_left_end: I,
+    ) -> Result<SumMerkleNode<I>, Error> {
         /*
         if left.get_end() > first_left_end {
             return Err(Error::VerifyError);
@@ -249,11 +261,11 @@ impl SumMerkleTree {
 
     /// Verify whether leaf is included or not
     pub fn verify(
-        leaf: &SumMerkleNode,
+        leaf: &SumMerkleNode<I>,
         idx: usize,
-        inclusion_proof: Vec<SumMerkleNode>,
+        inclusion_proof: Vec<SumMerkleNode<I>>,
         root: &Bytes,
-    ) -> Result<ImplicitBounds, Error> {
+    ) -> Result<ImplicitBounds<I>, Error> {
         let mut path: Vec<bool> = vec![];
         Self::get_path(idx, inclusion_proof.len(), path.as_mut());
         println!("{:?}, {:?}", path, inclusion_proof);
@@ -261,7 +273,7 @@ impl SumMerkleTree {
             .iter()
             .position(|&p| p)
             .map(|pos| inclusion_proof[pos].clone())
-            .map_or(0, |n| n.get_end());
+            .map_or(I::zero(), |n| n.get_end());
         let mut computed = leaf.clone();
         for (i, item) in inclusion_proof.iter().enumerate() {
             if path[i] {
@@ -277,7 +289,7 @@ impl SumMerkleTree {
             Ok(ImplicitBounds::new(
                 first_left_end,
                 if is_last_leaf {
-                    u64::max_value()
+                    I::max_value()
                 } else {
                     leaf.get_end()
                 },
