@@ -33,22 +33,28 @@ impl StateObject {
             Token::Bytes(self.data.clone()),
         ])
     }
-    pub fn from_abi(data: &[u8]) -> Result<Self, Error> {
-        let decoded: Vec<Token> = ethabi::decode(
-            &[ethabi::ParamType::Address, ethabi::ParamType::Bytes],
-            data,
-        )
-        .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;
-        let predicate = decoded[0].clone().to_address();
-        let data = decoded[1].clone().to_bytes();
+    pub fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
+        let predicate = tuple[0].clone().to_address();
+        let data = tuple[1].clone().to_bytes();
         if let (Some(predicate), Some(data)) = (predicate, data) {
             Ok(StateObject::new(predicate, &data))
         } else {
             Err(Error::from(ErrorKind::AbiDecode))
         }
     }
-    pub fn get_predicate(&self) -> &Address {
-        &self.predicate
+    pub fn from_abi(data: &[u8]) -> Result<Self, Error> {
+        let decoded: Vec<Token> = ethabi::decode(
+            &[ethabi::ParamType::Address, ethabi::ParamType::Bytes],
+            data,
+        )
+        .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;
+        Self::from_tuple(&decoded)
+    }
+    pub fn get_predicate(&self) -> Address {
+        self.predicate
+    }
+    pub fn get_data(&self) -> &[u8] {
+        &self.data
     }
 }
 

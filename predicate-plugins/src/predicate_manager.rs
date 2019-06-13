@@ -6,7 +6,7 @@ use ethereum_types::Address;
 pub struct PredicateManager {}
 
 impl PredicateManager {
-    pub fn get_plugin(_address: &Address) -> Box<dyn PredicatePlugin> {
+    pub fn get_plugin(_address: Address) -> Box<dyn PredicatePlugin> {
         let predicate: OwnershipPredicate = Default::default();
         Box::new(predicate)
     }

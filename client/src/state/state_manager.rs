@@ -54,7 +54,7 @@ impl StateManager {
         let new_state_updates: Vec<StateUpdate> = verified_state_updates
             .iter()
             .map(|verified_state_update| {
-                let predicate_address: &Address = verified_state_update
+                let predicate_address: Address = verified_state_update
                     .get_state_update()
                     .get_state_object()
                     .get_predicate();
@@ -81,6 +81,7 @@ mod tests {
     use super::StateManager;
     use ethereum_types::{Address, H256};
     use plasma_core::data_structure::{StateObject, StateUpdate, Transaction, Witness};
+    use predicate_plugins::{OwnershipPredicateParameters, PredicateParameters};
 
     fn create_state_update(start: u64, end: u64, block_number: u64) -> StateUpdate {
         StateUpdate::new(
@@ -96,13 +97,19 @@ mod tests {
     fn test_execute_transaction() {
         // make state update
         let state_update = create_state_update(0, 100, 1);
+        let parameters = OwnershipPredicateParameters::new(
+            StateObject::new(Address::zero(), &Address::zero().as_bytes().to_vec()),
+            5,
+            10,
+        );
+        let parameters_bytes = parameters.encode();
         // make transaction
         let transaction = Transaction::new(
             Address::zero(),
             0,
             100,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &b"new state update"[..],
+            &parameters_bytes,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
 
@@ -117,13 +124,19 @@ mod tests {
     fn test_execute_transaction_for_partial_range() {
         // make state update
         let state_update = create_state_update(0, 100, 1);
+        let parameters = OwnershipPredicateParameters::new(
+            StateObject::new(Address::zero(), &Address::zero().as_bytes().to_vec()),
+            5,
+            10,
+        );
+        let parameters_bytes = parameters.encode();
         // make transaction
         let transaction = Transaction::new(
             Address::zero(),
             0,
             20,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &b"new state update"[..],
+            &parameters_bytes,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
 
@@ -139,13 +152,19 @@ mod tests {
         // make state update
         let state_update1 = create_state_update(0, 100, 1);
         let state_update2 = create_state_update(100, 200, 2);
+        let parameters = OwnershipPredicateParameters::new(
+            StateObject::new(Address::zero(), &Address::zero().as_bytes().to_vec()),
+            5,
+            10,
+        );
+        let parameters_bytes = parameters.encode();
         // make transaction
         let transaction = Transaction::new(
             Address::zero(),
             50,
             150,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &b"new state update"[..],
+            &parameters_bytes,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
 
