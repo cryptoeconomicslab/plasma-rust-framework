@@ -3,6 +3,7 @@ use crate::state::{StateDb, VerifiedStateUpdate};
 use bytes::Bytes;
 use ethereum_types::Address;
 use plasma_core::data_structure::{StateUpdate, Transaction};
+use plasma_db::impls::rangestore::memory::RangeDbMemoryImpl;
 use predicate_plugins::PredicateManager;
 
 pub struct ResultOfExecuteTransaction {
@@ -71,7 +72,7 @@ impl StateQueryResult {
 }
 
 pub struct StateManager {
-    db: Box<StateDb>,
+    db: Box<StateDb<RangeDbMemoryImpl>>,
 }
 
 impl Default for StateManager {

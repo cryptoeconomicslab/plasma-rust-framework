@@ -3,7 +3,6 @@ extern crate ethabi;
 use crate::error::{Error, ErrorKind};
 use ethabi::Token;
 use plasma_core::data_structure::StateUpdate;
-use plasma_db::impls::rangestore::memory::RangeDbMemoryImpl;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::rangestore::RangeStore;
 
@@ -85,19 +84,28 @@ impl VerifiedStateUpdate {
     }
 }
 
-pub struct StateDb {
-    db: Box<RangeStore>,
+pub trait RangeDb: RangeStore + DatabaseTrait {}
+impl<T: RangeStore + DatabaseTrait> RangeDb for T {}
+
+pub struct StateDb<R: RangeDb> {
+    db: Box<R>,
 }
 
-impl Default for StateDb {
+impl<R> Default for StateDb<R>
+where
+    R: RangeDb,
+{
     fn default() -> Self {
         Self {
-            db: Box::new(RangeDbMemoryImpl::open("test")),
+            db: Box::new(R::open("state")),
         }
     }
 }
 
-impl StateDb {
+impl<R> StateDb<R>
+where
+    R: RangeDb,
+{
     pub fn get_verified_state_updates(
         &self,
         start: u64,
