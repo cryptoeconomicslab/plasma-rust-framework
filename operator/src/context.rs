@@ -7,10 +7,8 @@
 
 extern crate plasma_core;
 
-use super::error::Error;
 use parking_lot::RwLock;
-use plasma_core::data_structure::{Block, Transaction};
-use plasma_core::process::BlockGenerator;
+use plasma_core::data_structure::Transaction;
 use std::sync::Arc;
 
 #[derive(Default)]
@@ -26,8 +24,5 @@ impl ChainContext {
     }
     pub fn append(&self, signed_transaction: &Transaction) {
         self.transactions.write().push(signed_transaction.clone());
-    }
-    pub fn generate(&self) -> Result<Block, Error> {
-        BlockGenerator::generate(&self.transactions.read().clone()).map_err(Into::into)
     }
 }

@@ -1,18 +1,20 @@
+extern crate ethabi;
 extern crate ethereum_types;
 
-use super::transaction::Transaction;
+use super::error::{Error, ErrorKind};
+use super::state_update::StateUpdate;
+use ethabi::Token;
 use ethereum_types::H256;
-use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
 #[derive(Clone, Debug)]
 /// ## struct Block
-/// - has many `transactions`
+/// - has many `state_updates`
 /// - has a `merkle root hash`
 /// - Traits
 ///   - Encodable
 ///   - Decodable
 pub struct Block {
-    transactions: Vec<Transaction>,
+    state_updates: Vec<StateUpdate>,
     root: H256,
 }
 
@@ -22,49 +24,49 @@ impl Block {
     /// ```ignore
     /// let block = Block.new(&txs, root)
     /// ```
-    pub fn new(transactions: &[Transaction], root: H256) -> Block {
+    pub fn new(state_updates: &[StateUpdate], root: H256) -> Block {
         Block {
-            transactions: transactions.to_vec(),
+            state_updates: state_updates.to_vec(),
             root,
         }
     }
-}
 
-impl Encodable for Block {
-    fn rlp_append(&self, s: &mut RlpStream) {
-        s.begin_list(2);
-        s.append_list(&self.transactions);
-        s.append(&self.root.as_bytes());
+    pub fn to_abi(&self) -> Vec<u8> {
+        let state_update_tokens = self
+            .state_updates
+            .iter()
+            .map(|state_update| Token::Bytes(state_update.to_abi()))
+            .collect();
+        ethabi::encode(&[
+            Token::Array(state_update_tokens),
+            Token::Bytes(self.root.as_bytes().to_vec()),
+        ])
     }
-}
+    pub fn from_abi(data: &[u8]) -> Result<Self, Error> {
+        let decoded: Vec<Token> = ethabi::decode(
+            &[
+                ethabi::ParamType::Array(Box::new(ethabi::ParamType::Bytes)),
+                ethabi::ParamType::Bytes,
+            ],
+            data,
+        )
+        .map_err::<Error, _>(Into::into)?;
+        let decoded_array = decoded[0].clone().to_array();
+        let root = decoded[1].clone().to_bytes();
 
-impl Decodable for Block {
-    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
-        let transactions: Vec<Transaction> = rlp.list_at(0)?;
-        let root: Vec<u8> = rlp.val_at(1)?;
-        Ok(Block::new(&transactions, H256::from_slice(&root)))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::Block;
-    use ethereum_types::H256;
-
-    /*
-        #[test]
-        fn test_new() {
-            let block = Block::new(&[], H256::zero());
-            assert_eq!(block.root, H256::zero());
+        if let (Some(decoded_array), Some(root)) = (decoded_array, root) {
+            let state_updates = decoded_array
+                .to_vec()
+                .iter()
+                .map(|token| {
+                    StateUpdate::from_abi(&token.clone().to_bytes().unwrap())
+                        .ok()
+                        .unwrap()
+                })
+                .collect::<Vec<_>>();
+            Ok(Block::new(&state_updates, H256::from_slice(&root)))
+        } else {
+            Err(Error::from(ErrorKind::AbiDecode))
         }
-    */
-
-    #[test]
-    fn test_rlp_encode() {
-        let block = Block::new(&[], H256::zero());
-        let encoded = rlp::encode(&block);
-        let _decoded: Block = rlp::decode(&encoded).unwrap();
-        assert_eq!(_decoded.root, block.root);
     }
-
 }
