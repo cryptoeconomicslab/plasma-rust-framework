@@ -1,4 +1,5 @@
 use crate::{PredicateParameters, PredicatePlugin};
+use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use plasma_core::data_structure::{StateObject, StateUpdate, Transaction};
 
@@ -99,12 +100,17 @@ impl PredicatePlugin for OwnershipPredicate {
         assert!(input.get_block_number() <= parameters.get_origin_block());
         assert!(pending_block_number <= parameters.get_max_block());
         StateUpdate::new(
-            parameters.get_state_object(),
+            parameters.get_state_object().clone(),
             transaction.get_start(),
             transaction.get_end(),
             pending_block_number,
             transaction.get_plasma_contract_address(),
         )
+    }
+
+    fn query_state(&self, state_update: &StateUpdate, _parameters: &[u8]) -> Vec<Bytes> {
+        let owner = Bytes::from(state_update.get_state_object().get_data());
+        vec![owner]
     }
 }
 
@@ -124,7 +130,7 @@ mod tests {
         let alice_address = Address::zero();
         // make state update
         let state_update = StateUpdate::new(
-            &StateObject::new(predicate_address, &b"data"[..]),
+            StateObject::new(predicate_address, &b"data"[..]),
             start,
             end,
             10,

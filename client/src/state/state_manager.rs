@@ -1,5 +1,6 @@
 use crate::error::Error;
 use crate::state::{StateDb, VerifiedStateUpdate};
+use bytes::Bytes;
 use ethereum_types::Address;
 use plasma_core::data_structure::{StateUpdate, Transaction};
 use predicate_plugins::PredicateManager;
@@ -21,6 +22,51 @@ impl ResultOfExecuteTransaction {
     }
     pub fn get_ranges(&self) -> &[VerifiedStateUpdate] {
         &self.ranges
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct StateQuery {
+    plasma_contract: Address,
+    predicate_address: Address,
+    start: Option<u64>,
+    end: Option<u64>,
+    params: Bytes,
+}
+
+impl StateQuery {
+    pub fn new(
+        plasma_contract: Address,
+        predicate_address: Address,
+        start: Option<u64>,
+        end: Option<u64>,
+        params: Bytes,
+    ) -> Self {
+        Self {
+            plasma_contract,
+            predicate_address,
+            start,
+            end,
+            params,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct StateQueryResult {
+    state_update: StateUpdate,
+    result: Vec<Bytes>,
+}
+
+impl StateQueryResult {
+    pub fn new(state_update: StateUpdate, result: &[Bytes]) -> Self {
+        Self {
+            state_update,
+            result: result.to_vec(),
+        }
+    }
+    pub fn get_result(&self) -> &[Bytes] {
+        &self.result
     }
 }
 
@@ -74,11 +120,28 @@ impl StateManager {
             &verified_state_updates,
         ))
     }
+
+    pub fn query_state(&self, query: &StateQuery) -> Result<Box<[StateQueryResult]>, Error> {
+        let verified_state_updates = self
+            .db
+            .get_verified_state_updates(query.start.unwrap_or(0), query.end.unwrap_or(0))?;
+        let state_query_result: Vec<StateQueryResult> = verified_state_updates
+            .iter()
+            .map(|verified_state_update| {
+                let result = PredicateManager::get_plugin(query.predicate_address)
+                    .query_state(verified_state_update.get_state_update(), &query.params);
+                StateQueryResult::new(verified_state_update.get_state_update().clone(), &result)
+            })
+            .collect();
+        Ok(state_query_result.into_boxed_slice())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::StateManager;
+    use super::StateQuery;
+    use bytes::Bytes;
     use ethereum_types::{Address, H256};
     use plasma_core::data_structure::{StateObject, StateUpdate, Transaction, Witness};
     use predicate_plugins::{OwnershipPredicateParameters, PredicateParameters};
@@ -173,6 +236,27 @@ mod tests {
         assert!(state_manager.deposit(100, 200, state_update2).is_ok());
         let result = state_manager.execute_transaction(&transaction);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_query_state() {
+        // make state update
+        let predicate_address = Address::zero();
+        let state_update1 = create_state_update(0, 100, 1);
+        let state_update2 = create_state_update(100, 200, 2);
+        let state_manager: StateManager = Default::default();
+        assert!(state_manager.deposit(0, 100, state_update1).is_ok());
+        assert!(state_manager.deposit(100, 200, state_update2).is_ok());
+        let query = StateQuery::new(
+            Address::zero(),
+            predicate_address,
+            Some(0),
+            Some(100),
+            Bytes::new(),
+        );
+        let result = state_manager.query_state(&query);
+        assert!(result.is_ok());
+        assert_eq!(&result.ok().unwrap()[0].get_result()[0][..], &b"data"[..],);
     }
 
 }
