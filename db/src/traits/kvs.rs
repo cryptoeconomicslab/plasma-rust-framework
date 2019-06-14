@@ -102,8 +102,8 @@ pub trait KeyValueStore<B> {
         prefix: &BaseDbKey,
         f: Box<FnMut(&BaseDbKey, &Vec<u8>) -> Option<B>>,
     ) -> Vec<B>;
-    fn bucket(&self, prefix: &BaseDbKey) -> Box<Bucket<B>>;
-    fn root(&self) -> Box<Bucket<B>> {
+    fn bucket(&self, prefix: &BaseDbKey) -> Bucket<B>;
+    fn root(&self) -> Bucket<B> {
         self.bucket(&b""[..].into())
     }
 }
@@ -151,7 +151,7 @@ impl<'a, B> KeyValueStore<B> for Bucket<'a, B> {
     ) -> Vec<B> {
         self.store.iter_all_map(&self.prefix.concat(prefix), f)
     }
-    fn bucket(&self, prefix: &BaseDbKey) -> Box<Bucket<B>> {
+    fn bucket(&self, prefix: &BaseDbKey) -> Bucket<B> {
         self.store.bucket(&self.prefix.concat(prefix))
     }
 }

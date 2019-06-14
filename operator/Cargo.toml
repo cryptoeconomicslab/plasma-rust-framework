@@ -11,11 +11,13 @@ ethereum-types = "^0.5.2"
 failure = "0.1.5"
 hex = "0.3.1"
 plasma-core = { path = "../core" }
+plasma-db = { path = "../db" }
 jsonrpc-core = "11.0.0"
 jsonrpc-http-server = "11.0.0"
 jsonrpc-derive = "11.0.0"
 jsonrpc-core-client = "11.0.0"
 log = "0.4.6"
+num-traits = { version = "0.2.8", default-features = false }
 rlp = "0.4.0"
 serde = "1.0.91"
 serde_derive = "1.0.91"

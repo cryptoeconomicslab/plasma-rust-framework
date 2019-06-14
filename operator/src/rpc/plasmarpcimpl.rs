@@ -12,7 +12,7 @@ extern crate rlp;
 use super::errors;
 use super::plasmarpc::PlasmaRpc;
 use crate::context::ChainContext;
-use jsonrpc_core::{Error as JsonRpcError, ErrorCode, Result};
+use jsonrpc_core::Result;
 use plasma_core::data_structure::Transaction;
 
 /// Plasma JSON RPC implementation.
@@ -39,13 +39,6 @@ impl PlasmaRpc for PlasmaRpcImpl {
             Transaction::from_abi(&abi_bytes).map_err(errors::invalid_params)?;
         self.chain_context.append(&transaction);
         Ok(true)
-    }
-    fn generate_block(&self) -> Result<String> {
-        self.chain_context
-            .generate()
-            .map(|block| rlp::encode(&block))
-            .map(hex::encode)
-            .map_err(|_err| JsonRpcError::new(ErrorCode::InternalError))
     }
 }
 

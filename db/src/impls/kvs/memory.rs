@@ -82,7 +82,7 @@ impl<'a, B> KeyValueStore<B> for CoreDbMemoryImpl {
         }
         result
     }
-    fn bucket(&self, prefix: &BaseDbKey) -> Box<Bucket<B>> {
-        Box::new(Bucket::new(prefix.clone(), self))
+    fn bucket(&self, prefix: &BaseDbKey) -> Bucket<B> {
+        Bucket::new(prefix.clone(), self)
     }
 }
