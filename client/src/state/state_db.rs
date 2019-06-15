@@ -3,7 +3,8 @@ extern crate ethabi;
 use crate::error::{Error, ErrorKind};
 use ethabi::Token;
 use plasma_core::data_structure::StateUpdate;
-use plasma_db::impls::rangestore::memory::RangeDbMemoryImpl;
+use plasma_db::impls::kvs::memory::CoreDbMemoryImpl;
+use plasma_db::impls::rangedb::RangeDbImpl;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::rangestore::RangeStore;
 
@@ -91,8 +92,9 @@ pub struct StateDb {
 
 impl Default for StateDb {
     fn default() -> Self {
+        let base_db = CoreDbMemoryImpl::open("test");
         Self {
-            db: Box::new(RangeDbMemoryImpl::open("test")),
+            db: Box::new(RangeDbImpl::from(base_db)),
         }
     }
 }

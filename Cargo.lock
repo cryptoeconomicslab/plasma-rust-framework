@@ -206,11 +206,6 @@ version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "db-key"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "dirs"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -910,7 +905,8 @@ dependencies = [
 name = "plasma-db"
 version = "0.1.0"
 dependencies = [
- "db-key 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bytes 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "db-key 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "kvdb 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "kvdb-memorydb 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1785,7 +1781,6 @@ dependencies = [
 "checksum crunchy 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "a2f4a431c5c9f662e1200b7c7f02c34e91361150e382089a8f2dec3ba680cbda"
 "checksum crunchy 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 "checksum db-key 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)" = "b72465f46d518f6015d9cf07f7f3013a95dd6b9c2747c3d65ae0cce43929d14f"
-"checksum db-key 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "13d81b1999ae2c0acc98a9a8e0211e1247c11914f363588020bc54383949c479"
 "checksum dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)" = "3fd78930633bd1c6e35c4b42b1df7b0cbc6bc191146e512bb3bedf243fcc3901"
 "checksum either 1.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "5527cfe0d098f36e3f8839852688e63c8fff1c90b2b405aef730615f9a7bcf7b"
 "checksum elastic-array 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)" = "073be79b6538296faf81c631872676600616073817dd9a440c477ad09b408983"
