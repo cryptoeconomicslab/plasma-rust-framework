@@ -1,2 +1,2 @@
 pub mod kvs;
-pub mod rangestore;
+pub mod rangedb;
