@@ -39,7 +39,7 @@ where
     pub fn get_pending_state_updates(&self) -> Result<Vec<StateUpdate>, Error> {
         self.db.get_pending_state_updates()
     }
-    /// Submits the next block
+    /// Fixes next block, submits Merkle root and increments block number
     pub fn submit_next_block(&self) -> Result<(), Error> {
         let _state_updates = self.get_pending_state_updates()?;
         self.db.finalize_block()?;
