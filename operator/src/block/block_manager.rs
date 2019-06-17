@@ -2,7 +2,6 @@ use super::block_db::BlockDb;
 use super::types::BlockNumber;
 use crate::error::Error;
 use plasma_core::data_structure::StateUpdate;
-use plasma_core::process::BlockGenerator;
 use plasma_db::range::Range;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -42,9 +41,9 @@ where
     }
     /// Submits the next block
     pub fn submit_next_block(&self) -> Result<(), Error> {
-        let state_updates = self.get_pending_state_updates()?;
+        let _state_updates = self.get_pending_state_updates()?;
         self.db.finalize_block()?;
-        let _block = BlockGenerator::generate(&state_updates)?;
+        // generate merkle root from _state_updates
         // submit block.get_root()
         Ok(())
     }
