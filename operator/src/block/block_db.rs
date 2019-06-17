@@ -4,9 +4,7 @@ use bytes::Bytes;
 use plasma_core::data_structure::StateUpdate;
 use plasma_db::impls::rangedb::RangeDbImpl;
 use plasma_db::range::Range;
-use plasma_db::traits::db::DatabaseTrait;
-use plasma_db::traits::kvs::{BaseDbKey, Bucket, KeyValueStore};
-use plasma_db::traits::rangestore::RangeStore;
+use plasma_db::traits::{BaseDbKey, Bucket, DatabaseTrait, KeyValueStore, RangeStore};
 
 static NEXT_BLOCK_KEY: &[u8; 10] = b"next_block";
 
@@ -39,7 +37,7 @@ where
             .map_err::<Error, _>(Into::into)
     }
     /// Adds new StateUpdate
-    pub fn add_pending_state_update(&self, state_update: StateUpdate) -> Result<(), Error> {
+    pub fn add_pending_state_update(&self, state_update: &StateUpdate) -> Result<(), Error> {
         let block_number = self.get_next_block_number()?;
         let rangedb = self.get_block_store(block_number);
         let start = state_update.get_start();
@@ -105,7 +103,7 @@ mod tests {
 
         let block_db: BlockDb<CoreDbMemoryImpl> = Default::default();
         assert!(block_db.set_block_number(BlockNumber::new(0)).is_ok());
-        assert!(block_db.add_pending_state_update(state_update).is_ok());
+        assert!(block_db.add_pending_state_update(&state_update).is_ok());
         let state_updates = block_db.get_pending_state_updates().ok().unwrap();
         assert_eq!(state_updates.len(), 1);
     }
@@ -118,7 +116,7 @@ mod tests {
 
         let block_db: BlockDb<CoreDbMemoryImpl> = Default::default();
         assert!(block_db.set_block_number(BlockNumber::new(0)).is_ok());
-        assert!(block_db.add_pending_state_update(state_update).is_ok());
+        assert!(block_db.add_pending_state_update(&state_update).is_ok());
         assert!(block_db.finalize_block().is_ok());
         let state_updates = block_db.get_pending_state_updates().ok().unwrap();
         assert_eq!(state_updates.len(), 0);

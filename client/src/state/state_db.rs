@@ -3,10 +3,9 @@ extern crate ethabi;
 use crate::error::{Error, ErrorKind};
 use ethabi::Token;
 use plasma_core::data_structure::StateUpdate;
-use plasma_db::impls::kvs::memory::CoreDbMemoryImpl;
 use plasma_db::impls::rangedb::RangeDbImpl;
-use plasma_db::traits::db::DatabaseTrait;
-use plasma_db::traits::rangestore::RangeStore;
+use plasma_db::range::Range;
+use plasma_db::traits::{DatabaseTrait, KeyValueStore, RangeStore};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct VerifiedStateUpdate {
@@ -86,20 +85,26 @@ impl VerifiedStateUpdate {
     }
 }
 
-pub struct StateDb {
-    db: Box<RangeStore>,
+pub struct StateDb<KVS: KeyValueStore<Range>> {
+    db: Box<RangeDbImpl<KVS>>,
 }
 
-impl Default for StateDb {
+impl<KVS> Default for StateDb<KVS>
+where
+    KVS: DatabaseTrait + KeyValueStore<Range>,
+{
     fn default() -> Self {
-        let base_db = CoreDbMemoryImpl::open("test");
+        let base_db = KVS::open("state");
         Self {
             db: Box::new(RangeDbImpl::from(base_db)),
         }
     }
 }
 
-impl StateDb {
+impl<KVS> StateDb<KVS>
+where
+    KVS: DatabaseTrait + KeyValueStore<Range>,
+{
     pub fn get_verified_state_updates(
         &self,
         start: u64,

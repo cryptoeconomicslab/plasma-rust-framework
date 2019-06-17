@@ -21,6 +21,8 @@ pub enum ErrorKind {
     AbiDecode,
     #[fail(display = "Plasma Db error")]
     PlasmaDbError,
+    #[fail(display = "Invalid transaction")]
+    InvalidTransaction,
 }
 
 #[derive(Debug)]

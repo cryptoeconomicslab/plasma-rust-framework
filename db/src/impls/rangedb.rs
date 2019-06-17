@@ -13,7 +13,7 @@ use crate::traits::rangestore::RangeStore;
 /// let base_db = CoreDbMemoryImpl::open("test");
 /// let db = RangeDbImpl::from(base_db);
 /// ```
-pub struct RangeDbImpl<KVS: KeyValueStore<Range>> {
+pub struct RangeDbImpl<KVS> {
     db: KVS,
 }
 
