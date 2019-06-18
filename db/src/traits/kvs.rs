@@ -92,6 +92,7 @@ pub trait KeyValueStore<B> {
     fn del(&self, key: &BaseDbKey) -> Result<(), Error>;
     fn has(&self, key: &BaseDbKey) -> Result<bool, Error>;
     fn batch(&self, operations: &[Batch]) -> Result<(), Error>;
+    /// This is substitute of iter
     fn iter_all(
         &self,
         prefix: &BaseDbKey,

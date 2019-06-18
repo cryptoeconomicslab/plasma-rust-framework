@@ -1,6 +1,5 @@
 use bytes::{BigEndian, ByteOrder, Bytes};
 pub use num_traits::Zero;
-use plasma_db::traits::kvs::BaseDbKey;
 use std::ops::Add;
 
 #[derive(Debug, Clone, Copy)]
@@ -9,6 +8,9 @@ pub struct BlockNumber(u64);
 impl BlockNumber {
     pub fn new(n: u64) -> Self {
         Self(n)
+    }
+    pub fn as_u64(self) -> u64 {
+        self.0
     }
 }
 
@@ -50,9 +52,8 @@ impl From<BlockNumber> for [u8; 8] {
     }
 }
 
-impl From<BlockNumber> for BaseDbKey {
+impl From<BlockNumber> for u64 {
     fn from(block_number: BlockNumber) -> Self {
-        let buf: [u8; 8] = block_number.into();
-        BaseDbKey::from(&buf[..])
+        block_number.0
     }
 }

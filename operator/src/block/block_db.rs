@@ -1,7 +1,7 @@
-use super::types::BlockNumber;
 use crate::error::Error;
 use bytes::Bytes;
 use plasma_core::data_structure::StateUpdate;
+use plasma_core::types::BlockNumber;
 use plasma_db::impls::rangedb::RangeDbImpl;
 use plasma_db::range::Range;
 use plasma_db::traits::{BaseDbKey, Bucket, DatabaseTrait, KeyValueStore, RangeStore};
@@ -76,7 +76,7 @@ where
         Ok(self.get_block_store(next_block_number))
     }
     pub fn get_block_store(&self, block_number: BlockNumber) -> RangeDbImpl<Bucket<Range>> {
-        let key: BaseDbKey = block_number.into();
+        let key: BaseDbKey = block_number.as_u64().into();
         let bucket = self.db.bucket(&key);
         RangeDbImpl::from(bucket)
     }

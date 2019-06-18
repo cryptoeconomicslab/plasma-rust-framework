@@ -1,7 +1,7 @@
 use super::block_db::BlockDb;
-use super::types::BlockNumber;
 use crate::error::Error;
 use plasma_core::data_structure::StateUpdate;
+use plasma_core::types::BlockNumber;
 use plasma_db::range::Range;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
