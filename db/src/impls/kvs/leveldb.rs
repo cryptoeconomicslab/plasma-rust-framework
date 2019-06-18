@@ -113,8 +113,8 @@ impl<'a, B> KeyValueStore<B> for CoreDb {
         }
         result
     }
-    fn bucket(&self, prefix: &BaseDbKey) -> Box<Bucket<B>> {
-        Box::new(Bucket::new(prefix.clone(), self))
+    fn bucket(&self, prefix: &BaseDbKey) -> Bucket<B> {
+        Bucket::new(prefix.clone(), self)
     }
 }
 
@@ -127,8 +127,8 @@ mod tests {
     #[test]
     fn test_bucket() {
         let core_db = CoreDb::open("test");
-        let root: Box<Bucket<Vec<u8>>> = core_db.root();
-        let bucket: Box<Bucket<Vec<u8>>> = root.bucket(&b"a"[..].into());
+        let root: Bucket<Vec<u8>> = core_db.root();
+        let bucket: Bucket<Vec<u8>> = root.bucket(&b"a"[..].into());
         assert_eq!(bucket.put(&b"b"[..].into(), &b"value"[..]).is_ok(), true);
         let result = root.get(&b"ab"[..].into());
         assert_eq!(result.is_ok(), true);

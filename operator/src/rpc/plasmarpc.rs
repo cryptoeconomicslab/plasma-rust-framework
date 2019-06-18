@@ -21,7 +21,4 @@ pub trait PlasmaRpc {
     /// append signed transaction
     #[rpc(name = "sendTransaction")]
     fn send_transaction(&self, message: String) -> Result<bool>;
-    /// operator can generate block
-    #[rpc(name = "generateBlock")]
-    fn generate_block(&self) -> Result<String>;
 }

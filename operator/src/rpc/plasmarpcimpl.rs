@@ -12,7 +12,7 @@ extern crate rlp;
 use super::errors;
 use super::plasmarpc::PlasmaRpc;
 use crate::context::ChainContext;
-use jsonrpc_core::{Error as JsonRpcError, ErrorCode, Result};
+use jsonrpc_core::Result;
 use plasma_core::data_structure::Transaction;
 
 /// Plasma JSON RPC implementation.
@@ -29,6 +29,14 @@ impl PlasmaRpcImpl {
     }
 }
 
+impl From<ChainContext> for PlasmaRpcImpl {
+    fn from(context: ChainContext) -> Self {
+        PlasmaRpcImpl {
+            chain_context: context,
+        }
+    }
+}
+
 impl PlasmaRpc for PlasmaRpcImpl {
     fn protocol_version(&self) -> Result<String> {
         Ok("0.1.0".into())
@@ -37,25 +45,20 @@ impl PlasmaRpc for PlasmaRpcImpl {
         let abi_bytes = hex::decode(message).map_err(errors::invalid_params)?;
         let transaction: Transaction =
             Transaction::from_abi(&abi_bytes).map_err(errors::invalid_params)?;
-        self.chain_context.append(&transaction);
-        Ok(true)
-    }
-    fn generate_block(&self) -> Result<String> {
-        self.chain_context
-            .generate()
-            .map(|block| rlp::encode(&block))
-            .map(hex::encode)
-            .map_err(|_err| JsonRpcError::new(ErrorCode::InternalError))
+        Ok(self.chain_context.append(&transaction).is_ok())
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::ChainContext;
     use super::PlasmaRpc;
     use super::PlasmaRpcImpl;
     use ethereum_types::{Address, H256};
     use jsonrpc_http_server::jsonrpc_core::IoHandler;
-    use plasma_core::data_structure::{Transaction, Witness};
+    use plasma_core::data_structure::{StateObject, StateUpdate, Transaction, Witness};
+    use predicate_plugins::parameters::PredicateParameters;
+    use predicate_plugins::OwnershipPredicateParameters;
 
     #[test]
     fn test_protocol_version() {
@@ -74,16 +77,30 @@ mod tests {
     fn test_send_transaction() {
         let mut io = IoHandler::new();
 
-        let rpc = PlasmaRpcImpl::new();
+        let context = ChainContext::new();
+        assert!(context.initiate().is_ok());
+        let deposit_state = StateUpdate::new(
+            StateObject::new(Address::zero(), &b"data"[..]),
+            0,
+            200,
+            10,
+            Address::zero(),
+        );
+        assert!(context.force_deposit(&deposit_state));
+        let rpc = PlasmaRpcImpl::from(context);
         io.extend_with(rpc.to_delegate());
 
-        let parameters_bytes = Vec::from(&b"parameters"[..]);
+        let parameters = OwnershipPredicateParameters::new(
+            StateObject::new(Address::zero(), &Address::zero().as_bytes().to_vec()),
+            15,
+            20,
+        );
         let transaction = Transaction::new(
             Address::zero(),
             0,
             100,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &parameters_bytes,
+            &parameters.encode(),
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
         let encoded = transaction.to_abi();

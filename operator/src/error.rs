@@ -7,7 +7,9 @@
 
 /// error definition for plasma chain.
 use failure::{Backtrace, Context, Fail};
+use plasma_client::error::Error as PlasmaClientError;
 use plasma_core::data_structure::error::Error as PlasmaCoreError;
+use plasma_db::error::Error as DbError;
 use std::fmt;
 use std::fmt::Display;
 use std::io::Error as IoError;
@@ -21,6 +23,10 @@ pub enum ErrorKind {
     Parse,
     #[fail(display = "Plasma Core")]
     PlasmaCore,
+    #[fail(display = "Plasma Client")]
+    PlasmaClient,
+    #[fail(display = "Database")]
+    Database,
 }
 
 #[derive(Debug)]
@@ -88,6 +94,22 @@ impl From<PlasmaCoreError> for Error {
     fn from(error: PlasmaCoreError) -> Error {
         Error {
             inner: error.context(ErrorKind::PlasmaCore),
+        }
+    }
+}
+
+impl From<DbError> for Error {
+    fn from(error: DbError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::Database),
+        }
+    }
+}
+
+impl From<PlasmaClientError> for Error {
+    fn from(error: PlasmaClientError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::PlasmaClient),
         }
     }
 }
