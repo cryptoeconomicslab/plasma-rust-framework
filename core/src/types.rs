@@ -2,7 +2,7 @@ use bytes::{BigEndian, ByteOrder, Bytes};
 pub use num_traits::Zero;
 use std::ops::Add;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlockNumber(u64);
 
 impl BlockNumber {
@@ -36,6 +36,12 @@ impl From<Bytes> for BlockNumber {
     }
 }
 
+impl From<Vec<u8>> for BlockNumber {
+    fn from(buffer: Vec<u8>) -> Self {
+        BlockNumber::new(BigEndian::read_u64(&buffer))
+    }
+}
+
 impl From<BlockNumber> for Bytes {
     fn from(block_number: BlockNumber) -> Self {
         let mut buf = [0; 8];
@@ -55,5 +61,11 @@ impl From<BlockNumber> for [u8; 8] {
 impl From<BlockNumber> for u64 {
     fn from(block_number: BlockNumber) -> Self {
         block_number.0
+    }
+}
+
+impl From<u64> for BlockNumber {
+    fn from(n: u64) -> Self {
+        BlockNumber(n)
     }
 }

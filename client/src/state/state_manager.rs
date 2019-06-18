@@ -1,8 +1,7 @@
 use crate::error::{Error, ErrorKind};
 use crate::state::{StateDb, VerifiedStateUpdate};
-use bytes::Bytes;
 use ethereum_types::Address;
-use plasma_core::data_structure::{StateUpdate, Transaction};
+use plasma_core::data_structure::{StateQuery, StateQueryResult, StateUpdate, Transaction};
 use plasma_db::range::Range;
 use plasma_db::traits::{DatabaseTrait, KeyValueStore};
 use predicate_plugins::PredicateManager;
@@ -24,51 +23,6 @@ impl ResultOfExecuteTransaction {
     }
     pub fn get_ranges(&self) -> &[VerifiedStateUpdate] {
         &self.ranges
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct StateQuery {
-    plasma_contract: Address,
-    predicate_address: Address,
-    start: Option<u64>,
-    end: Option<u64>,
-    params: Bytes,
-}
-
-impl StateQuery {
-    pub fn new(
-        plasma_contract: Address,
-        predicate_address: Address,
-        start: Option<u64>,
-        end: Option<u64>,
-        params: Bytes,
-    ) -> Self {
-        Self {
-            plasma_contract,
-            predicate_address,
-            start,
-            end,
-            params,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct StateQueryResult {
-    state_update: StateUpdate,
-    result: Vec<Bytes>,
-}
-
-impl StateQueryResult {
-    pub fn new(state_update: StateUpdate, result: &[Bytes]) -> Self {
-        Self {
-            state_update,
-            result: result.to_vec(),
-        }
-    }
-    pub fn get_result(&self) -> &[Bytes] {
-        &self.result
     }
 }
 
@@ -133,14 +87,15 @@ where
     }
 
     pub fn query_state(&self, query: &StateQuery) -> Result<Box<[StateQueryResult]>, Error> {
-        let verified_state_updates = self
-            .db
-            .get_verified_state_updates(query.start.unwrap_or(0), query.end.unwrap_or(0))?;
+        let verified_state_updates = self.db.get_verified_state_updates(
+            query.get_start().unwrap_or(0),
+            query.get_end().unwrap_or(0),
+        )?;
         let state_query_result: Vec<StateQueryResult> = verified_state_updates
             .iter()
             .map(|verified_state_update| {
-                let result = PredicateManager::get_plugin(query.predicate_address)
-                    .query_state(verified_state_update.get_state_update(), &query.params);
+                let result = PredicateManager::get_plugin(query.get_predicate_address())
+                    .query_state(verified_state_update.get_state_update(), query.get_params());
                 StateQueryResult::new(verified_state_update.get_state_update().clone(), &result)
             })
             .collect();

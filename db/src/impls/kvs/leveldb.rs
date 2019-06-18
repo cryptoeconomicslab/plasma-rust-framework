@@ -17,7 +17,7 @@ impl Key for BaseDbKey {
     }
 
     fn as_slice<T, F: Fn(&[u8]) -> T>(&self, f: F) -> T {
-        f(&self.get())
+        f(&self.as_bytes())
     }
 }
 

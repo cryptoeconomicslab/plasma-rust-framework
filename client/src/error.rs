@@ -11,6 +11,7 @@ use plasma_db::error::Error as PlasmaDbError;
 use std::fmt;
 use std::fmt::Display;
 use std::io::Error as IoError;
+use std::sync::PoisonError;
 
 /// error definition for plasma core.
 #[derive(Fail, Debug)]
@@ -23,6 +24,8 @@ pub enum ErrorKind {
     PlasmaDbError,
     #[fail(display = "Invalid transaction")]
     InvalidTransaction,
+    #[fail(display = "Lock is acquired.")]
+    PoisonError,
 }
 
 #[derive(Debug)]
@@ -90,6 +93,14 @@ impl From<PlasmaDbError> for Error {
     fn from(error: PlasmaDbError) -> Error {
         Error {
             inner: error.context(ErrorKind::PlasmaDbError),
+        }
+    }
+}
+
+impl<T> From<PoisonError<T>> for Error {
+    fn from(_error: PoisonError<T>) -> Error {
+        Error {
+            inner: Context::from(ErrorKind::PoisonError),
         }
     }
 }

@@ -10,7 +10,7 @@ impl BaseDbKey {
         BaseDbKey(key)
     }
 
-    pub fn get(&self) -> &[u8] {
+    pub fn as_bytes(&self) -> &[u8] {
         &self.0
     }
 
