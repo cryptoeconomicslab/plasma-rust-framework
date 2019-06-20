@@ -86,3 +86,35 @@ impl<'a, B> KeyValueStore<B> for CoreDbMemoryImpl {
         Bucket::new(prefix.clone(), self)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::CoreDbMemoryImpl;
+    use crate::traits::db::DatabaseTrait;
+    use crate::traits::kvs::{Bucket, KeyValueStore};
+
+    #[test]
+    fn test_bucket() {
+        let core_db = CoreDbMemoryImpl::open("test");
+        let root: Bucket<Vec<u8>> = core_db.root();
+        let bucket: Bucket<Vec<u8>> = root.bucket(&b"a"[..].into());
+        assert_eq!(bucket.put(&b"b"[..].into(), &b"value"[..]).is_ok(), true);
+        let result = root.get(&b"ab"[..].into());
+        assert_eq!(result.is_ok(), true);
+        assert_eq!(result.ok().unwrap().unwrap(), b"value".to_vec());
+    }
+
+    #[test]
+    fn test_iter_all() {
+        let core_db = CoreDbMemoryImpl::open("test");
+        let root: Bucket<Vec<u8>> = core_db.root();
+        let bucket: Bucket<Vec<u8>> = root.bucket(&b"a"[..].into());
+        assert_eq!(bucket.put(&b"b"[..].into(), &b"value_b"[..]).is_ok(), true);
+        assert_eq!(bucket.put(&b"c"[..].into(), &b"value_c"[..]).is_ok(), true);
+        let result = bucket.iter_all(&b"a"[..].into(), Box::new(|_k, _v| true));
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].get_key().as_bytes(), &b"b"[..]);
+        assert_eq!(result[1].get_key().as_bytes(), &b"c"[..]);
+    }
+
+}

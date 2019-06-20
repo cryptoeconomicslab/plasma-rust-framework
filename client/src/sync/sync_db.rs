@@ -72,15 +72,18 @@ where
     ) -> Result<(), Error> {
         self.db
             .bucket(&commit_contract.as_bytes().into())
-            .put(&deposit_contract.as_bytes().into(), &b""[..])
+            .put(&deposit_contract.as_fixed_bytes()[..].into(), &b""[..])
             .map_err::<Error, _>(Into::into)
     }
     fn get_deposit_contracts(&self, commit_contract: Address) -> Result<Vec<Address>, Error> {
         Ok(self
             .db
-            .iter_all(&commit_contract.as_bytes().into(), Box::new(|_a, _b| true))
+            .bucket(&commit_contract.as_bytes().into())
+            .iter_all(&b""[..].into(), Box::new(|_a, _b| true))
             .iter()
-            .map(|kv| Address::from_slice(kv.get_key().as_bytes()))
+            .map(|kv| {
+                Address::from_slice(kv.get_key().as_bytes())
+            })
             .collect())
     }
     /// Remove contract address
@@ -91,7 +94,7 @@ where
     ) -> Result<(), Error> {
         self.db
             .bucket(&commit_contract.as_bytes().into())
-            .del(&deposit_contract.as_bytes().into())
+            .del(&deposit_contract.as_fixed_bytes()[..].into())
             .map_err::<Error, _>(Into::into)
     }
     /// Fetch last synchronized block number
@@ -154,4 +157,72 @@ where
             .filter_map(|kv| StateQuery::from_abi(kv.get_value()).ok())
             .collect())
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SyncDb;
+    use super::SyncDbTrait;
+    use bytes::Bytes;
+    use ethereum_types::Address;
+    use plasma_core::data_structure::StateQuery;
+    use plasma_db::impls::kvs::CoreDbMemoryImpl;
+    use plasma_db::traits::db::DatabaseTrait;
+
+    #[test]
+    fn test_add_and_remove_deposit_contract() {
+        let sync_db = SyncDb::new(CoreDbMemoryImpl::open(&"test"));
+        let deposit_contract: Address = Address::zero();
+        let commit_contract: Address = Address::zero();
+        assert!(sync_db
+            .add_deposit_contract(commit_contract, deposit_contract)
+            .is_ok());
+        assert_eq!(
+            sync_db
+                .get_deposit_contracts(commit_contract)
+                .ok()
+                .unwrap()
+                .len(),
+            1
+        );
+        assert!(sync_db
+            .remove_deposit_contract(commit_contract, deposit_contract)
+            .is_ok());
+        assert!(sync_db
+            .get_deposit_contracts(commit_contract)
+            .ok()
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
+    fn test_add_and_remove_sync_query() {
+        let sync_db = SyncDb::new(CoreDbMemoryImpl::open(&"test"));
+        let deposit_contract: Address = Address::zero();
+        let predicate_address: Address = Address::zero();
+        let query = StateQuery::new(
+            Address::zero(),
+            predicate_address,
+            Some(0),
+            Some(100),
+            Bytes::new(),
+        );
+
+        assert!(sync_db.add_sync_query(deposit_contract, &query).is_ok());
+        assert_eq!(
+            sync_db
+                .get_sync_queries(deposit_contract)
+                .ok()
+                .unwrap()
+                .len(),
+            1
+        );
+        assert!(sync_db.remove_sync_query(deposit_contract, &query).is_ok());
+        assert!(sync_db
+            .get_sync_queries(deposit_contract)
+            .ok()
+            .unwrap()
+            .is_empty());
+    }
+
 }

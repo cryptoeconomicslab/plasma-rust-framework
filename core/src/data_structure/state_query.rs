@@ -68,7 +68,7 @@ impl StateQuery {
         let predicate = tuple[1].clone().to_address();
         let start = tuple[2].clone().to_uint();
         let end = tuple[3].clone().to_uint();
-        let params = tuple[3].clone().to_bytes();
+        let params = tuple[4].clone().to_bytes();
         if let (Some(plasma), Some(predicate), Some(params)) = (plasma, predicate, params) {
             Ok(StateQuery::new(
                 plasma,
@@ -83,7 +83,13 @@ impl StateQuery {
     }
     pub fn from_abi(data: &[u8]) -> Result<Self, Error> {
         let decoded: Vec<Token> = ethabi::decode(
-            &[ethabi::ParamType::Address, ethabi::ParamType::Bytes],
+            &[
+                ethabi::ParamType::Address,
+                ethabi::ParamType::Address,
+                ethabi::ParamType::Int(8),
+                ethabi::ParamType::Int(8),
+                ethabi::ParamType::Bytes,
+            ],
             data,
         )
         .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;

@@ -17,6 +17,11 @@ impl BaseDbKey {
     pub fn concat(&self, key: &BaseDbKey) -> BaseDbKey {
         BaseDbKey([self.0.as_slice(), key.0.as_slice()].concat())
     }
+
+    pub fn remove_prefix(&self, key: &BaseDbKey) -> BaseDbKey {
+        let (_left, right) = self.as_bytes().split_at(key.as_bytes().len());
+        BaseDbKey::from(right)
+    }
 }
 
 impl From<&[u8]> for BaseDbKey {
@@ -143,7 +148,16 @@ impl<'a, B> KeyValueStore<B> for Bucket<'a, B> {
         prefix: &BaseDbKey,
         f: Box<FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
     ) -> Vec<KeyValue> {
-        self.store.iter_all(&self.prefix.concat(prefix), f)
+        self.store
+            .iter_all(&self.prefix.concat(prefix), f)
+            .iter()
+            .map(|kv| {
+                KeyValue::new(
+                    kv.get_key().remove_prefix(&self.prefix),
+                    kv.get_value().to_vec(),
+                )
+            })
+            .collect()
     }
     fn iter_all_map(
         &self,
