@@ -8,30 +8,36 @@ use plasma_db::traits::{DatabaseTrait, KeyValueStore};
 /// Interface for SyncManager
 /// SyncManager synchronize client state with operator's state.
 pub trait SyncManagerTrait {
+    /// Register new deposit contract
     fn add_deposit_contract(
         &self,
         deposit_contract: Address,
         commit_contract: Address,
     ) -> Result<(), Error>;
+    /// Remove a deposit contract
     fn remove_deposit_contract(
         &self,
         deposit_contract: Address,
         commit_contract: Address,
     ) -> Result<(), Error>;
+    /// Gets last syncronized block number for a deposit_contract
     fn get_last_synced_block(
         &self,
         deposit_contract: Address,
     ) -> Result<Option<BlockNumber>, Error>;
+    /// Adds new query for syncronization
     fn add_sync_query(
         &self,
         deposit_contract: Address,
         state_query: &StateQuery,
     ) -> Result<(), Error>;
+    /// Removes new query
     fn remove_sync_query(
         &self,
         deposit_contract: Address,
         state_query: &StateQuery,
     ) -> Result<(), Error>;
+    /// Gets registered queries
     fn get_sync_queries(&self, deposit_contract: Address) -> Result<Vec<StateQuery>, Error>;
 }
 
@@ -55,6 +61,7 @@ impl<T> SyncManager<T>
 where
     T: SyncDbTrait,
 {
+    /// Callback which is called when new block is submitted
     pub fn handle_block_submitted(&self) {
         let state_queries = self.get_all_sync_queries();
         let _applied = state_queries

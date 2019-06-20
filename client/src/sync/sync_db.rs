@@ -81,9 +81,7 @@ where
             .bucket(&commit_contract.as_bytes().into())
             .iter_all(&b""[..].into(), Box::new(|_a, _b| true))
             .iter()
-            .map(|kv| {
-                Address::from_slice(kv.get_key().as_bytes())
-            })
+            .map(|kv| Address::from_slice(kv.get_key().as_bytes()))
             .collect())
     }
     /// Remove contract address

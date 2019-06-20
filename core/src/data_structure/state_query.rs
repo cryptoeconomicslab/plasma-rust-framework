@@ -6,6 +6,7 @@ use ethereum_types::Address;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
+/// StateQuery is the query to get StateUpdates
 #[derive(Debug, Clone, Hash)]
 pub struct StateQuery {
     plasma_contract: Address,
@@ -97,6 +98,7 @@ impl StateQuery {
     }
 }
 
+/// The result of StateQuery
 #[derive(Debug, Clone)]
 pub struct StateQueryResult {
     state_update: StateUpdate,
