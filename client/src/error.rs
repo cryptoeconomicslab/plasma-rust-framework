@@ -7,6 +7,9 @@
 
 use ethabi::Error as AbiDecodeError;
 use failure::{Backtrace, Context, Fail};
+use hex::FromHexError;
+use jsonrpc_core_client::RpcError;
+use plasma_core::data_structure::error::Error as PlasmaCoreError;
 use plasma_db::error::Error as PlasmaDbError;
 use std::fmt;
 use std::fmt::Display;
@@ -20,12 +23,18 @@ pub enum ErrorKind {
     Io,
     #[fail(display = "ABI Decode error")]
     AbiDecode,
+    #[fail(display = "Plasma Core")]
+    PlasmaCore,
     #[fail(display = "Plasma Db error")]
     PlasmaDbError,
     #[fail(display = "Invalid transaction")]
     InvalidTransaction,
-    #[fail(display = "Lock is acquired.")]
+    #[fail(display = "Lock is acquired")]
     PoisonError,
+    #[fail(display = "RPC error")]
+    RpcError,
+    #[fail(display = "Hex Error")]
+    HexError,
 }
 
 #[derive(Debug)]
@@ -89,6 +98,14 @@ impl From<AbiDecodeError> for Error {
     }
 }
 
+impl From<PlasmaCoreError> for Error {
+    fn from(error: PlasmaCoreError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::PlasmaCore),
+        }
+    }
+}
+
 impl From<PlasmaDbError> for Error {
     fn from(error: PlasmaDbError) -> Error {
         Error {
@@ -101,6 +118,22 @@ impl<T> From<PoisonError<T>> for Error {
     fn from(_error: PoisonError<T>) -> Error {
         Error {
             inner: Context::from(ErrorKind::PoisonError),
+        }
+    }
+}
+
+impl From<RpcError> for Error {
+    fn from(error: RpcError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::RpcError),
+        }
+    }
+}
+
+impl From<FromHexError> for Error {
+    fn from(error: FromHexError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::HexError),
         }
     }
 }

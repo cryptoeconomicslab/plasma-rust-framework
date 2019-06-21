@@ -115,4 +115,45 @@ impl StateQueryResult {
     pub fn get_result(&self) -> &[Bytes] {
         &self.result
     }
+    pub fn to_tuple(&self) -> Vec<Token> {
+        vec![
+            Token::Bytes(self.state_update.to_abi()),
+            Token::Array(
+                self.result
+                    .iter()
+                    .map(|r| Token::Bytes(r.to_vec()))
+                    .collect(),
+            ),
+        ]
+    }
+    pub fn to_abi(&self) -> Vec<u8> {
+        ethabi::encode(&self.to_tuple())
+    }
+    pub fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
+        let state_update_bytes = tuple[0].clone().to_bytes();
+        let result_array = tuple[1].clone().to_array();
+        if let (Some(state_update_bytes), Some(result_array)) = (state_update_bytes, result_array) {
+            let result: Vec<Bytes> = result_array
+                .iter()
+                .filter_map(|r| r.clone().to_bytes().map(Bytes::from))
+                .collect();
+            Ok(StateQueryResult::new(
+                StateUpdate::from_abi(&state_update_bytes).ok().unwrap(),
+                &result,
+            ))
+        } else {
+            Err(Error::from(ErrorKind::AbiDecode))
+        }
+    }
+    pub fn from_abi(data: &[u8]) -> Result<Self, Error> {
+        let decoded: Vec<Token> = ethabi::decode(
+            &[
+                ethabi::ParamType::Bytes,
+                ethabi::ParamType::Array(Box::new(ethabi::ParamType::Bytes)),
+            ],
+            data,
+        )
+        .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;
+        Self::from_tuple(&decoded)
+    }
 }
