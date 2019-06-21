@@ -115,7 +115,7 @@ mod tests {
 
     fn create_state_update(start: u64, end: u64, block_number: u64) -> StateUpdate {
         StateUpdate::new(
-            StateObject::new(Address::zero(), &b"data"[..]),
+            StateObject::new(Address::zero(), Bytes::from(&b"data"[..])),
             start,
             end,
             block_number,
@@ -128,7 +128,7 @@ mod tests {
         // make state update
         let state_update = create_state_update(0, 100, 1);
         let parameters = OwnershipPredicateParameters::new(
-            StateObject::new(Address::zero(), &Address::zero().as_bytes().to_vec()),
+            StateObject::new(Address::zero(), Bytes::from(Address::zero().as_bytes())),
             5,
             10,
         );
@@ -155,7 +155,7 @@ mod tests {
         // make state update
         let state_update = create_state_update(0, 100, 1);
         let parameters = OwnershipPredicateParameters::new(
-            StateObject::new(Address::zero(), &Address::zero().as_bytes().to_vec()),
+            StateObject::new(Address::zero(), Bytes::from(Address::zero().as_bytes())),
             5,
             10,
         );
@@ -183,7 +183,7 @@ mod tests {
         let state_update1 = create_state_update(0, 100, 1);
         let state_update2 = create_state_update(100, 200, 2);
         let parameters = OwnershipPredicateParameters::new(
-            StateObject::new(Address::zero(), &Address::zero().as_bytes().to_vec()),
+            StateObject::new(Address::zero(), Bytes::from(Address::zero().as_bytes())),
             5,
             10,
         );

@@ -8,7 +8,7 @@ use ethereum_types::{Address, H256};
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 use tiny_keccak::Keccak;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Witness {
     v: H256,
     r: H256,
@@ -21,7 +21,7 @@ impl Witness {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 /// ## struct Transaction
 /// - has a `plasma_contract_address`
 /// - has a `start` (A range element)

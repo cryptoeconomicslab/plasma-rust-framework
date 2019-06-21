@@ -109,8 +109,8 @@ impl PredicatePlugin for OwnershipPredicate {
     }
 
     fn query_state(&self, state_update: &StateUpdate, _parameters: &[u8]) -> Vec<Bytes> {
-        let owner = Bytes::from(state_update.get_state_object().get_data());
-        vec![owner]
+        let owner = state_update.get_state_object().get_data();
+        vec![owner.clone()]
     }
 }
 
@@ -118,6 +118,7 @@ impl PredicatePlugin for OwnershipPredicate {
 mod tests {
     use super::{OwnershipPredicate, OwnershipPredicateParameters};
     use crate::{PredicateParameters, PredicatePlugin};
+    use bytes::Bytes;
     use ethereum_types::{Address, H256};
     use plasma_core::data_structure::{StateObject, StateUpdate, Transaction, Witness};
 
@@ -130,7 +131,7 @@ mod tests {
         let alice_address = Address::zero();
         // make state update
         let state_update = StateUpdate::new(
-            StateObject::new(predicate_address, &b"data"[..]),
+            StateObject::new(predicate_address, Bytes::from(&b"data"[..])),
             start,
             end,
             10,
@@ -138,7 +139,7 @@ mod tests {
         );
         // make parameters
         let parameters = OwnershipPredicateParameters::new(
-            StateObject::new(predicate_address, &alice_address.as_bytes().to_vec()),
+            StateObject::new(predicate_address, Bytes::from(alice_address.as_bytes())),
             10,
             20,
         );
