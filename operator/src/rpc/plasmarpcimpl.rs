@@ -101,7 +101,7 @@ mod tests {
             0,
             100,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &parameters.encode(),
+            parameters.encode(),
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
         let encoded = transaction.to_abi();

@@ -64,15 +64,15 @@ impl OwnershipPredicateParameters {
 
 impl PredicateParameters for OwnershipPredicateParameters {
     /// Make parameters for ownership predicate
-    fn encode(&self) -> Vec<u8> {
-        ethabi::encode(&[
+    fn encode(&self) -> Bytes {
+        Bytes::from(ethabi::encode(&[
             Token::Tuple(vec![
                 Token::Address(self.get_state_object().get_predicate()),
                 Token::Bytes(self.get_state_object().get_data().to_vec()),
             ]),
             Token::Uint(self.origin_block.into()),
             Token::Uint(self.max_block.into()),
-        ])
+        ]))
     }
 }
 
@@ -150,7 +150,7 @@ mod tests {
             start,
             end,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &parameters_bytes,
+            parameters_bytes,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
 

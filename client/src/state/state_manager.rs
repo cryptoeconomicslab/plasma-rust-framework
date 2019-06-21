@@ -139,7 +139,7 @@ mod tests {
             0,
             100,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &parameters_bytes,
+            parameters_bytes,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
 
@@ -166,7 +166,7 @@ mod tests {
             0,
             20,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &parameters_bytes,
+            parameters_bytes,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
 
@@ -194,7 +194,7 @@ mod tests {
             50,
             150,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &parameters_bytes,
+            parameters_bytes,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
 
