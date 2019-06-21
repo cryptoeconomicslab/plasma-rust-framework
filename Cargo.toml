@@ -19,7 +19,7 @@ members = [
 	"db",
 	"operator",
 	"predicate-plugins",
-	"sum_merkle_tree"
+	"merkle-interval-tree"
 ]
 
 [dependencies]
