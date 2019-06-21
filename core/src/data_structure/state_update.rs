@@ -6,7 +6,7 @@ use super::state_object::StateObject;
 use ethabi::Token;
 use ethereum_types::Address;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StateUpdate {
     state_object: StateObject,
     start: u64,
@@ -95,12 +95,13 @@ impl StateUpdate {
 mod tests {
     use super::StateObject;
     use super::StateUpdate;
+    use bytes::Bytes;
     use ethereum_types::Address;
 
     #[test]
     fn test_abi_encode() {
-        let parameters_bytes = Vec::from(&b"parameters"[..]);
-        let state_object = StateObject::new(Address::zero(), &parameters_bytes);
+        let parameters_bytes = Bytes::from(&b"parameters"[..]);
+        let state_object = StateObject::new(Address::zero(), parameters_bytes);
 
         let state_update = StateUpdate::new(state_object, 0, 100, 1, Address::zero());
         let encoded = state_update.to_abi();

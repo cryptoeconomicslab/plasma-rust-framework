@@ -91,14 +91,15 @@ where
 mod tests {
     use super::BlockDb;
     use super::BlockNumber;
+    use bytes::Bytes;
     use ethereum_types::Address;
     use plasma_core::data_structure::{StateObject, StateUpdate};
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
 
     #[test]
     fn test_get_pending_state_updates() {
-        let data = Vec::from(&b"data"[..]);
-        let state_object = StateObject::new(Address::zero(), &data);
+        let data = Bytes::from(&b"data"[..]);
+        let state_object = StateObject::new(Address::zero(), data);
         let state_update = StateUpdate::new(state_object, 0, 100, 1, Address::zero());
 
         let block_db: BlockDb<CoreDbMemoryImpl> = Default::default();
@@ -110,8 +111,8 @@ mod tests {
 
     #[test]
     fn test_finalize_block() {
-        let data = Vec::from(&b"data"[..]);
-        let state_object = StateObject::new(Address::zero(), &data);
+        let data = Bytes::from(&b"data"[..]);
+        let state_object = StateObject::new(Address::zero(), data);
         let state_update = StateUpdate::new(state_object, 0, 100, 1, Address::zero());
 
         let block_db: BlockDb<CoreDbMemoryImpl> = Default::default();

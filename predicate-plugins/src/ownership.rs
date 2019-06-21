@@ -64,15 +64,15 @@ impl OwnershipPredicateParameters {
 
 impl PredicateParameters for OwnershipPredicateParameters {
     /// Make parameters for ownership predicate
-    fn encode(&self) -> Vec<u8> {
-        ethabi::encode(&[
+    fn encode(&self) -> Bytes {
+        Bytes::from(ethabi::encode(&[
             Token::Tuple(vec![
                 Token::Address(self.get_state_object().get_predicate()),
                 Token::Bytes(self.get_state_object().get_data().to_vec()),
             ]),
             Token::Uint(self.origin_block.into()),
             Token::Uint(self.max_block.into()),
-        ])
+        ]))
     }
 }
 
@@ -109,8 +109,8 @@ impl PredicatePlugin for OwnershipPredicate {
     }
 
     fn query_state(&self, state_update: &StateUpdate, _parameters: &[u8]) -> Vec<Bytes> {
-        let owner = Bytes::from(state_update.get_state_object().get_data());
-        vec![owner]
+        let owner = state_update.get_state_object().get_data();
+        vec![owner.clone()]
     }
 }
 
@@ -118,6 +118,7 @@ impl PredicatePlugin for OwnershipPredicate {
 mod tests {
     use super::{OwnershipPredicate, OwnershipPredicateParameters};
     use crate::{PredicateParameters, PredicatePlugin};
+    use bytes::Bytes;
     use ethereum_types::{Address, H256};
     use plasma_core::data_structure::{StateObject, StateUpdate, Transaction, Witness};
 
@@ -130,7 +131,7 @@ mod tests {
         let alice_address = Address::zero();
         // make state update
         let state_update = StateUpdate::new(
-            StateObject::new(predicate_address, &b"data"[..]),
+            StateObject::new(predicate_address, Bytes::from(&b"data"[..])),
             start,
             end,
             10,
@@ -138,7 +139,7 @@ mod tests {
         );
         // make parameters
         let parameters = OwnershipPredicateParameters::new(
-            StateObject::new(predicate_address, &alice_address.as_bytes().to_vec()),
+            StateObject::new(predicate_address, Bytes::from(alice_address.as_bytes())),
             10,
             20,
         );
@@ -149,7 +150,7 @@ mod tests {
             start,
             end,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &parameters_bytes,
+            parameters_bytes,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
 

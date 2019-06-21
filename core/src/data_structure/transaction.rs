@@ -3,12 +3,13 @@ extern crate rlp;
 extern crate tiny_keccak;
 
 use super::error::{Error, ErrorKind};
+use bytes::Bytes;
 use ethabi::Token;
 use ethereum_types::{Address, H256};
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 use tiny_keccak::Keccak;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Witness {
     v: H256,
     r: H256,
@@ -21,7 +22,7 @@ impl Witness {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 /// ## struct Transaction
 /// - has a `plasma_contract_address`
 /// - has a `start` (A range element)
@@ -37,7 +38,7 @@ pub struct Transaction {
     start: u64,
     end: u64,
     method_id: u8,
-    parameters: Vec<u8>,
+    parameters: Bytes,
     witness: Witness,
 }
 
@@ -52,7 +53,7 @@ impl Transaction {
         start: u64,
         end: u64,
         method_id: u8,
-        parameters: &[u8],
+        parameters: Bytes,
         witness: &Witness,
     ) -> Transaction {
         Transaction {
@@ -60,7 +61,7 @@ impl Transaction {
             start,
             end,
             method_id,
-            parameters: parameters.to_vec(),
+            parameters,
             witness: witness.clone(),
         }
     }
@@ -75,7 +76,7 @@ impl Transaction {
             Token::Uint(self.start.into()),
             Token::Uint(self.end.into()),
             Token::FixedBytes(vec![self.method_id]),
-            Token::Bytes(self.parameters.clone()),
+            Token::Bytes(self.parameters.to_vec()),
         ])
     }
     /// ### tx.to_abi()
@@ -89,7 +90,7 @@ impl Transaction {
             Token::Uint(self.start.into()),
             Token::Uint(self.end.into()),
             Token::FixedBytes(vec![self.method_id]),
-            Token::Bytes(self.parameters.clone()),
+            Token::Bytes(self.parameters.to_vec()),
             Token::FixedBytes(self.witness.v.as_bytes().to_vec()),
             Token::FixedBytes(self.witness.r.as_bytes().to_vec()),
             Token::Uint(self.witness.s.into()),
@@ -147,7 +148,7 @@ impl Transaction {
                 start.as_u64(),
                 end.as_u64(),
                 method_id[0],
-                &parameters,
+                Bytes::from(parameters),
                 &Witness::new(H256::from_slice(&v), H256::from_slice(&r), s.as_u64()),
             ))
         } else {
@@ -182,7 +183,7 @@ impl Transaction {
     pub fn get_end(&self) -> u64 {
         self.end
     }
-    pub fn get_parameters(&self) -> &[u8] {
+    pub fn get_parameters(&self) -> &Bytes {
         &self.parameters
     }
     pub fn get_plasma_contract_address(&self) -> Address {
@@ -208,17 +209,18 @@ impl Decodable for Transaction {
 mod tests {
     use super::Transaction;
     use super::Witness;
+    use bytes::Bytes;
     use ethereum_types::{Address, H256};
 
     #[test]
     fn test_abi_encode() {
-        let parameters_bytes = Vec::from(&b"parameters"[..]);
+        let parameters_bytes = Bytes::from(&b"parameters"[..]);
         let transaction = Transaction::new(
             Address::zero(),
             0,
             100,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &parameters_bytes,
+            parameters_bytes,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
         let encoded = transaction.to_abi();

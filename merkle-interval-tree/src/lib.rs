@@ -25,7 +25,7 @@ trait Hashable {
     fn hash(&self) -> Bytes;
 }
 
-/// SumMerkleNode is a node in merkle tree
+/// MerkleIntervalNode is a node in merkle tree
 ///
 ///```text
 ///  full tree
@@ -46,7 +46,7 @@ trait Hashable {
 ///```
 ///
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum SumMerkleNode<I: Index> {
+pub enum MerkleIntervalNode<I: Index> {
     Leaf {
         end: I,
         data: Bytes,
@@ -54,8 +54,8 @@ pub enum SumMerkleNode<I: Index> {
 
     Node {
         end: I,
-        left: Box<SumMerkleNode<I>>,
-        right: Box<SumMerkleNode<I>>,
+        left: Box<MerkleIntervalNode<I>>,
+        right: Box<MerkleIntervalNode<I>>,
     },
 
     ProofNode {
@@ -64,25 +64,28 @@ pub enum SumMerkleNode<I: Index> {
     },
 }
 
-impl<I> Hashable for SumMerkleNode<I>
+impl<I> Hashable for MerkleIntervalNode<I>
 where
     I: Index,
 {
     fn hash(&self) -> Bytes {
         match self {
-            SumMerkleNode::Leaf { data, .. } => hash_leaf(data),
+            MerkleIntervalNode::Leaf { data, .. } => hash_leaf(data),
             // H(H(left.end + left.data) + H(right.end + right.data))
-            SumMerkleNode::Node { left, right, .. } => {
-                let mut buf = SumMerkleNode::compute_node(left.get_end(), &left.hash());
-                buf.extend_from_slice(&SumMerkleNode::compute_node(right.get_end(), &right.hash()));
+            MerkleIntervalNode::Node { left, right, .. } => {
+                let mut buf = MerkleIntervalNode::compute_node(left.get_end(), &left.hash());
+                buf.extend_from_slice(&MerkleIntervalNode::compute_node(
+                    right.get_end(),
+                    &right.hash(),
+                ));
                 hash_leaf(&buf)
             }
-            SumMerkleNode::ProofNode { data, .. } => data.clone(),
+            MerkleIntervalNode::ProofNode { data, .. } => data.clone(),
         }
     }
 }
 
-impl<I> SumMerkleNode<I>
+impl<I> MerkleIntervalNode<I>
 where
     I: Index,
 {
@@ -95,25 +98,25 @@ where
     }
 
     pub fn create_proof_node(node: &Self) -> Self {
-        SumMerkleNode::ProofNode {
+        MerkleIntervalNode::ProofNode {
             end: node.get_end(),
             data: node.hash(),
         }
     }
 
     pub fn create_empty() -> Self {
-        SumMerkleNode::Leaf {
+        MerkleIntervalNode::Leaf {
             end: I::max_value(),
             data: hash_leaf(&Bytes::from_static(&[0u8])),
         }
     }
 
     pub fn create_leaf(end: I, data: Bytes) -> Self {
-        SumMerkleNode::Leaf { end, data }
+        MerkleIntervalNode::Leaf { end, data }
     }
 
     pub fn create_node(end: I, left: &Self, right: &Self) -> Self {
-        SumMerkleNode::Node {
+        MerkleIntervalNode::Node {
             end,
             left: Box::new(left.clone()),
             right: Box::new(right.clone()),
@@ -121,14 +124,14 @@ where
     }
 
     pub fn compute_parent(left: &Self, right: &Self) -> Self {
-        SumMerkleNode::create_node(right.get_end(), left, right)
+        MerkleIntervalNode::create_node(right.get_end(), left, right)
     }
 
     fn get_end(&self) -> I {
         match self {
-            SumMerkleNode::Leaf { end, .. } => *end,
-            SumMerkleNode::Node { end, .. } => *end,
-            SumMerkleNode::ProofNode { end, .. } => *end,
+            MerkleIntervalNode::Leaf { end, .. } => *end,
+            MerkleIntervalNode::Node { end, .. } => *end,
+            MerkleIntervalNode::ProofNode { end, .. } => *end,
         }
     }
 }
@@ -152,18 +155,18 @@ where
 }
 
 #[derive(Debug)]
-pub struct SumMerkleTree<I: Index> {
-    tree: SumMerkleNode<I>,
+pub struct MerkleIntervalTree<I: Index> {
+    tree: MerkleIntervalNode<I>,
 }
 
-impl<I> SumMerkleTree<I>
+impl<I> MerkleIntervalTree<I>
 where
     I: Index,
 {
     /// generate sum merkle tree
-    pub fn generate(leaves: &[SumMerkleNode<I>]) -> Self {
+    pub fn generate(leaves: &[MerkleIntervalNode<I>]) -> Self {
         if leaves.len() <= 1 {
-            return SumMerkleTree {
+            return MerkleIntervalTree {
                 tree: leaves[0].clone(),
             };
         }
@@ -171,15 +174,18 @@ where
         for chunk in leaves.chunks(2) {
             let v = chunk.to_vec();
             if chunk.len() == 1 {
-                parents.push(SumMerkleNode::compute_parent(
+                parents.push(MerkleIntervalNode::compute_parent(
                     &v[0],
-                    &SumMerkleNode::create_empty(),
+                    &MerkleIntervalNode::create_empty(),
                 ))
             } else {
-                parents.push(SumMerkleNode::compute_parent(&v[0].clone(), &v[1].clone()))
+                parents.push(MerkleIntervalNode::compute_parent(
+                    &v[0].clone(),
+                    &v[1].clone(),
+                ))
             }
         }
-        SumMerkleTree::generate(&parents)
+        MerkleIntervalTree::generate(&parents)
     }
 
     /// Calculate merkle root
@@ -188,22 +194,22 @@ where
     }
 
     /// Returns inclusion proof for a leaf
-    pub fn get_inclusion_proof(&self, idx: usize, count: usize) -> Vec<SumMerkleNode<I>> {
-        SumMerkleTree::get_inclusion_proof_of_tree(&self.tree, idx, count)
+    pub fn get_inclusion_proof(&self, idx: usize, count: usize) -> Vec<MerkleIntervalNode<I>> {
+        MerkleIntervalTree::get_inclusion_proof_of_tree(&self.tree, idx, count)
     }
 
     fn get_inclusion_proof_of_tree(
-        tree: &SumMerkleNode<I>,
+        tree: &MerkleIntervalNode<I>,
         idx: usize,
         count: usize,
-    ) -> Vec<SumMerkleNode<I>> {
+    ) -> Vec<MerkleIntervalNode<I>> {
         match tree {
-            SumMerkleNode::Leaf { .. } => vec![],
-            SumMerkleNode::Node { left, right, .. } => {
+            MerkleIntervalNode::Leaf { .. } => vec![],
+            MerkleIntervalNode::Node { left, right, .. } => {
                 let left_count = count.next_power_of_two() / 2;
                 if idx < left_count {
                     let mut proofs = Self::get_inclusion_proof_of_tree(left, idx, left_count);
-                    proofs.push(SumMerkleNode::create_proof_node(&right));
+                    proofs.push(MerkleIntervalNode::create_proof_node(&right));
                     proofs
                 } else {
                     let mut proofs = Self::get_inclusion_proof_of_tree(
@@ -211,11 +217,11 @@ where
                         idx - left_count,
                         count - left_count,
                     );
-                    proofs.push(SumMerkleNode::create_proof_node(&left));
+                    proofs.push(MerkleIntervalNode::create_proof_node(&left));
                     proofs
                 }
             }
-            SumMerkleNode::ProofNode { .. } => vec![],
+            MerkleIntervalNode::ProofNode { .. } => vec![],
         }
     }
 
@@ -244,10 +250,10 @@ where
     }
 
     fn verify_and_get_parent(
-        left: &SumMerkleNode<I>,
-        right: &SumMerkleNode<I>,
+        left: &MerkleIntervalNode<I>,
+        right: &MerkleIntervalNode<I>,
         _first_left_end: I,
-    ) -> Result<SumMerkleNode<I>, Error> {
+    ) -> Result<MerkleIntervalNode<I>, Error> {
         /*
         if left.get_end() > first_left_end {
             return Err(Error::VerifyError);
@@ -256,14 +262,14 @@ where
         if left.get_end() > right.get_end() {
             return Err(Error::VerifyError);
         }
-        Ok(SumMerkleNode::compute_parent(left, right))
+        Ok(MerkleIntervalNode::compute_parent(left, right))
     }
 
     /// Verify whether leaf is included or not
     pub fn verify(
-        leaf: &SumMerkleNode<I>,
+        leaf: &MerkleIntervalNode<I>,
         idx: usize,
-        inclusion_proof: Vec<SumMerkleNode<I>>,
+        inclusion_proof: Vec<MerkleIntervalNode<I>>,
         root: &Bytes,
     ) -> Result<ImplicitBounds<I>, Error> {
         let mut path: Vec<bool> = vec![];
@@ -303,58 +309,59 @@ where
 #[cfg(test)]
 mod tests {
     use super::Bytes;
-    use super::SumMerkleNode;
-    use super::SumMerkleTree;
+    use super::MerkleIntervalNode;
+    use super::MerkleIntervalTree;
 
     #[test]
     fn test_compute_parent() {
         let hash_message1 = Bytes::from(&b"message"[..]);
-        let leaf1 = SumMerkleNode::Leaf {
+        let leaf1 = MerkleIntervalNode::Leaf {
             end: 100,
             data: hash_message1,
         };
         let hash_message2 = Bytes::from(&b"message"[..]);
-        let leaf2 = SumMerkleNode::Leaf {
+        let leaf2 = MerkleIntervalNode::Leaf {
             end: 200,
             data: hash_message2,
         };
-        let parent = SumMerkleNode::compute_parent(&leaf1, &leaf2);
+        let parent = MerkleIntervalNode::compute_parent(&leaf1, &leaf2);
         assert_eq!(parent.get_end(), 200);
     }
 
     #[test]
     fn test_generate_tree() {
         let hash_message1 = Bytes::from(&b"message"[..]);
-        let leaf1 = SumMerkleNode::Leaf {
+        let leaf1 = MerkleIntervalNode::Leaf {
             end: 100,
             data: hash_message1,
         };
         let hash_message2 = Bytes::from(&b"message"[..]);
-        let leaf2 = SumMerkleNode::Leaf {
+        let leaf2 = MerkleIntervalNode::Leaf {
             end: 200,
             data: hash_message2,
         };
-        let tree = SumMerkleTree::generate(&[leaf1, leaf2]);
+        let tree = MerkleIntervalTree::generate(&[leaf1, leaf2]);
         assert_eq!(tree.get_root().len(), 32);
     }
 
     #[test]
     fn test_proof() {
         let hash_message1 = Bytes::from(&b"message"[..]);
-        let leaf1 = SumMerkleNode::Leaf {
+        let leaf1 = MerkleIntervalNode::Leaf {
             end: 100,
             data: hash_message1,
         };
         let hash_message2 = Bytes::from(&b"message"[..]);
-        let leaf2 = SumMerkleNode::Leaf {
+        let leaf2 = MerkleIntervalNode::Leaf {
             end: 200,
             data: hash_message2,
         };
-        let tree = SumMerkleTree::generate(&[leaf1.clone(), leaf2]);
+        let tree = MerkleIntervalTree::generate(&[leaf1.clone(), leaf2]);
         let inclusion_proof = tree.get_inclusion_proof(0, 2);
         assert_eq!(inclusion_proof.len(), 1);
         assert_eq!(
-            SumMerkleTree::verify(&leaf1.clone(), 0, inclusion_proof, &tree.get_root()).is_ok(),
+            MerkleIntervalTree::verify(&leaf1.clone(), 0, inclusion_proof, &tree.get_root())
+                .is_ok(),
             true
         );
     }
@@ -363,16 +370,17 @@ mod tests {
     fn test_large_leaves() {
         let mut leaves = vec![];
         for i in 0..100 {
-            leaves.push(SumMerkleNode::Leaf {
+            leaves.push(MerkleIntervalNode::Leaf {
                 end: i * 100 + 100,
                 data: Bytes::from(&b"message"[..]),
             })
         }
-        let tree = SumMerkleTree::generate(&leaves);
+        let tree = MerkleIntervalTree::generate(&leaves);
         let inclusion_proof = tree.get_inclusion_proof(5, 100);
         assert_eq!(inclusion_proof.len(), 7);
         assert_eq!(
-            SumMerkleTree::verify(&leaves[5].clone(), 5, inclusion_proof, &tree.get_root()).is_ok(),
+            MerkleIntervalTree::verify(&leaves[5].clone(), 5, inclusion_proof, &tree.get_root())
+                .is_ok(),
             true
         );
     }
@@ -381,16 +389,17 @@ mod tests {
     fn test_failed_to_verify() {
         let mut leaves = vec![];
         for i in 0..100 {
-            leaves.push(SumMerkleNode::Leaf {
+            leaves.push(MerkleIntervalNode::Leaf {
                 end: i * 100 + 100,
                 data: Bytes::from(&b"message"[..]),
             })
         }
-        let tree = SumMerkleTree::generate(&leaves);
+        let tree = MerkleIntervalTree::generate(&leaves);
         let inclusion_proof = tree.get_inclusion_proof(5, 100);
         assert_eq!(inclusion_proof.len(), 7);
         assert_eq!(
-            SumMerkleTree::verify(&leaves[5].clone(), 7, inclusion_proof, &tree.get_root()).is_ok(),
+            MerkleIntervalTree::verify(&leaves[5].clone(), 7, inclusion_proof, &tree.get_root())
+                .is_ok(),
             false
         );
     }

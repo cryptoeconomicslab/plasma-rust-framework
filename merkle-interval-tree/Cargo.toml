@@ -1,5 +1,5 @@
 [package]
-name = "sum_merkle_tree"
+name = "merkle-interval-tree"
 version = "0.1.0"
 authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"

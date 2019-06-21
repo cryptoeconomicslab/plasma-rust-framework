@@ -54,6 +54,7 @@ mod tests {
     use super::ChainContext;
     use super::PlasmaRpc;
     use super::PlasmaRpcImpl;
+    use bytes::Bytes;
     use ethereum_types::{Address, H256};
     use jsonrpc_http_server::jsonrpc_core::IoHandler;
     use plasma_core::data_structure::{StateObject, StateUpdate, Transaction, Witness};
@@ -80,7 +81,7 @@ mod tests {
         let context = ChainContext::new();
         assert!(context.initiate().is_ok());
         let deposit_state = StateUpdate::new(
-            StateObject::new(Address::zero(), &b"data"[..]),
+            StateObject::new(Address::zero(), Bytes::from(&b"data"[..])),
             0,
             200,
             10,
@@ -91,7 +92,7 @@ mod tests {
         io.extend_with(rpc.to_delegate());
 
         let parameters = OwnershipPredicateParameters::new(
-            StateObject::new(Address::zero(), &Address::zero().as_bytes().to_vec()),
+            StateObject::new(Address::zero(), Bytes::from(Address::zero().as_bytes())),
             15,
             20,
         );
@@ -100,7 +101,7 @@ mod tests {
             0,
             100,
             Transaction::create_method_id(&b"send(address)"[..]),
-            &parameters.encode(),
+            parameters.encode(),
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
         let encoded = transaction.to_abi();
