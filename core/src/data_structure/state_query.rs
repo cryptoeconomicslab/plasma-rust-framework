@@ -112,6 +112,9 @@ impl StateQueryResult {
             result: result.to_vec(),
         }
     }
+    pub fn get_state_update(&self) -> &StateUpdate {
+        &self.state_update
+    }
     pub fn get_result(&self) -> &[Bytes] {
         &self.result
     }

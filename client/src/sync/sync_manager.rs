@@ -1,5 +1,6 @@
 use super::sync_db::{SyncDb, SyncDbTrait};
 use crate::error::Error;
+use crate::plasma_rpc::HttpPlasmaClient;
 use ethereum_types::Address;
 use plasma_core::data_structure::{StateQuery, StateQueryResult};
 use plasma_core::types::BlockNumber;
@@ -44,6 +45,16 @@ pub trait SyncManagerTrait {
 /// Simple implementation for Sync Manager
 pub struct SyncManager<T: SyncDbTrait> {
     sync_db: T,
+    uri: String,
+}
+
+impl<T> SyncManager<T>
+where
+    T: SyncDbTrait,
+{
+    pub fn new(sync_db: T, uri: String) -> Self {
+        Self { sync_db, uri }
+    }
 }
 
 impl<T> Default for SyncManager<SyncDb<T>>
@@ -53,6 +64,7 @@ where
     fn default() -> Self {
         Self {
             sync_db: SyncDb::new(T::open(&"sync")),
+            uri: "http://localhost:8080".to_string(),
         }
     }
 }
@@ -62,11 +74,14 @@ where
     T: SyncDbTrait,
 {
     /// Callback which is called when new block is submitted
-    pub fn handle_block_submitted(&self) {
+    pub fn sync(&self) -> Vec<StateQueryResult> {
         let state_queries = self.get_all_sync_queries();
-        let _applied = state_queries
+        let results: Vec<StateQueryResult> = state_queries
             .iter()
-            .filter_map(|s| self.apply_state_query(s));
+            .filter_map(|s| self.apply_state_query(s))
+            .flat_map(|s| s)
+            .collect();
+        results
     }
 
     fn get_all_sync_queries(&self) -> Vec<StateQuery> {
@@ -89,8 +104,11 @@ where
             })
     }
 
-    fn apply_state_query(&self, _state_query: &StateQuery) -> Option<Vec<StateQueryResult>> {
-        Some(vec![])
+    fn apply_state_query(&self, state_query: &StateQuery) -> Option<Vec<StateQueryResult>> {
+        // Should reuse?
+        let client = HttpPlasmaClient::new(&self.uri).ok().unwrap();
+        let state_query_result = client.send_query(&state_query).ok().unwrap();
+        Some(state_query_result)
     }
 }
 
