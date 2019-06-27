@@ -19,8 +19,9 @@ members = [
 	"db",
 	"operator",
 	"predicate-plugins",
-  "event-watcher",
-  "merkle-interval-tree"
+	"event-watcher",
+	"merkle-interval-tree",
+	"wasm"
 ]
 
 [dependencies]
