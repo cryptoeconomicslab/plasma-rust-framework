@@ -51,6 +51,20 @@ where
             .put_verified_state_update(&VerifiedStateUpdate::new(start, end, 0, state_update))
     }
 
+    /// Applies state query result to StateManager
+    pub fn apply_state_query_result(
+        &self,
+        state_query_result: &StateQueryResult,
+    ) -> Result<(), Error> {
+        let state_update = state_query_result.get_state_update();
+        self.db.put_verified_state_update(&VerifiedStateUpdate::new(
+            state_update.get_start(),
+            state_update.get_end(),
+            state_update.get_block_number(),
+            state_update.clone(),
+        ))
+    }
+
     /// Execute a transaction
     pub fn execute_transaction(
         &self,

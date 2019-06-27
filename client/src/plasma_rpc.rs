@@ -31,7 +31,10 @@ impl RpcClient {
             (hex::encode(transaction.to_abi()),),
         )
     }
-    pub fn send_query(&self, query: &StateQuery) -> impl Future<Item = String, Error = RpcError> {
+    pub fn send_query(
+        &self,
+        query: &StateQuery,
+    ) -> impl Future<Item = Vec<String>, Error = RpcError> {
         self.0
             .call_method("sendQuery", "String", (hex::encode(query.to_abi()),))
     }
@@ -69,15 +72,18 @@ impl<'a> HttpPlasmaClient {
             .wait()
     }
     /// Sends state query
-    pub fn send_query(&self, query: &StateQuery) -> Result<StateQueryResult, Error> {
+    pub fn send_query(&self, query: &StateQuery) -> Result<Vec<StateQueryResult>, Error> {
         self.aggregator_client
             .borrow_mut()
             .send_query(query)
             .wait()
             .map_err::<Error, _>(Into::into)
-            .and_then(|result| hex::decode(result).map_err::<Error, _>(Into::into))
-            .and_then(|decoded| {
-                StateQueryResult::from_abi(&decoded).map_err::<Error, _>(Into::into)
+            .map(|result: Vec<String>| result.iter().flat_map(hex::decode).collect())
+            .map(|decoded: Vec<Vec<u8>>| {
+                decoded
+                    .iter()
+                    .flat_map(|i| StateQueryResult::from_abi(&i))
+                    .collect()
             })
     }
     pub fn shutdown(self) -> std::result::Result<(), ()> {
@@ -139,9 +145,10 @@ mod tests {
                         10,
                         Address::zero(),
                     );
-                    Ok(Value::String(hex::encode(
+
+                    Ok(Value::Array(vec![Value::String(hex::encode(
                         StateQueryResult::new(state_update, &[]).to_abi(),
-                    )))
+                    ))]))
                 }
                 _ => Err(Error::new(ErrorCode::ServerError(-34))),
             }
@@ -195,7 +202,7 @@ mod tests {
         let server = TestServer::serve();
 
         let client = HttpPlasmaClient::new(&server.uri).ok().unwrap();
-        let state_query_result = client.send_query(&query).ok().unwrap();
+        let state_query_result = &client.send_query(&query).ok().unwrap()[0];
 
         assert!(state_query_result.get_result().is_empty());
         assert!(client.shutdown().is_ok());
