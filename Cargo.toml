@@ -19,7 +19,8 @@ members = [
 	"db",
 	"operator",
 	"predicate-plugins",
-	"merkle-interval-tree"
+  "event-watcher",
+  "merkle-interval-tree"
 ]
 
 [dependencies]
