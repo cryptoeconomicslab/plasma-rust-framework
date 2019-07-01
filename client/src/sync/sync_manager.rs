@@ -6,43 +6,7 @@ use plasma_core::data_structure::{StateQuery, StateQueryResult};
 use plasma_core::types::BlockNumber;
 use plasma_db::traits::{DatabaseTrait, KeyValueStore};
 
-/// Interface for SyncManager
 /// SyncManager synchronize client state with operator's state.
-pub trait SyncManagerTrait {
-    /// Register new deposit contract
-    fn add_deposit_contract(
-        &self,
-        deposit_contract: Address,
-        commit_contract: Address,
-    ) -> Result<(), Error>;
-    /// Remove a deposit contract
-    fn remove_deposit_contract(
-        &self,
-        deposit_contract: Address,
-        commit_contract: Address,
-    ) -> Result<(), Error>;
-    /// Gets last syncronized block number for a deposit_contract
-    fn get_last_synced_block(
-        &self,
-        deposit_contract: Address,
-    ) -> Result<Option<BlockNumber>, Error>;
-    /// Adds new query for syncronization
-    fn add_sync_query(
-        &self,
-        deposit_contract: Address,
-        state_query: &StateQuery,
-    ) -> Result<(), Error>;
-    /// Removes new query
-    fn remove_sync_query(
-        &self,
-        deposit_contract: Address,
-        state_query: &StateQuery,
-    ) -> Result<(), Error>;
-    /// Gets registered queries
-    fn get_sync_queries(&self, deposit_contract: Address) -> Result<Vec<StateQuery>, Error>;
-}
-
-/// Simple implementation for Sync Manager
 pub struct SyncManager<T: SyncDbTrait> {
     sync_db: T,
     uri: String,
@@ -110,14 +74,9 @@ where
         let state_query_result = client.send_query(&state_query).ok().unwrap();
         Some(state_query_result)
     }
-}
 
-impl<T> SyncManagerTrait for SyncManager<T>
-where
-    T: SyncDbTrait,
-{
-    /// Add contract address to synchronize
-    fn add_deposit_contract(
+    /// Registers new deposit contract to synchronize
+    pub fn add_deposit_contract(
         &self,
         commit_contract: Address,
         deposit_contract: Address,
@@ -125,8 +84,8 @@ where
         self.sync_db
             .add_deposit_contract(commit_contract, deposit_contract)
     }
-    /// Remove contract address
-    fn remove_deposit_contract(
+    /// Removes contract address
+    pub fn remove_deposit_contract(
         &self,
         deposit_contract: Address,
         commit_contract: Address,
@@ -134,14 +93,15 @@ where
         self.sync_db
             .remove_deposit_contract(commit_contract, deposit_contract)
     }
-    /// Fetch last synchronized block number
-    fn get_last_synced_block(
+    /// Gets last syncronized block number for a deposit_contract
+    pub fn get_last_synced_block(
         &self,
         deposit_contract: Address,
     ) -> Result<Option<BlockNumber>, Error> {
         self.sync_db.get_last_synced_block(deposit_contract)
     }
-    fn add_sync_query(
+    /// Adds new query for syncronization
+    pub fn add_sync_query(
         &self,
         deposit_contract: Address,
         state_query: &StateQuery,
@@ -149,7 +109,8 @@ where
         self.sync_db.add_sync_query(deposit_contract, state_query)
         // self.event_watcher.on(deposit_contract, )
     }
-    fn remove_sync_query(
+    /// Removes a sync query
+    pub fn remove_sync_query(
         &self,
         deposit_contract: Address,
         state_query: &StateQuery,
@@ -157,7 +118,8 @@ where
         self.sync_db
             .remove_sync_query(deposit_contract, state_query)
     }
-    fn get_sync_queries(&self, deposit_contract: Address) -> Result<Vec<StateQuery>, Error> {
+    /// Gets registered sync queries
+    pub fn get_sync_queries(&self, deposit_contract: Address) -> Result<Vec<StateQuery>, Error> {
         self.sync_db.get_sync_queries(deposit_contract)
     }
 }
@@ -166,7 +128,6 @@ where
 mod tests {
     use super::SyncDb;
     use super::SyncManager;
-    use crate::sync::sync_manager::SyncManagerTrait;
     use bytes::Bytes;
     use ethereum_types::Address;
     use plasma_core::data_structure::StateQuery;
