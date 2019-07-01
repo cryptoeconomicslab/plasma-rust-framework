@@ -4,9 +4,9 @@ extern crate tokio;
 
 use ethabi::{Event, EventParam, ParamType};
 use ethereum_types::Address;
-use event_watcher::event_db::DefaultEventDb;
 use event_watcher::event_watcher::EventWatcher;
 use futures::future;
+use plasma_db::impls::event_db::MemoryDbImpl;
 
 fn main() {
     println!("Watcher started");
@@ -25,7 +25,7 @@ fn main() {
         anonymous: false,
     }];
 
-    let db = DefaultEventDb::new();
+    let db = MemoryDbImpl::new();
     let mut watcher = EventWatcher::new("http://localhost:9545", address, abi, db);
 
     watcher.subscribe(Box::new(|log| {

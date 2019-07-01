@@ -13,6 +13,7 @@ kvdb-memorydb = "0.1.0"
 rlp = "0.4.0"
 tempdir = "0.3.7"
 parking_lot = "0.8.0"
+ethabi = "7.0.0"
 
 [dependencies.leveldb]
 version = "0.8.4"

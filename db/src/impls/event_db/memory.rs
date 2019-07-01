@@ -1,26 +1,21 @@
+use crate::traits::event_db::EventDb;
+
 use ethabi::Hash;
 use std::collections::HashMap;
 
-pub trait EventDb {
-    fn get_last_logged_block(&self, topic_hash: Hash) -> Option<u64>;
-    fn set_last_logged_block(&mut self, topic_hash: Hash, block_number: u64);
-    fn get_event_seen(&self, event_hash: Hash) -> bool;
-    fn set_event_seen(&mut self, event_hash: Hash);
-}
-
 #[derive(Default)]
-pub struct DefaultEventDb {
+pub struct MemoryDbImpl {
     last_logged_blocks: HashMap<Hash, u64>,
     seen_events: HashMap<Hash, bool>,
 }
 
-impl DefaultEventDb {
-    pub fn new() -> DefaultEventDb {
+impl MemoryDbImpl {
+    pub fn new() -> MemoryDbImpl {
         Default::default()
     }
 }
 
-impl EventDb for DefaultEventDb {
+impl EventDb<Hash> for MemoryDbImpl {
     fn get_last_logged_block(&self, topic_hash: Hash) -> Option<u64> {
         match self.last_logged_blocks.get(&topic_hash) {
             Some(block_number) => Some(*block_number),
@@ -50,7 +45,7 @@ mod tests {
 
     #[test]
     fn test_last_logged_block() {
-        let mut db = DefaultEventDb::new();
+        let mut db = MemoryDbImpl::new();
         let k = Hash::random();
         assert_eq!(db.get_last_logged_block(k), None);
         db.set_last_logged_block(k, 1);
@@ -59,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_event_seen() {
-        let mut db = DefaultEventDb::new();
+        let mut db = MemoryDbImpl::new();
         let k = Hash::random();
         assert_eq!(db.get_event_seen(k), false);
         db.set_event_seen(k);

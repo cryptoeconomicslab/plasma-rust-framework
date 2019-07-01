@@ -1,7 +1,7 @@
-use super::event_db::EventDb;
-use ethabi::{Event, Topic, TopicFilter};
+use ethabi::{Event, Hash, Topic, TopicFilter};
 use ethereum_types::Address;
 use futures::{Async, Future, Poll, Stream};
+use plasma_db::traits::event_db::EventDb;
 use std::marker::Send;
 use std::time::Duration;
 use tokio::timer::Interval;
@@ -10,7 +10,7 @@ use web3::{transports, Web3};
 
 pub struct EventFetcher<T>
 where
-    T: EventDb,
+    T: EventDb<Hash>,
 {
     interval: Interval,
     web3: Web3<transports::Http>,
@@ -21,7 +21,7 @@ where
 
 impl<T> EventFetcher<T>
 where
-    T: EventDb,
+    T: EventDb<Hash>,
 {
     pub fn new(web3: Web3<transports::Http>, address: Address, abi: Vec<Event>, db: T) -> Self {
         EventFetcher {
@@ -53,7 +53,7 @@ where
 
 impl<T> Stream for EventFetcher<T>
 where
-    T: EventDb,
+    T: EventDb<Hash>,
 {
     type Item = Vec<Log>;
     type Error = ();
@@ -102,7 +102,7 @@ where
 
 pub struct EventWatcher<T>
 where
-    T: EventDb,
+    T: EventDb<Hash>,
 {
     stream: EventFetcher<T>,
     listeners: Vec<Box<dyn Fn(&Log) -> () + Send>>,
@@ -111,7 +111,7 @@ where
 
 impl<T> EventWatcher<T>
 where
-    T: EventDb,
+    T: EventDb<Hash>,
 {
     pub fn new(url: &str, address: Address, abi: Vec<Event>, db: T) -> EventWatcher<T> {
         let (eloop, transport) = web3::transports::Http::new(url).unwrap();
@@ -132,7 +132,7 @@ where
 
 impl<T> Future for EventWatcher<T>
 where
-    T: EventDb,
+    T: EventDb<Hash>,
 {
     type Item = ();
     type Error = ();
