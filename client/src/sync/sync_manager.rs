@@ -1,44 +1,115 @@
+extern crate tokio;
+
 use super::sync_db::SyncDb;
 use crate::error::Error;
 use crate::plasma_rpc::HttpPlasmaClient;
+use ethabi::{Event, ParamType, Token};
 use ethereum_types::Address;
-use plasma_core::data_structure::{StateQuery, StateQueryResult};
+use event_watcher::event_db::EventDb;
+use event_watcher::event_db::EventDbImpl;
+use event_watcher::event_watcher::EventWatcher;
+use plasma_core::data_structure::{abi::Decodable, StateQuery, StateQueryResult, StateUpdate};
 use plasma_core::types::BlockNumber;
-use plasma_db::traits::{DatabaseTrait, KeyValueStore};
+use plasma_db::traits::{Bucket, DatabaseTrait, KeyValueStore};
 
 /// SyncManager synchronize client state with operator's state.
-pub struct SyncManager<KVS: KeyValueStore> {
+pub struct SyncManager<KVS: KeyValueStore, E: EventDb> {
     sync_db: SyncDb<KVS>,
     uri: String,
+    mainchain_endpoint: String,
+    watchers: Vec<EventWatcher<E>>,
 }
 
-impl<KVS> SyncManager<KVS>
+impl<KVS, E> SyncManager<KVS, E>
 where
     KVS: KeyValueStore,
+    E: EventDb,
 {
-    pub fn new(sync_db: SyncDb<KVS>, uri: String) -> Self {
-        Self { sync_db, uri }
+    pub fn new(sync_db: SyncDb<KVS>, uri: String, mainchain_endpoint: String) -> Self {
+        Self {
+            sync_db,
+            uri,
+            mainchain_endpoint,
+            watchers: vec![],
+        }
     }
 }
 
-impl<KVS> Default for SyncManager<KVS>
+impl<KVS, E> Default for SyncManager<KVS, E>
 where
     KVS: DatabaseTrait + KeyValueStore,
+    E: EventDb,
 {
     fn default() -> Self {
         Self {
             sync_db: SyncDb::new(KVS::open(&"sync")),
             uri: "http://localhost:8080".to_string(),
+            mainchain_endpoint: "http://localhost:8545".to_string(),
+            watchers: vec![],
         }
     }
 }
 
-impl<KVS> SyncManager<KVS>
+impl<'a, KVS> SyncManager<KVS, EventDbImpl<Bucket<'a>>>
 where
     KVS: DatabaseTrait + KeyValueStore,
 {
-    /// Callback which is called when new block is submitted
-    pub fn sync(&self) -> Vec<StateQueryResult> {
+    pub fn initialize<K>(&mut self, kvs: &'a Bucket)
+    where
+        K: DatabaseTrait + KeyValueStore,
+    {
+        let commitment_contracts = self.sync_db.get_commitment_contracts();
+        let deposit_contracts = self.get_deposit_contracts(commitment_contracts);
+
+        let abi: Vec<Event> = vec![Event {
+            name: "LogCheckpoint".to_owned(),
+            inputs: vec![],
+            anonymous: false,
+        }];
+
+        for d in deposit_contracts {
+            let db = EventDbImpl::from(kvs.bucket(&d.as_bytes().into()));
+            let mut watcher = EventWatcher::new(&self.mainchain_endpoint, d, abi.clone(), db);
+            watcher.subscribe(Box::new(|log| {
+                let decoded: Vec<Token> = ethabi::decode(
+                    &[ParamType::Tuple(vec![
+                        ParamType::Tuple(vec![
+                            ParamType::Tuple(vec![ParamType::Address, ParamType::Bytes]),
+                            ParamType::Tuple(vec![ParamType::Uint(32), ParamType::Uint(32)]),
+                            ParamType::Uint(32),
+                            ParamType::Address,
+                        ]),
+                        ParamType::Tuple(vec![ParamType::Uint(32), ParamType::Uint(32)]),
+                    ])],
+                    &log.data.0,
+                )
+                .ok()
+                .unwrap();
+                let state_update_tuple = decoded[0].clone().to_tuple();
+                let _range_tuple = decoded[1].clone().to_tuple();
+                let _state_update = StateUpdate::from_tuple(&state_update_tuple.unwrap())
+                    .ok()
+                    .unwrap();
+                /*
+                state_manager.deposit(
+                    state_update.get_start(),
+                    state_update.get_end(),
+                    state_update,
+                );
+                */
+            }));
+            self.watchers.push(watcher);
+        }
+    }
+}
+
+impl<KVS, E> SyncManager<KVS, E>
+where
+    KVS: DatabaseTrait + KeyValueStore,
+    E: EventDb,
+{
+    /// Recieves block submitted event and sync state
+    pub fn recieve_block_submitted(&self) -> Vec<StateQueryResult> {
         let state_queries = self.get_all_sync_queries();
         let results: Vec<StateQueryResult> = state_queries
             .iter()
@@ -48,17 +119,19 @@ where
         results
     }
 
+    fn get_deposit_contracts(&self, commitment_contracts: Vec<Address>) -> Vec<Address> {
+        commitment_contracts
+            .iter()
+            .fold::<Vec<Address>, _>(vec![], |acc, c| {
+                let mut deposit_contracts = self.sync_db.get_deposit_contracts(*c).ok().unwrap();
+                deposit_contracts.extend(acc);
+                deposit_contracts
+            })
+    }
+
     fn get_all_sync_queries(&self) -> Vec<StateQuery> {
         let commitment_contracts = self.sync_db.get_commitment_contracts();
-        let deposit_contracts =
-            commitment_contracts
-                .iter()
-                .fold::<Vec<Address>, _>(vec![], |acc, c| {
-                    let mut deposit_contracts =
-                        self.sync_db.get_deposit_contracts(*c).ok().unwrap();
-                    deposit_contracts.extend(acc);
-                    deposit_contracts
-                });
+        let deposit_contracts = self.get_deposit_contracts(commitment_contracts);
         deposit_contracts
             .iter()
             .fold::<Vec<StateQuery>, _>(vec![], |acc, c| {
@@ -129,12 +202,14 @@ mod tests {
     use super::SyncManager;
     use bytes::Bytes;
     use ethereum_types::Address;
+    use event_watcher::event_db::EventDbImpl;
     use plasma_core::data_structure::StateQuery;
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
 
     #[test]
     fn test_add_and_remove_deposit_contract() {
-        let sync_manager: SyncManager<CoreDbMemoryImpl> = Default::default();
+        let sync_manager: SyncManager<CoreDbMemoryImpl, EventDbImpl<CoreDbMemoryImpl>> =
+            Default::default();
         let deposit_contract: Address = Address::zero();
         let commit_contract: Address = Address::zero();
         assert!(sync_manager
@@ -147,7 +222,8 @@ mod tests {
 
     #[test]
     fn test_add_and_remove_sync_query() {
-        let sync_manager: SyncManager<CoreDbMemoryImpl> = Default::default();
+        let sync_manager: SyncManager<CoreDbMemoryImpl, EventDbImpl<CoreDbMemoryImpl>> =
+            Default::default();
         let deposit_contract: Address = Address::zero();
         let predicate_address: Address = Address::zero();
         let query = StateQuery::new(
