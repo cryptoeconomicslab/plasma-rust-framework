@@ -2,6 +2,7 @@ extern crate ethabi;
 
 use crate::error::{Error, ErrorKind};
 use ethabi::Token;
+use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::StateUpdate;
 use plasma_db::impls::rangedb::RangeDbImpl;
 use plasma_db::range::Range;
@@ -31,8 +32,8 @@ impl VerifiedStateUpdate {
     }
     pub fn from(verified_block_number: u64, state_update: &StateUpdate) -> Self {
         VerifiedStateUpdate {
-            start: state_update.get_start(),
-            end: state_update.get_end(),
+            start: state_update.get_range().get_start(),
+            end: state_update.get_range().get_end(),
             verified_block_number,
             state_update: state_update.clone(),
         }

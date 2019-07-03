@@ -1,6 +1,7 @@
 use crate::error::Error;
 use bytes::Bytes;
 use ethereum_types::Address;
+use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::StateQuery;
 use plasma_core::types::BlockNumber;
 use plasma_db::traits::{BaseDbKey, KeyValueStore};
