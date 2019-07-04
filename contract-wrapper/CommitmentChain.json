@@ -1,0 +1,89 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "name": "root",
+        "type": "bytes32"
+      }
+    ],
+    "name": "BlockSubmitted",
+    "type": "event"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "name": "predicateAddress",
+                "type": "address"
+              },
+              {
+                "name": "data",
+                "type": "bytes"
+              }
+            ],
+            "name": "stateObject",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "name": "start",
+                "type": "uint256"
+              },
+              {
+                "name": "end",
+                "type": "uint256"
+              }
+            ],
+            "name": "range",
+            "type": "tuple"
+          },
+          {
+            "name": "plasmaBlockNumber",
+            "type": "uint256"
+          },
+          {
+            "name": "depositAddress",
+            "type": "address"
+          }
+        ],
+        "name": "_stateUpdate",
+        "type": "tuple"
+      },
+      {
+        "name": "_inclusionProof",
+        "type": "bytes"
+      }
+    ],
+    "name": "verifyInclusion",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_root",
+        "type": "bytes32"
+      }
+    ],
+    "name": "submit",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
