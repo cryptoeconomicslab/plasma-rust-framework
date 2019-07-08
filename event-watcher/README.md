@@ -21,7 +21,8 @@ fn main() {
             anonymous: false,
         }
     ];
-    let db = DefaultEventDb::new();
+    let kvs = CoreDbMemoryImpl::open("kvs");
+    let db = EventDbImpl::from(kvs);
     let mut watcher = EventWatcher::new("http://localhost:9545", address, abi, db);
 
     watcher.subscribe(Box::new(|log| {
