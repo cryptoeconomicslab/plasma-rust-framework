@@ -81,14 +81,14 @@ where
 
             match self.web3.eth().logs(filter).wait().map_err(|e| e) {
                 Ok(v) => {
-                    let events = self.filter_logs(event, v);
-                    if let Some(last_event) = events.last() {
-                        if let Some(block_num) = last_event.block_number {
+                    let newer_logs = self.filter_logs(event, v);
+                    if let Some(last_log) = newer_logs.last() {
+                        if let Some(block_num) = last_log.block_number {
                             self.db.set_last_logged_block(sig, block_num.low_u64());
                         };
                     };
 
-                    all_logs.extend_from_slice(&events);
+                    all_logs.extend_from_slice(&newer_logs);
                 }
                 Err(e) => {
                     println!("{}", e);
