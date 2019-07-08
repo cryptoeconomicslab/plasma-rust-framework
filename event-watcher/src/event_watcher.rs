@@ -33,7 +33,7 @@ where
         }
     }
 
-    fn filter_events(&self, event: &Event, logs: Vec<Log>) -> Vec<Log> {
+    fn filter_logs(&self, event: &Event, logs: Vec<Log>) -> Vec<Log> {
         if let Some(last_logged_block) = self.db.get_last_logged_block(event.signature()) {
             logs.iter()
                 .filter(|&log| {
@@ -81,7 +81,7 @@ where
 
             match self.web3.eth().logs(filter).wait().map_err(|e| e) {
                 Ok(v) => {
-                    let events = self.filter_events(event, v);
+                    let events = self.filter_logs(event, v);
                     if let Some(last_event) = events.last() {
                         if let Some(block_num) = last_event.block_number {
                             self.db.set_last_logged_block(sig, block_num.low_u64());
