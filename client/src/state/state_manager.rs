@@ -58,8 +58,8 @@ where
     ) -> Result<(), Error> {
         let state_update = state_query_result.get_state_update();
         self.db.put_verified_state_update(&VerifiedStateUpdate::new(
-            state_update.get_start(),
-            state_update.get_end(),
+            state_update.get_range().get_start(),
+            state_update.get_range().get_end(),
             state_update.get_block_number(),
             state_update.clone(),
         ))
@@ -70,9 +70,10 @@ where
         &self,
         transaction: &Transaction,
     ) -> Result<ResultOfExecuteTransaction, Error> {
-        let verified_state_updates = self
-            .db
-            .get_verified_state_updates(transaction.get_start(), transaction.get_end())?;
+        let verified_state_updates = self.db.get_verified_state_updates(
+            transaction.get_range().get_start(),
+            transaction.get_range().get_end(),
+        )?;
         let new_state_updates: Vec<StateUpdate> = verified_state_updates
             .iter()
             .map(|verified_state_update| {
@@ -123,15 +124,14 @@ mod tests {
     use super::StateQuery;
     use bytes::Bytes;
     use ethereum_types::{Address, H256};
-    use plasma_core::data_structure::{StateObject, StateUpdate, Transaction, Witness};
+    use plasma_core::data_structure::{Range, StateObject, StateUpdate, Transaction, Witness};
     use plasma_db::impls::kvs::memory::CoreDbMemoryImpl;
     use predicate_plugins::{OwnershipPredicateParameters, PredicateParameters};
 
     fn create_state_update(start: u64, end: u64, block_number: u64) -> StateUpdate {
         StateUpdate::new(
             StateObject::new(Address::zero(), Bytes::from(&b"data"[..])),
-            start,
-            end,
+            Range::new(start, end),
             block_number,
             Address::zero(),
         )
@@ -150,9 +150,7 @@ mod tests {
         // make transaction
         let transaction = Transaction::new(
             Address::zero(),
-            0,
-            100,
-            Transaction::create_method_id(&b"send(address)"[..]),
+            Range::new(0, 100),
             parameters_bytes,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
@@ -177,9 +175,7 @@ mod tests {
         // make transaction
         let transaction = Transaction::new(
             Address::zero(),
-            0,
-            20,
-            Transaction::create_method_id(&b"send(address)"[..]),
+            Range::new(0, 20),
             parameters_bytes,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
@@ -205,9 +201,7 @@ mod tests {
         // make transaction
         let transaction = Transaction::new(
             Address::zero(),
-            50,
-            150,
-            Transaction::create_method_id(&b"send(address)"[..]),
+            Range::new(50, 150),
             parameters_bytes,
             &Witness::new(H256::zero(), H256::zero(), 0),
         );
@@ -237,6 +231,7 @@ mod tests {
         );
         let result = state_manager.query_state(&query);
         assert!(result.is_ok());
+        println!("{:?}", result);
         assert_eq!(&result.ok().unwrap()[0].get_result()[0][..], &b"data"[..],);
     }
 

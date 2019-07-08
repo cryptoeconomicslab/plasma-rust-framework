@@ -13,6 +13,7 @@ use super::errors;
 use super::plasmarpc::PlasmaRpc;
 use crate::context::ChainContext;
 use jsonrpc_core::Result;
+use plasma_core::data_structure::abi::Decodable;
 use plasma_core::data_structure::Transaction;
 
 /// Plasma JSON RPC implementation.
@@ -57,7 +58,8 @@ mod tests {
     use bytes::Bytes;
     use ethereum_types::{Address, H256};
     use jsonrpc_http_server::jsonrpc_core::IoHandler;
-    use plasma_core::data_structure::{StateObject, StateUpdate, Transaction, Witness};
+    use plasma_core::data_structure::abi::Encodable;
+    use plasma_core::data_structure::{Range, StateObject, StateUpdate, Transaction, Witness};
     use predicate_plugins::parameters::PredicateParameters;
     use predicate_plugins::OwnershipPredicateParameters;
 
@@ -82,8 +84,7 @@ mod tests {
         assert!(context.initiate().is_ok());
         let deposit_state = StateUpdate::new(
             StateObject::new(Address::zero(), Bytes::from(&b"data"[..])),
-            0,
-            200,
+            Range::new(0, 200),
             10,
             Address::zero(),
         );
@@ -98,9 +99,7 @@ mod tests {
         );
         let transaction = Transaction::new(
             Address::zero(),
-            0,
-            100,
-            Transaction::create_method_id(&b"send(address)"[..]),
+            Range::new(0, 100),
             parameters.encode(),
             &Witness::new(H256::zero(), H256::zero(), 0),
         );

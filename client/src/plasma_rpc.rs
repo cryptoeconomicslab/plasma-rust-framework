@@ -5,6 +5,7 @@ use crate::error::Error;
 use futures::Future;
 use jsonrpc_core_client::transports;
 use jsonrpc_core_client::{RpcChannel, RpcError, TypedClient};
+use plasma_core::data_structure::abi::Encodable;
 use plasma_core::data_structure::{StateQuery, StateQueryResult, Transaction};
 use std::cell::RefCell;
 
@@ -100,8 +101,9 @@ mod tests {
     use ethereum_types::{Address, H256};
     use jsonrpc_core::{Error, ErrorCode, IoHandler, Params, Value};
     use jsonrpc_http_server::*;
+    use plasma_core::data_structure::abi::Decodable;
     use plasma_core::data_structure::{
-        StateObject, StateQuery, StateQueryResult, StateUpdate, Transaction, Witness,
+        Range, StateObject, StateQuery, StateQueryResult, StateUpdate, Transaction, Witness,
     };
     use predicate_plugins::{OwnershipPredicateParameters, PredicateParameters};
 
@@ -140,8 +142,10 @@ mod tests {
                     let state_query = StateQuery::from_abi(&decoded).ok().unwrap();
                     let state_update = StateUpdate::new(
                         StateObject::new(Address::zero(), Bytes::from(&b"data"[..])),
-                        state_query.get_start().unwrap_or(0),
-                        state_query.get_end().unwrap_or(0),
+                        Range::new(
+                            state_query.get_start().unwrap_or(0),
+                            state_query.get_end().unwrap_or(0),
+                        ),
                         10,
                         Address::zero(),
                     );
@@ -174,9 +178,7 @@ mod tests {
         );
         let transaction = Transaction::new(
             Address::zero(),
-            0,
-            100,
-            Transaction::create_method_id(&b"send(address)"[..]),
+            Range::new(0, 100),
             parameters.encode(),
             &Witness::new(H256::zero(), H256::zero(), 0),
         );

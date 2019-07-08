@@ -35,8 +35,8 @@ impl ChainContext {
         self.state_manager
             .write()
             .deposit(
-                state_update.get_start(),
-                state_update.get_end(),
+                state_update.get_range().get_start(),
+                state_update.get_range().get_end(),
                 state_update.clone(),
             )
             .is_ok()

@@ -1,5 +1,6 @@
 use crate::error::Error;
 use bytes::Bytes;
+use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::StateUpdate;
 use plasma_core::types::BlockNumber;
 use plasma_db::impls::rangedb::RangeDbImpl;
@@ -40,8 +41,8 @@ where
     pub fn add_pending_state_update(&self, state_update: &StateUpdate) -> Result<(), Error> {
         let block_number = self.get_next_block_number()?;
         let rangedb = self.get_block_store(block_number);
-        let start = state_update.get_start();
-        let end = state_update.get_end();
+        let start = state_update.get_range().get_start();
+        let end = state_update.get_range().get_end();
         let value = state_update.to_abi();
         rangedb
             .put(start, end, &value)
@@ -93,14 +94,14 @@ mod tests {
     use super::BlockNumber;
     use bytes::Bytes;
     use ethereum_types::Address;
-    use plasma_core::data_structure::{StateObject, StateUpdate};
+    use plasma_core::data_structure::{Range, StateObject, StateUpdate};
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
 
     #[test]
     fn test_get_pending_state_updates() {
         let data = Bytes::from(&b"data"[..]);
         let state_object = StateObject::new(Address::zero(), data);
-        let state_update = StateUpdate::new(state_object, 0, 100, 1, Address::zero());
+        let state_update = StateUpdate::new(state_object, Range::new(0, 100), 1, Address::zero());
 
         let block_db: BlockDb<CoreDbMemoryImpl> = Default::default();
         assert!(block_db.set_block_number(BlockNumber::new(0)).is_ok());
@@ -113,7 +114,7 @@ mod tests {
     fn test_finalize_block() {
         let data = Bytes::from(&b"data"[..]);
         let state_object = StateObject::new(Address::zero(), data);
-        let state_update = StateUpdate::new(state_object, 0, 100, 1, Address::zero());
+        let state_update = StateUpdate::new(state_object, Range::new(0, 100), 1, Address::zero());
 
         let block_db: BlockDb<CoreDbMemoryImpl> = Default::default();
         assert!(block_db.set_block_number(BlockNumber::new(0)).is_ok());
