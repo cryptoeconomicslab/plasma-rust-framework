@@ -2,7 +2,6 @@ use super::event_db::EventDb;
 use ethabi::{Event, Topic, TopicFilter};
 use ethereum_types::Address;
 use futures::{Async, Future, Poll, Stream};
-use std::marker::Send;
 use std::time::Duration;
 use tokio::timer::Interval;
 use web3::types::{BlockNumber, FilterBuilder, Log};

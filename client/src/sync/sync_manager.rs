@@ -3,54 +3,56 @@ extern crate tokio;
 use super::sync_db::SyncDb;
 use crate::error::Error;
 use crate::plasma_rpc::HttpPlasmaClient;
-use ethabi::{Event, ParamType, Token};
+use crate::state::StateManager;
+use ethabi::Event;
 use ethereum_types::Address;
-use event_watcher::event_db::EventDb;
 use event_watcher::event_db::EventDbImpl;
 use event_watcher::event_watcher::EventWatcher;
-use plasma_core::data_structure::{abi::Decodable, StateQuery, StateQueryResult, StateUpdate};
+use plasma_core::data_structure::{abi::Decodable, Checkpoint, StateQuery, StateQueryResult};
 use plasma_core::types::BlockNumber;
 use plasma_db::traits::{Bucket, DatabaseTrait, KeyValueStore};
+use std::sync::{Arc, Mutex};
 
 /// SyncManager synchronize client state with operator's state.
-pub struct SyncManager<KVS: KeyValueStore, E: EventDb> {
+pub struct SyncManager<'a, KVS: KeyValueStore> {
     sync_db: SyncDb<KVS>,
     uri: String,
     mainchain_endpoint: String,
-    watchers: Vec<EventWatcher<E>>,
+    watchers: Arc<Mutex<Vec<EventWatcher<EventDbImpl<Bucket<'a>>>>>>,
+    state_manager: Arc<Mutex<StateManager<KVS>>>,
 }
 
-impl<KVS, E> SyncManager<KVS, E>
+impl<'a, KVS> SyncManager<'a, KVS>
 where
-    KVS: KeyValueStore,
-    E: EventDb,
+    KVS: DatabaseTrait + KeyValueStore,
 {
     pub fn new(sync_db: SyncDb<KVS>, uri: String, mainchain_endpoint: String) -> Self {
         Self {
             sync_db,
             uri,
             mainchain_endpoint,
-            watchers: vec![],
+            watchers: Arc::new(Mutex::new(vec![])),
+            state_manager: Arc::new(Mutex::new(Default::default())),
         }
     }
 }
 
-impl<KVS, E> Default for SyncManager<KVS, E>
+impl<'a, KVS> Default for SyncManager<'a, KVS>
 where
     KVS: DatabaseTrait + KeyValueStore,
-    E: EventDb,
 {
     fn default() -> Self {
         Self {
             sync_db: SyncDb::new(KVS::open(&"sync")),
             uri: "http://localhost:8080".to_string(),
             mainchain_endpoint: "http://localhost:8545".to_string(),
-            watchers: vec![],
+            watchers: Arc::new(Mutex::new(vec![])),
+            state_manager: Arc::new(Mutex::new(Default::default())),
         }
     }
 }
 
-impl<'a, KVS> SyncManager<KVS, EventDbImpl<Bucket<'a>>>
+impl<'a, KVS> SyncManager<'a, KVS>
 where
     KVS: DatabaseTrait + KeyValueStore,
 {
@@ -71,42 +73,30 @@ where
             let db = EventDbImpl::from(kvs.bucket(&d.as_bytes().into()));
             let mut watcher = EventWatcher::new(&self.mainchain_endpoint, d, abi.clone(), db);
             watcher.subscribe(Box::new(|log| {
-                let decoded: Vec<Token> = ethabi::decode(
-                    &[ParamType::Tuple(vec![
-                        ParamType::Tuple(vec![
-                            ParamType::Tuple(vec![ParamType::Address, ParamType::Bytes]),
-                            ParamType::Tuple(vec![ParamType::Uint(32), ParamType::Uint(32)]),
-                            ParamType::Uint(32),
-                            ParamType::Address,
-                        ]),
-                        ParamType::Tuple(vec![ParamType::Uint(32), ParamType::Uint(32)]),
-                    ])],
-                    &log.data.0,
-                )
-                .ok()
-                .unwrap();
-                let state_update_tuple = decoded[0].clone().to_tuple();
-                let _range_tuple = decoded[1].clone().to_tuple();
-                let _state_update = StateUpdate::from_tuple(&state_update_tuple.unwrap())
-                    .ok()
-                    .unwrap();
-                /*
-                state_manager.deposit(
-                    state_update.get_start(),
-                    state_update.get_end(),
-                    state_update,
-                );
-                */
+                let checkpoint = Checkpoint::from_abi(&log.data.0).ok().unwrap();
+                let state_update = checkpoint.get_state_update();
+                match self.state_manager.lock() {
+                    Ok(state_manager) => {
+                        state_manager.deposit(
+                            state_update.get_range().get_start(),
+                            state_update.get_range().get_end(),
+                            state_update.clone(),
+                        );
+                    }
+                    _ => {
+                        // error
+                    }
+                }
             }));
-            self.watchers.push(watcher);
+            let mut watchers = self.watchers.lock().unwrap();
+            watchers.push(watcher);
         }
     }
 }
 
-impl<KVS, E> SyncManager<KVS, E>
+impl<'a, KVS> SyncManager<'a, KVS>
 where
     KVS: DatabaseTrait + KeyValueStore,
-    E: EventDb,
 {
     /// Recieves block submitted event and sync state
     pub fn recieve_block_submitted(&self) -> Vec<StateQueryResult> {
@@ -202,14 +192,12 @@ mod tests {
     use super::SyncManager;
     use bytes::Bytes;
     use ethereum_types::Address;
-    use event_watcher::event_db::EventDbImpl;
     use plasma_core::data_structure::StateQuery;
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
 
     #[test]
     fn test_add_and_remove_deposit_contract() {
-        let sync_manager: SyncManager<CoreDbMemoryImpl, EventDbImpl<CoreDbMemoryImpl>> =
-            Default::default();
+        let sync_manager: SyncManager<CoreDbMemoryImpl> = Default::default();
         let deposit_contract: Address = Address::zero();
         let commit_contract: Address = Address::zero();
         assert!(sync_manager
@@ -222,8 +210,7 @@ mod tests {
 
     #[test]
     fn test_add_and_remove_sync_query() {
-        let sync_manager: SyncManager<CoreDbMemoryImpl, EventDbImpl<CoreDbMemoryImpl>> =
-            Default::default();
+        let sync_manager: SyncManager<CoreDbMemoryImpl> = Default::default();
         let deposit_contract: Address = Address::zero();
         let predicate_address: Address = Address::zero();
         let query = StateQuery::new(

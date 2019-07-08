@@ -1,52 +1,56 @@
 extern crate ethabi;
-extern crate rlp;
 
+use super::abi::{Decodable, Encodable};
 use super::error::{Error, ErrorKind};
-use super::state_object::StateObject;
-use ethabi::Token;
-use ethereum_types::Address;
+use crate::data_structure::{Range, StateUpdate};
+use ethabi::{ParamType, Token};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Checkpoint {
     state_update: StateUpdate,
-    start: u64,
-    end: u64,
+    range: Range,
 }
 
 impl Checkpoint {
-    pub fn new(
-        state_update: StateUpdate,
-        start: u64,
-        end: u64,
-    ) -> Self {
+    pub fn new(state_update: StateUpdate, range: Range) -> Self {
         Self {
             state_update,
-            start,
-            end,
+            range,
         }
     }
-    pub fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
+    pub fn get_range(&self) -> &Range {
+        &self.range
+    }
+    pub fn get_state_update(&self) -> &StateUpdate {
+        &self.state_update
+    }
+}
+
+impl Encodable for Checkpoint {
+    fn to_tuple(&self) -> Vec<Token> {
+        vec![
+            Token::Tuple(self.state_update.to_tuple()),
+            Token::Tuple(self.range.to_tuple()),
+        ]
+    }
+}
+
+impl Decodable for Checkpoint {
+    type Ok = Self;
+    fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
         let state_update_tuple = tuple[0].clone().to_tuple();
         let range_tuple = tuple[1].clone().to_tuple();
-        
-        if let (
-            Some(state_update_tuple),
-            Some(range_tuple),
-        ) = (state_update_tuple, range_tuple)
-        {
+
+        if let (Some(state_update_tuple), Some(range_tuple)) = (state_update_tuple, range_tuple) {
             Ok(Checkpoint::new(
-                StateUpdate::from_tuple(state_update_tuple),
-                StateObject::from_abi(&state_object).unwrap(),
-                start.as_u64(),
-                end.as_u64(),
-                block_number.as_u64(),
-                plasma_contract,
+                StateUpdate::from_tuple(&state_update_tuple).unwrap(),
+                Range::from_tuple(&range_tuple).unwrap(),
             ))
         } else {
             Err(Error::from(ErrorKind::AbiDecode))
         }
     }
-    pub fn from_abi(data: &[u8]) -> Result<Self, Error> {
+    fn from_abi(data: &[u8]) -> Result<Self, Error> {
         let decoded: Vec<Token> = ethabi::decode(
             &[ParamType::Tuple(vec![
                 ParamType::Tuple(vec![
@@ -62,36 +66,28 @@ impl Checkpoint {
         .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;
         Self::from_tuple(&decoded)
     }
-    pub fn get_start(&self) -> u64 {
-        self.start
-    }
-    pub fn get_end(&self) -> u64 {
-        self.end
-    }
-    pub fn get_block_number(&self) -> u64 {
-        self.block_number
-    }
-    pub fn get_state_object(&self) -> &StateObject {
-        &self.state_object
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::StateObject;
-    use super::StateUpdate;
+    use crate::data_structure::{
+        abi::{Decodable, Encodable},
+        Checkpoint, Range, StateObject, StateUpdate,
+    };
     use bytes::Bytes;
     use ethereum_types::Address;
 
     #[test]
     fn test_abi_encode() {
-        let parameters_bytes = Bytes::from(&b"parameters"[..]);
-        let state_object = StateObject::new(Address::zero(), parameters_bytes);
-
-        let state_update = StateUpdate::new(state_object, 0, 100, 1, Address::zero());
-        let encoded = state_update.to_abi();
-        let decoded: StateUpdate = StateUpdate::from_abi(&encoded).unwrap();
-        assert_eq!(decoded.start, state_update.start);
+        let state_object = StateObject::new(Address::zero(), Bytes::from(&b"data"[..]));
+        let state_update = StateUpdate::new(state_object, Range::new(0, 100), 1, Address::zero());
+        let checkpoint = Checkpoint::new(state_update, Range::new(0, 50));
+        let encoded = checkpoint.to_abi();
+        let decoded = Checkpoint::from_abi(&encoded).unwrap();
+        assert_eq!(
+            decoded.get_range().get_start(),
+            checkpoint.get_range().get_start()
+        );
     }
 
 }
