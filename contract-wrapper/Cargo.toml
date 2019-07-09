@@ -9,3 +9,4 @@ web3 = { git = "https://github.com/cryptoeconomicslab/rust-web3", branch = 'etha
 ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
 serde = '*'
 hex-literal = '*'
+plasma-core = { path = '../core' }

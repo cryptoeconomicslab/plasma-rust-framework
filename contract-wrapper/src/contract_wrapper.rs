@@ -1,5 +1,7 @@
 use ethabi::Contract as ContractABI;
 use ethabi::Token;
+use plasma_core::data_structure::abi::Encodable;
+use plasma_core::data_structure::StateObject;
 use web3::contract::{Contract, Options};
 use web3::futures::Future;
 use web3::transports::{EventLoopHandle, Http};
@@ -31,17 +33,17 @@ impl ContractWrapper {
         }
     }
 
-    pub fn deposit(&self, from: Address, amount: u64) -> Result<H256, Error> {
-        let predicate_address: Address =
-            "B3a39641f23aaaAB328B94b0fec83E1E4A08bc2B".parse().unwrap(); // TODO: fix predicate address
+    pub fn deposit(
+        &self,
+        from: Address,
+        amount: u64,
+        state_object: StateObject,
+    ) -> Result<H256, Error> {
         let result = self.inner.call(
             "deposit",
             (
                 Token::Uint(amount.into()),
-                Token::Tuple(vec![
-                    Token::Address(predicate_address),
-                    Token::Bytes(vec![]),
-                ]),
+                Token::Tuple(state_object.to_tuple()),
             ),
             from,
             Options::default(),
@@ -50,7 +52,10 @@ impl ContractWrapper {
         // TODO: Error handling
         match result.wait() {
             Ok(r) => Ok(r),
-            Err(_) => Err(()),
+            Err(e) => {
+                println!("{}", e);
+                Err(())
+            }
         }
     }
 
