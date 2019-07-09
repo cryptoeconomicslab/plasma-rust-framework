@@ -14,7 +14,7 @@ pub struct EventDbImpl<KVS> {
 
 impl<KVS> From<KVS> for EventDbImpl<KVS>
 where
-    KVS: KeyValueStore<Vec<u8>>,
+    KVS: KeyValueStore,
 {
     fn from(db: KVS) -> Self {
         Self { db }
@@ -23,7 +23,7 @@ where
 
 impl<KVS> EventDb for EventDbImpl<KVS>
 where
-    KVS: KeyValueStore<Vec<u8>>,
+    KVS: KeyValueStore,
 {
     fn get_last_logged_block(&self, topic_hash: Hash) -> Option<u64> {
         match self.db.get(&BaseDbKey::new(topic_hash.0.to_vec())) {

@@ -19,7 +19,7 @@ pub struct RangeDbImpl<KVS> {
 
 impl<KVS> RangeDbImpl<KVS>
 where
-    KVS: KeyValueStore<Range>,
+    KVS: KeyValueStore,
 {
     fn validate_range(start: u64, end: u64) -> bool {
         start < end
@@ -54,7 +54,7 @@ where
 
 impl<KVS> From<KVS> for RangeDbImpl<KVS>
 where
-    KVS: KeyValueStore<Range>,
+    KVS: KeyValueStore,
 {
     fn from(kvs: KVS) -> Self {
         Self { db: kvs }
@@ -63,20 +63,21 @@ where
 
 impl<KVS> RangeStore for RangeDbImpl<KVS>
 where
-    KVS: KeyValueStore<Range>,
+    KVS: KeyValueStore,
 {
     fn get(&self, start: u64, end: u64) -> Result<Box<[Range]>, Error> {
-        let result = self.db.iter_all_map(
-            &BaseDbKey::from(start),
-            Box::new(move |_k, v| {
-                let range: Range = rlp::decode(&v).unwrap();
-                if range.intersect(start, end) {
-                    Some(range)
-                } else {
-                    None
-                }
-            }),
-        );
+        let result: Vec<Range> = self
+            .db
+            .iter_all(
+                &BaseDbKey::from(start),
+                Box::new(move |_k, v| {
+                    let range: Range = rlp::decode(&v).unwrap();
+                    range.intersect(start, end)
+                }),
+            )
+            .iter()
+            .filter_map(|kv| rlp::decode(kv.get_value()).ok())
+            .collect();
         Ok(result.into_boxed_slice())
     }
     fn del(&self, start: u64, end: u64) -> Result<Box<[Range]>, Error> {

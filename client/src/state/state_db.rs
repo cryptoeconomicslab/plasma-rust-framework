@@ -5,7 +5,6 @@ use ethabi::Token;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::StateUpdate;
 use plasma_db::impls::rangedb::RangeDbImpl;
-use plasma_db::range::Range;
 use plasma_db::traits::{DatabaseTrait, KeyValueStore, RangeStore};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -86,13 +85,13 @@ impl VerifiedStateUpdate {
     }
 }
 
-pub struct StateDb<KVS: KeyValueStore<Range>> {
+pub struct StateDb<KVS: KeyValueStore> {
     db: Box<RangeDbImpl<KVS>>,
 }
 
 impl<KVS> Default for StateDb<KVS>
 where
-    KVS: DatabaseTrait + KeyValueStore<Range>,
+    KVS: DatabaseTrait + KeyValueStore,
 {
     fn default() -> Self {
         let base_db = KVS::open("state");
@@ -104,7 +103,7 @@ where
 
 impl<KVS> StateDb<KVS>
 where
-    KVS: DatabaseTrait + KeyValueStore<Range>,
+    KVS: DatabaseTrait + KeyValueStore,
 {
     pub fn get_verified_state_updates(
         &self,

@@ -68,9 +68,9 @@ impl Batch {
     }
 }
 
-pub struct Bucket<'a, B> {
+pub struct Bucket<'a> {
     prefix: BaseDbKey,
-    store: &'a KeyValueStore<B>,
+    store: &'a KeyValueStore,
 }
 
 pub struct KeyValue {
@@ -91,7 +91,7 @@ impl KeyValue {
     }
 }
 
-pub trait KeyValueStore<B> {
+pub trait KeyValueStore {
     fn get(&self, key: &BaseDbKey) -> Result<Option<Vec<u8>>, Error>;
     fn put(&self, key: &BaseDbKey, value: &[u8]) -> Result<(), Error>;
     fn del(&self, key: &BaseDbKey) -> Result<(), Error>;
@@ -103,24 +103,19 @@ pub trait KeyValueStore<B> {
         prefix: &BaseDbKey,
         f: Box<FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
     ) -> Vec<KeyValue>;
-    fn iter_all_map(
-        &self,
-        prefix: &BaseDbKey,
-        f: Box<FnMut(&BaseDbKey, &Vec<u8>) -> Option<B>>,
-    ) -> Vec<B>;
-    fn bucket(&self, prefix: &BaseDbKey) -> Bucket<B>;
-    fn root(&self) -> Bucket<B> {
+    fn bucket(&self, prefix: &BaseDbKey) -> Bucket;
+    fn root(&self) -> Bucket {
         self.bucket(&b""[..].into())
     }
 }
 
-impl<'a, B> Bucket<'a, B> {
-    pub fn new(prefix: BaseDbKey, store: &'a KeyValueStore<B>) -> Self {
+impl<'a> Bucket<'a> {
+    pub fn new(prefix: BaseDbKey, store: &'a KeyValueStore) -> Self {
         Self { prefix, store }
     }
 }
 
-impl<'a, B> KeyValueStore<B> for Bucket<'a, B> {
+impl<'a> KeyValueStore for Bucket<'a> {
     fn get(&self, key: &BaseDbKey) -> Result<Option<Vec<u8>>, Error> {
         self.store.get(&self.prefix.concat(key))
     }
@@ -159,14 +154,7 @@ impl<'a, B> KeyValueStore<B> for Bucket<'a, B> {
             })
             .collect()
     }
-    fn iter_all_map(
-        &self,
-        prefix: &BaseDbKey,
-        f: Box<FnMut(&BaseDbKey, &Vec<u8>) -> Option<B>>,
-    ) -> Vec<B> {
-        self.store.iter_all_map(&self.prefix.concat(prefix), f)
-    }
-    fn bucket(&self, prefix: &BaseDbKey) -> Bucket<B> {
+    fn bucket(&self, prefix: &BaseDbKey) -> Bucket {
         self.store.bucket(&self.prefix.concat(prefix))
     }
 }

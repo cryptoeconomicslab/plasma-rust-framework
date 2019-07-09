@@ -4,7 +4,6 @@ use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::StateUpdate;
 use plasma_core::types::BlockNumber;
 use plasma_db::impls::rangedb::RangeDbImpl;
-use plasma_db::range::Range;
 use plasma_db::traits::{BaseDbKey, Bucket, DatabaseTrait, KeyValueStore, RangeStore};
 
 static NEXT_BLOCK_KEY: &[u8; 10] = b"next_block";
@@ -17,7 +16,7 @@ pub struct BlockDb<D> {
 
 impl<D> Default for BlockDb<D>
 where
-    D: DatabaseTrait + KeyValueStore<Range>,
+    D: DatabaseTrait + KeyValueStore,
 {
     fn default() -> Self {
         Self {
@@ -29,7 +28,7 @@ where
 
 impl<D> BlockDb<D>
 where
-    D: DatabaseTrait + KeyValueStore<Range>,
+    D: DatabaseTrait + KeyValueStore,
 {
     pub fn set_block_number(&self, block_number: BlockNumber) -> Result<(), Error> {
         let value: Bytes = block_number.into();
@@ -72,11 +71,11 @@ where
             next_block.unwrap().as_slice(),
         )))
     }
-    pub fn get_next_block_store(&self) -> Result<RangeDbImpl<Bucket<Range>>, Error> {
+    pub fn get_next_block_store(&self) -> Result<RangeDbImpl<Bucket>, Error> {
         let next_block_number = self.get_next_block_number()?;
         Ok(self.get_block_store(next_block_number))
     }
-    pub fn get_block_store(&self, block_number: BlockNumber) -> RangeDbImpl<Bucket<Range>> {
+    pub fn get_block_store(&self, block_number: BlockNumber) -> RangeDbImpl<Bucket> {
         let key: BaseDbKey = block_number.as_u64().into();
         let bucket = self.db.bucket(&key);
         RangeDbImpl::from(bucket)

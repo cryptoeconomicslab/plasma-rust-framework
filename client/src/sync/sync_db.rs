@@ -8,13 +8,13 @@ use plasma_db::traits::{BaseDbKey, KeyValueStore};
 
 /// SyncDb is used by SyncManager to store
 /// see http://spec.plasma.group/en/latest/src/05-client-architecture/sync-db.html
-pub struct SyncDb<KVS: KeyValueStore<StateQuery>> {
+pub struct SyncDb<KVS: KeyValueStore> {
     db: KVS,
 }
 
 impl<KVS> SyncDb<KVS>
 where
-    KVS: KeyValueStore<StateQuery>,
+    KVS: KeyValueStore,
 {
     pub fn new(db: KVS) -> Self {
         Self { db }
@@ -23,7 +23,7 @@ where
 
 impl<KVS> SyncDb<KVS>
 where
-    KVS: KeyValueStore<StateQuery>,
+    KVS: KeyValueStore,
 {
     pub fn get_commitment_contracts(&self) -> Vec<Address> {
         vec![]
