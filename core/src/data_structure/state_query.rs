@@ -1,3 +1,4 @@
+use super::abi::{Decodable, Encodable};
 use super::error::{Error, ErrorKind};
 use super::StateUpdate;
 use bytes::Bytes;
@@ -52,7 +53,13 @@ impl StateQuery {
         self.hash(&mut s);
         s.finish()
     }
-    pub fn to_tuple(&self) -> Vec<Token> {
+}
+
+impl Encodable for StateQuery {
+    fn to_abi(&self) -> Vec<u8> {
+        ethabi::encode(&self.to_tuple())
+    }
+    fn to_tuple(&self) -> Vec<Token> {
         vec![
             Token::Address(self.plasma_contract),
             Token::Address(self.predicate_address),
@@ -61,10 +68,11 @@ impl StateQuery {
             Token::Bytes(self.params.to_vec()),
         ]
     }
-    pub fn to_abi(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple())
-    }
-    pub fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
+}
+
+impl Decodable for StateQuery {
+    type Ok = Self;
+    fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
         let plasma = tuple[0].clone().to_address();
         let predicate = tuple[1].clone().to_address();
         let start = tuple[2].clone().to_uint();
@@ -82,7 +90,7 @@ impl StateQuery {
             Err(Error::from(ErrorKind::AbiDecode))
         }
     }
-    pub fn from_abi(data: &[u8]) -> Result<Self, Error> {
+    fn from_abi(data: &[u8]) -> Result<Self, Error> {
         let decoded: Vec<Token> = ethabi::decode(
             &[
                 ethabi::ParamType::Address,

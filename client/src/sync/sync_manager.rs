@@ -1,4 +1,4 @@
-use super::sync_db::{SyncDb, SyncDbTrait};
+use super::sync_db::SyncDb;
 use crate::error::Error;
 use crate::plasma_rpc::HttpPlasmaClient;
 use ethereum_types::Address;
@@ -7,35 +7,35 @@ use plasma_core::types::BlockNumber;
 use plasma_db::traits::{DatabaseTrait, KeyValueStore};
 
 /// SyncManager synchronize client state with operator's state.
-pub struct SyncManager<T: SyncDbTrait> {
-    sync_db: T,
+pub struct SyncManager<KVS: KeyValueStore<StateQuery>> {
+    sync_db: SyncDb<KVS>,
     uri: String,
 }
 
-impl<T> SyncManager<T>
+impl<KVS> SyncManager<KVS>
 where
-    T: SyncDbTrait,
+    KVS: KeyValueStore<StateQuery>,
 {
-    pub fn new(sync_db: T, uri: String) -> Self {
+    pub fn new(sync_db: SyncDb<KVS>, uri: String) -> Self {
         Self { sync_db, uri }
     }
 }
 
-impl<T> Default for SyncManager<SyncDb<T>>
+impl<KVS> Default for SyncManager<KVS>
 where
-    T: DatabaseTrait + KeyValueStore<StateQuery>,
+    KVS: DatabaseTrait + KeyValueStore<StateQuery>,
 {
     fn default() -> Self {
         Self {
-            sync_db: SyncDb::new(T::open(&"sync")),
+            sync_db: SyncDb::new(KVS::open(&"sync")),
             uri: "http://localhost:8080".to_string(),
         }
     }
 }
 
-impl<T> SyncManager<T>
+impl<KVS> SyncManager<KVS>
 where
-    T: SyncDbTrait,
+    KVS: DatabaseTrait + KeyValueStore<StateQuery>,
 {
     /// Callback which is called when new block is submitted
     pub fn sync(&self) -> Vec<StateQueryResult> {
@@ -126,7 +126,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::SyncDb;
     use super::SyncManager;
     use bytes::Bytes;
     use ethereum_types::Address;
@@ -135,7 +134,7 @@ mod tests {
 
     #[test]
     fn test_add_and_remove_deposit_contract() {
-        let sync_manager: SyncManager<SyncDb<CoreDbMemoryImpl>> = Default::default();
+        let sync_manager: SyncManager<CoreDbMemoryImpl> = Default::default();
         let deposit_contract: Address = Address::zero();
         let commit_contract: Address = Address::zero();
         assert!(sync_manager
@@ -148,7 +147,7 @@ mod tests {
 
     #[test]
     fn test_add_and_remove_sync_query() {
-        let sync_manager: SyncManager<SyncDb<CoreDbMemoryImpl>> = Default::default();
+        let sync_manager: SyncManager<CoreDbMemoryImpl> = Default::default();
         let deposit_contract: Address = Address::zero();
         let predicate_address: Address = Address::zero();
         let query = StateQuery::new(

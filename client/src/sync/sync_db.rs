@@ -1,49 +1,13 @@
 use crate::error::Error;
 use bytes::Bytes;
 use ethereum_types::Address;
+use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::StateQuery;
 use plasma_core::types::BlockNumber;
 use plasma_db::traits::{BaseDbKey, KeyValueStore};
 
-/// Interface for SyncDb
 /// SyncDb is used by SyncManager to store
 /// see http://spec.plasma.group/en/latest/src/05-client-architecture/sync-db.html
-pub trait SyncDbTrait {
-    fn get_commitment_contracts(&self) -> Vec<Address>;
-    fn get_deposit_contracts(&self, commitment_contract: Address) -> Result<Vec<Address>, Error>;
-    fn add_deposit_contract(
-        &self,
-        commit_contract: Address,
-        deposit_contract: Address,
-    ) -> Result<(), Error>;
-    fn remove_deposit_contract(
-        &self,
-        commit_contract: Address,
-        deposit_contract: Address,
-    ) -> Result<(), Error>;
-    fn get_last_synced_block(
-        &self,
-        deposit_contract: Address,
-    ) -> Result<Option<BlockNumber>, Error>;
-    fn put_last_synced_block(
-        &self,
-        deposit_contract: Address,
-        block: BlockNumber,
-    ) -> Result<(), Error>;
-    fn add_sync_query(
-        &self,
-        deposit_contract: Address,
-        state_query: &StateQuery,
-    ) -> Result<(), Error>;
-    fn remove_sync_query(
-        &self,
-        deposit_contract: Address,
-        state_query: &StateQuery,
-    ) -> Result<(), Error>;
-    fn get_sync_queries(&self, deposit_contract: Address) -> Result<Vec<StateQuery>, Error>;
-}
-
-/// Simple implementation for SyncDb
 pub struct SyncDb<KVS: KeyValueStore<StateQuery>> {
     db: KVS,
 }
@@ -57,15 +21,15 @@ where
     }
 }
 
-impl<KVS> SyncDbTrait for SyncDb<KVS>
+impl<KVS> SyncDb<KVS>
 where
     KVS: KeyValueStore<StateQuery>,
 {
-    fn get_commitment_contracts(&self) -> Vec<Address> {
+    pub fn get_commitment_contracts(&self) -> Vec<Address> {
         vec![]
     }
     /// Add contract address to synchronize
-    fn add_deposit_contract(
+    pub fn add_deposit_contract(
         &self,
         commit_contract: Address,
         deposit_contract: Address,
@@ -75,7 +39,7 @@ where
             .put(&deposit_contract.as_fixed_bytes()[..].into(), &b""[..])
             .map_err::<Error, _>(Into::into)
     }
-    fn get_deposit_contracts(&self, commit_contract: Address) -> Result<Vec<Address>, Error> {
+    pub fn get_deposit_contracts(&self, commit_contract: Address) -> Result<Vec<Address>, Error> {
         Ok(self
             .db
             .bucket(&commit_contract.as_bytes().into())
@@ -85,7 +49,7 @@ where
             .collect())
     }
     /// Remove contract address
-    fn remove_deposit_contract(
+    pub fn remove_deposit_contract(
         &self,
         commit_contract: Address,
         deposit_contract: Address,
@@ -96,7 +60,7 @@ where
             .map_err::<Error, _>(Into::into)
     }
     /// Fetch last synchronized block number
-    fn get_last_synced_block(
+    pub fn get_last_synced_block(
         &self,
         deposit_contract: Address,
     ) -> Result<Option<BlockNumber>, Error> {
@@ -107,7 +71,8 @@ where
             .map_err::<Error, _>(Into::into)
             .map(|r| r.map(BlockNumber::from))
     }
-    fn put_last_synced_block(
+    /// Store last synchronized block number
+    pub fn put_last_synced_block(
         &self,
         deposit_contract: Address,
         block_number: BlockNumber,
@@ -119,7 +84,7 @@ where
             .put(&deposit_contract.as_bytes().into(), &block_number_bytes)
             .map_err::<Error, _>(Into::into)
     }
-    fn add_sync_query(
+    pub fn add_sync_query(
         &self,
         deposit_contract: Address,
         state_query: &StateQuery,
@@ -132,7 +97,7 @@ where
             .put(&state_query_key, &state_query.to_abi())
             .map_err::<Error, _>(Into::into)
     }
-    fn remove_sync_query(
+    pub fn remove_sync_query(
         &self,
         deposit_contract: Address,
         state_query: &StateQuery,
@@ -145,7 +110,7 @@ where
             .del(&state_query_key)
             .map_err::<Error, _>(Into::into)
     }
-    fn get_sync_queries(&self, deposit_contract: Address) -> Result<Vec<StateQuery>, Error> {
+    pub fn get_sync_queries(&self, deposit_contract: Address) -> Result<Vec<StateQuery>, Error> {
         Ok(self
             .db
             .root()
@@ -160,7 +125,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::SyncDb;
-    use super::SyncDbTrait;
     use bytes::Bytes;
     use ethereum_types::Address;
     use plasma_core::data_structure::StateQuery;
