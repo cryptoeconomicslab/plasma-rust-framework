@@ -39,7 +39,7 @@ impl DatabaseTrait for CoreDb {
     fn close(&self) {}
 }
 
-impl<'a, B> KeyValueStore<B> for CoreDb {
+impl<'a> KeyValueStore for CoreDb {
     fn get(&self, key: &BaseDbKey) -> Result<Option<Vec<u8>>, Error> {
         let read_opts = ReadOptions::new();
         self.db
@@ -94,26 +94,7 @@ impl<'a, B> KeyValueStore<B> for CoreDb {
         }
         result
     }
-    fn iter_all_map(
-        &self,
-        prefix: &BaseDbKey,
-        mut f: Box<FnMut(&BaseDbKey, &Vec<u8>) -> Option<B>>,
-    ) -> Vec<B> {
-        let read_lock = self.db.read();
-        let iter = read_lock.iter(ReadOptions::new());
-        let mut result = vec![];
-        iter.seek(prefix);
-        for (k, v) in iter {
-            if let Some(b) = f(&k, &v) {
-                result.push(b);
-                continue;
-            } else {
-                break;
-            }
-        }
-        result
-    }
-    fn bucket(&self, prefix: &BaseDbKey) -> Bucket<B> {
+    fn bucket(&self, prefix: &BaseDbKey) -> Bucket {
         Bucket::new(prefix.clone(), self)
     }
 }
@@ -127,8 +108,8 @@ mod tests {
     #[test]
     fn test_bucket() {
         let core_db = CoreDb::open("test");
-        let root: Bucket<Vec<u8>> = core_db.root();
-        let bucket: Bucket<Vec<u8>> = root.bucket(&b"a"[..].into());
+        let root: Bucket = core_db.root();
+        let bucket: Bucket = root.bucket(&b"a"[..].into());
         assert_eq!(bucket.put(&b"b"[..].into(), &b"value"[..]).is_ok(), true);
         let result = root.get(&b"ab"[..].into());
         assert_eq!(result.is_ok(), true);

@@ -2,7 +2,6 @@ use super::block_db::BlockDb;
 use crate::error::Error;
 use plasma_core::data_structure::StateUpdate;
 use plasma_core::types::BlockNumber;
-use plasma_db::range::Range;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 
@@ -13,7 +12,7 @@ pub struct BlockManager<D> {
 
 impl<D> Default for BlockManager<D>
 where
-    D: DatabaseTrait + KeyValueStore<Range>,
+    D: DatabaseTrait + KeyValueStore,
 {
     fn default() -> Self {
         Self {
@@ -24,7 +23,7 @@ where
 
 impl<D> BlockManager<D>
 where
-    D: DatabaseTrait + KeyValueStore<Range>,
+    D: DatabaseTrait + KeyValueStore,
 {
     pub fn initiate(&self) -> Result<(), Error> {
         self.db.set_block_number(BlockNumber::new(0))

@@ -2,7 +2,6 @@ use crate::error::{Error, ErrorKind};
 use crate::state::{StateDb, VerifiedStateUpdate};
 use ethereum_types::Address;
 use plasma_core::data_structure::{StateQuery, StateQueryResult, StateUpdate, Transaction};
-use plasma_db::range::Range;
 use plasma_db::traits::{DatabaseTrait, KeyValueStore};
 use predicate_plugins::PredicateManager;
 
@@ -26,13 +25,13 @@ impl ResultOfExecuteTransaction {
     }
 }
 
-pub struct StateManager<KVS: KeyValueStore<Range>> {
+pub struct StateManager<KVS: KeyValueStore> {
     db: Box<StateDb<KVS>>,
 }
 
 impl<KVS> Default for StateManager<KVS>
 where
-    KVS: DatabaseTrait + KeyValueStore<Range>,
+    KVS: DatabaseTrait + KeyValueStore,
 {
     fn default() -> Self {
         Self {
@@ -43,7 +42,7 @@ where
 
 impl<KVS> StateManager<KVS>
 where
-    KVS: DatabaseTrait + KeyValueStore<Range>,
+    KVS: DatabaseTrait + KeyValueStore,
 {
     /// force to put state update
     pub fn deposit(&self, start: u64, end: u64, state_update: StateUpdate) -> Result<(), Error> {

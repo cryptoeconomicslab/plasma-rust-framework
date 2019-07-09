@@ -17,7 +17,7 @@ impl DatabaseTrait for CoreDbMemoryImpl {
     fn close(&self) {}
 }
 
-impl<'a, B> KeyValueStore<B> for CoreDbMemoryImpl {
+impl<'a> KeyValueStore for CoreDbMemoryImpl {
     fn get(&self, key: &BaseDbKey) -> Result<Option<Vec<u8>>, Error> {
         Ok(self.db.read().get(key).map(|v| v.to_vec()))
     }
@@ -62,27 +62,7 @@ impl<'a, B> KeyValueStore<B> for CoreDbMemoryImpl {
         }
         result
     }
-    fn iter_all_map(
-        &self,
-        prefix: &BaseDbKey,
-        mut f: Box<FnMut(&BaseDbKey, &Vec<u8>) -> Option<B>>,
-    ) -> Vec<B> {
-        let read_lock = self.db.read();
-        let iter = read_lock.iter();
-        let mut result = vec![];
-        for (k, v) in iter {
-            if k > prefix {
-                if let Some(b) = f(&k, &v) {
-                    result.push(b);
-                    continue;
-                } else {
-                    break;
-                }
-            }
-        }
-        result
-    }
-    fn bucket(&self, prefix: &BaseDbKey) -> Bucket<B> {
+    fn bucket(&self, prefix: &BaseDbKey) -> Bucket {
         Bucket::new(prefix.clone(), self)
     }
 }
@@ -96,8 +76,8 @@ mod tests {
     #[test]
     fn test_bucket() {
         let core_db = CoreDbMemoryImpl::open("test");
-        let root: Bucket<Vec<u8>> = core_db.root();
-        let bucket: Bucket<Vec<u8>> = root.bucket(&b"a"[..].into());
+        let root: Bucket = core_db.root();
+        let bucket: Bucket = root.bucket(&b"a"[..].into());
         assert_eq!(bucket.put(&b"b"[..].into(), &b"value"[..]).is_ok(), true);
         let result = root.get(&b"ab"[..].into());
         assert_eq!(result.is_ok(), true);
@@ -107,8 +87,8 @@ mod tests {
     #[test]
     fn test_iter_all() {
         let core_db = CoreDbMemoryImpl::open("test");
-        let root: Bucket<Vec<u8>> = core_db.root();
-        let bucket: Bucket<Vec<u8>> = root.bucket(&b"a"[..].into());
+        let root: Bucket = core_db.root();
+        let bucket: Bucket = root.bucket(&b"a"[..].into());
         assert_eq!(bucket.put(&b"b"[..].into(), &b"value_b"[..]).is_ok(), true);
         assert_eq!(bucket.put(&b"c"[..].into(), &b"value_c"[..]).is_ok(), true);
         let result = bucket.iter_all(&b"a"[..].into(), Box::new(|_k, _v| true));

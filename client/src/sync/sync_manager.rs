@@ -7,14 +7,14 @@ use plasma_core::types::BlockNumber;
 use plasma_db::traits::{DatabaseTrait, KeyValueStore};
 
 /// SyncManager synchronize client state with operator's state.
-pub struct SyncManager<KVS: KeyValueStore<StateQuery>> {
+pub struct SyncManager<KVS: KeyValueStore> {
     sync_db: SyncDb<KVS>,
     uri: String,
 }
 
 impl<KVS> SyncManager<KVS>
 where
-    KVS: KeyValueStore<StateQuery>,
+    KVS: KeyValueStore,
 {
     pub fn new(sync_db: SyncDb<KVS>, uri: String) -> Self {
         Self { sync_db, uri }
@@ -23,7 +23,7 @@ where
 
 impl<KVS> Default for SyncManager<KVS>
 where
-    KVS: DatabaseTrait + KeyValueStore<StateQuery>,
+    KVS: DatabaseTrait + KeyValueStore,
 {
     fn default() -> Self {
         Self {
@@ -35,7 +35,7 @@ where
 
 impl<KVS> SyncManager<KVS>
 where
-    KVS: DatabaseTrait + KeyValueStore<StateQuery>,
+    KVS: DatabaseTrait + KeyValueStore,
 {
     /// Callback which is called when new block is submitted
     pub fn sync(&self) -> Vec<StateQueryResult> {
