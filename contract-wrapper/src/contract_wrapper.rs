@@ -15,7 +15,6 @@ pub struct ContractWrapper {
 }
 
 impl ContractWrapper {
-
     pub fn new(address: &str, abi: ContractABI) -> Self {
         // TODO: use env to specify url
         let (_eloop, http) = web3::transports::Http::new("http://localhost:9545").unwrap();
@@ -68,7 +67,6 @@ impl ContractWrapper {
             Ok(r) => Ok(r),
             Err(_) => Err(()),
         }
-
     }
 
     // TODO: IMPLEMENT
