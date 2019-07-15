@@ -1,5 +1,6 @@
 /// error definition for plasma db.
 use failure::{Backtrace, Context, Fail};
+#[cfg(leveldb)]
 use leveldb::error::Error as LeveldbError;
 use std::fmt;
 use std::fmt::Display;
@@ -68,6 +69,7 @@ impl From<IoError> for Error {
     }
 }
 
+#[cfg(leveldb)]
 impl From<LeveldbError> for Error {
     fn from(error: LeveldbError) -> Error {
         Error {
