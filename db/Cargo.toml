@@ -17,5 +17,5 @@ version = "0.8.4"
 optional = true
 
 [features]
-default = ["leveldb"]
+require-leveldb = ["leveldb"]
 no-leveldb = []
