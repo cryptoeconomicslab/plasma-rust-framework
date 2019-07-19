@@ -1,9 +1,9 @@
 /// LevelDB implementation for key value store
-#[cfg(not(leveldb))]
+#[cfg(feature = "require-leveldb")]
 pub mod leveldb;
 /// Memory implementation for key value store
 pub mod memory;
 
-#[cfg(not(leveldb))]
+#[cfg(feature = "require-leveldb")]
 pub use self::leveldb::CoreDb as CoreDbLevelDbImpl;
 pub use self::memory::CoreDbMemoryImpl;
