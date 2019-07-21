@@ -2,8 +2,6 @@ use super::event_db::EventDb;
 use ethabi::{Event, Topic, TopicFilter};
 use ethereum_types::Address;
 use futures::{Async, Future, Poll, Stream};
-use std::time::Duration;
-use tokio::timer::Interval;
 use web3::types::{BlockNumber, FilterBuilder, Log};
 use web3::{transports, Web3};
 
@@ -11,7 +9,6 @@ pub struct EventFetcher<T>
 where
     T: EventDb,
 {
-    interval: Interval,
     web3: Web3<transports::Http>,
     address: Address,
     abi: Vec<Event>,
@@ -24,7 +21,6 @@ where
 {
     pub fn new(web3: Web3<transports::Http>, address: Address, abi: Vec<Event>, db: T) -> Self {
         EventFetcher {
-            interval: Interval::new_interval(Duration::from_secs(1)),
             address,
             abi,
             web3,
@@ -58,7 +54,7 @@ where
     type Error = ();
 
     fn poll(&mut self) -> Poll<Option<Vec<Log>>, ()> {
-        try_ready!(self.interval.poll().map_err(|_| ()));
+        // try_ready!(self.interval.poll().map_err(|_| ()));
         let mut all_logs: Vec<web3::types::Log> = vec![];
 
         for event in self.abi.iter() {
@@ -133,21 +129,13 @@ impl<T> Future for EventWatcher<T>
 where
     T: EventDb,
 {
-    type Item = ();
+    type Item = Vec<Log>;
     type Error = ();
 
-    fn poll(&mut self) -> Poll<(), Self::Error> {
-        loop {
-            let logs = match try_ready!(self.stream.poll()) {
-                Some(value) => value,
-                None => continue,
-            };
-
-            for log in logs.iter() {
-                for listener in self.listeners.iter() {
-                    listener(log);
-                }
-            }
+    fn poll(&mut self) -> Poll<Vec<Log>, Self::Error> {
+        match try_ready!(self.stream.poll()) {
+            Some(value) => Ok(Async::Ready(value)),
+            None => Ok(Async::NotReady),
         }
     }
 }

@@ -10,7 +10,7 @@ ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple
 ethereum-types = "^0.5.2"
 event-watcher = { path = "../event-watcher" }
 failure = "0.1.5"
-futures = "0.1.26"
+futures = "0.1.27"
 hex = "0.3.1"
 hyper = { version = "0.12"}
 jsonrpc-core = "12.0.0"

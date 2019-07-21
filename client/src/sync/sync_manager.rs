@@ -8,6 +8,7 @@ use ethabi::Event;
 use ethereum_types::Address;
 use event_watcher::event_db::EventDbImpl;
 use event_watcher::event_watcher::EventWatcher;
+use futures::{Async, Future, Poll};
 use plasma_core::data_structure::{abi::Decodable, Checkpoint, StateQuery, StateQueryResult};
 use plasma_core::types::BlockNumber;
 use plasma_db::traits::{Bucket, DatabaseTrait, KeyValueStore};
@@ -15,7 +16,7 @@ use std::sync::{Arc, Mutex};
 
 /// SyncManager synchronize client state with operator's state.
 pub struct SyncManager<'a, KVS: KeyValueStore> {
-    sync_db: SyncDb<KVS>,
+    sync_db: Arc<Mutex<SyncDb<KVS>>>,
     uri: String,
     mainchain_endpoint: String,
     watchers: Arc<Mutex<Vec<EventWatcher<EventDbImpl<Bucket<'a>>>>>>,
@@ -28,7 +29,7 @@ where
 {
     pub fn new(sync_db: SyncDb<KVS>, uri: String, mainchain_endpoint: String) -> Self {
         Self {
-            sync_db,
+            sync_db: Arc::new(Mutex::new(sync_db)),
             uri,
             mainchain_endpoint,
             watchers: Arc::new(Mutex::new(vec![])),
@@ -43,7 +44,7 @@ where
 {
     fn default() -> Self {
         Self {
-            sync_db: SyncDb::new(KVS::open(&"sync")),
+            sync_db: Arc::new(Mutex::new(SyncDb::new(KVS::open(&"sync")))),
             uri: "http://localhost:8080".to_string(),
             mainchain_endpoint: "http://localhost:8545".to_string(),
             watchers: Arc::new(Mutex::new(vec![])),
@@ -56,11 +57,8 @@ impl<'a, KVS> SyncManager<'a, KVS>
 where
     KVS: DatabaseTrait + KeyValueStore,
 {
-    pub fn initialize<K>(&mut self, kvs: &'a Bucket)
-    where
-        K: DatabaseTrait + KeyValueStore,
-    {
-        let commitment_contracts = self.sync_db.get_commitment_contracts();
+    pub fn initialize(&mut self, kvs: &'a Bucket) {
+        let commitment_contracts = self.sync_db.lock().ok().unwrap().get_commitment_contracts();
         let deposit_contracts = self.get_deposit_contracts(commitment_contracts);
 
         let abi: Vec<Event> = vec![Event {
@@ -71,26 +69,38 @@ where
 
         for d in deposit_contracts {
             let db = EventDbImpl::from(kvs.bucket(&d.as_bytes().into()));
-            let mut watcher = EventWatcher::new(&self.mainchain_endpoint, d, abi.clone(), db);
-            watcher.subscribe(Box::new(|log| {
-                let checkpoint = Checkpoint::from_abi(&log.data.0).ok().unwrap();
-                let state_update = checkpoint.get_state_update();
-                match self.state_manager.lock() {
-                    Ok(state_manager) => {
-                        state_manager.deposit(
-                            state_update.get_range().get_start(),
-                            state_update.get_range().get_end(),
-                            state_update.clone(),
-                        );
-                    }
-                    _ => {
-                        // error
-                    }
-                }
-            }));
+            let watcher = EventWatcher::new(&self.mainchain_endpoint, d, abi.clone(), db);
             let mut watchers = self.watchers.lock().unwrap();
             watchers.push(watcher);
         }
+    }
+}
+
+impl<'a, KVS> Future for SyncManager<'a, KVS>
+where
+    KVS: DatabaseTrait + KeyValueStore,
+{
+    type Item = ();
+    type Error = ();
+
+    fn poll(&mut self) -> Poll<(), Self::Error> {
+        for w in self.watchers.lock().ok().unwrap().iter_mut() {
+            let logs = try_ready!(w.poll());
+            for log in logs {
+                let checkpoint = Checkpoint::from_abi(&log.data.0).ok().unwrap();
+                let state_update = checkpoint.get_state_update();
+                if let Ok(state_manager) = self.state_manager.lock() {
+                    assert!(state_manager
+                        .deposit(
+                            state_update.get_range().get_start(),
+                            state_update.get_range().get_end(),
+                            state_update.clone(),
+                        )
+                        .is_ok());
+                }
+            }
+        }
+        Ok(Async::Ready(()))
     }
 }
 
@@ -113,14 +123,21 @@ where
         commitment_contracts
             .iter()
             .fold::<Vec<Address>, _>(vec![], |acc, c| {
-                let mut deposit_contracts = self.sync_db.get_deposit_contracts(*c).ok().unwrap();
+                let mut deposit_contracts = self
+                    .sync_db
+                    .lock()
+                    .ok()
+                    .unwrap()
+                    .get_deposit_contracts(*c)
+                    .ok()
+                    .unwrap();
                 deposit_contracts.extend(acc);
                 deposit_contracts
             })
     }
 
     fn get_all_sync_queries(&self) -> Vec<StateQuery> {
-        let commitment_contracts = self.sync_db.get_commitment_contracts();
+        let commitment_contracts = self.sync_db.lock().ok().unwrap().get_commitment_contracts();
         let deposit_contracts = self.get_deposit_contracts(commitment_contracts);
         deposit_contracts
             .iter()
@@ -145,6 +162,9 @@ where
         deposit_contract: Address,
     ) -> Result<(), Error> {
         self.sync_db
+            .lock()
+            .ok()
+            .unwrap()
             .add_deposit_contract(commit_contract, deposit_contract)
     }
     /// Removes contract address
@@ -154,6 +174,9 @@ where
         commit_contract: Address,
     ) -> Result<(), Error> {
         self.sync_db
+            .lock()
+            .ok()
+            .unwrap()
             .remove_deposit_contract(commit_contract, deposit_contract)
     }
     /// Gets last syncronized block number for a deposit_contract
@@ -161,7 +184,11 @@ where
         &self,
         deposit_contract: Address,
     ) -> Result<Option<BlockNumber>, Error> {
-        self.sync_db.get_last_synced_block(deposit_contract)
+        self.sync_db
+            .lock()
+            .ok()
+            .unwrap()
+            .get_last_synced_block(deposit_contract)
     }
     /// Adds new query for syncronization
     pub fn add_sync_query(
@@ -169,7 +196,11 @@ where
         deposit_contract: Address,
         state_query: &StateQuery,
     ) -> Result<(), Error> {
-        self.sync_db.add_sync_query(deposit_contract, state_query)
+        self.sync_db
+            .lock()
+            .ok()
+            .unwrap()
+            .add_sync_query(deposit_contract, state_query)
         // self.event_watcher.on(deposit_contract, )
     }
     /// Removes a sync query
@@ -179,21 +210,31 @@ where
         state_query: &StateQuery,
     ) -> Result<(), Error> {
         self.sync_db
+            .lock()
+            .ok()
+            .unwrap()
             .remove_sync_query(deposit_contract, state_query)
     }
     /// Gets registered sync queries
     pub fn get_sync_queries(&self, deposit_contract: Address) -> Result<Vec<StateQuery>, Error> {
-        self.sync_db.get_sync_queries(deposit_contract)
+        self.sync_db
+            .lock()
+            .ok()
+            .unwrap()
+            .get_sync_queries(deposit_contract)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::SyncManager;
+    use crate::futures::Future;
     use bytes::Bytes;
     use ethereum_types::Address;
     use plasma_core::data_structure::StateQuery;
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
+    use plasma_db::traits::db::DatabaseTrait;
+    use plasma_db::traits::kvs::KeyValueStore;
 
     #[test]
     fn test_add_and_remove_deposit_contract() {
@@ -227,6 +268,20 @@ mod tests {
         assert!(sync_manager
             .remove_sync_query(deposit_contract, &query)
             .is_ok());
+    }
+
+    #[test]
+    fn test_initialized() {
+        let mut sync_manager: SyncManager<CoreDbMemoryImpl> = Default::default();
+        let deposit_contract: Address = Address::zero();
+        let commit_contract: Address = Address::zero();
+        assert!(sync_manager
+            .add_deposit_contract(deposit_contract, commit_contract)
+            .is_ok());
+        let db = CoreDbMemoryImpl::open("aaa");
+        let bucket = db.bucket(&b"aaa"[..].into());
+        sync_manager.initialize(&bucket);
+        assert!(sync_manager.poll().is_ok());
     }
 
 }

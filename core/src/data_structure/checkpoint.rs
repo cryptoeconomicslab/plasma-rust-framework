@@ -29,7 +29,7 @@ impl Checkpoint {
 impl Encodable for Checkpoint {
     fn to_tuple(&self) -> Vec<Token> {
         vec![
-            Token::Tuple(self.state_update.to_tuple()),
+            Token::Bytes(self.state_update.to_abi()),
             Token::Tuple(self.range.to_tuple()),
         ]
     }
@@ -38,12 +38,12 @@ impl Encodable for Checkpoint {
 impl Decodable for Checkpoint {
     type Ok = Self;
     fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
-        let state_update_tuple = tuple[0].clone().to_tuple();
+        let state_update_tuple = tuple[0].clone().to_bytes();
         let range_tuple = tuple[1].clone().to_tuple();
 
         if let (Some(state_update_tuple), Some(range_tuple)) = (state_update_tuple, range_tuple) {
             Ok(Checkpoint::new(
-                StateUpdate::from_tuple(&state_update_tuple).unwrap(),
+                StateUpdate::from_abi(&state_update_tuple).unwrap(),
                 Range::from_tuple(&range_tuple).unwrap(),
             ))
         } else {
@@ -51,16 +51,20 @@ impl Decodable for Checkpoint {
         }
     }
     fn from_abi(data: &[u8]) -> Result<Self, Error> {
+        println!("{:?}", data);
         let decoded: Vec<Token> = ethabi::decode(
-            &[ParamType::Tuple(vec![
+            &[
+                /*
                 ParamType::Tuple(vec![
-                    ParamType::Tuple(vec![ParamType::Address, ParamType::Bytes]),
-                    ParamType::Tuple(vec![ParamType::Uint(32), ParamType::Uint(32)]),
-                    ParamType::Uint(32),
+                    // ParamType::Tuple(vec![ParamType::Address, ParamType::Bytes]),
+                    ParamType::Bytes,
+                    ParamType::Tuple(vec![ParamType::Uint(8), ParamType::Uint(8)]),
+                    ParamType::Uint(8),
                     ParamType::Address,
-                ]),
-                ParamType::Tuple(vec![ParamType::Uint(32), ParamType::Uint(32)]),
-            ])],
+                ]),*/
+                ParamType::Bytes,
+                ParamType::Tuple(vec![ParamType::Uint(8), ParamType::Uint(8)]),
+            ],
             data,
         )
         .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;

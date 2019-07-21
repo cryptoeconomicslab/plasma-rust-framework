@@ -6,22 +6,24 @@ use ethabi::{Event, EventParam, ParamType};
 use ethereum_types::Address;
 use event_watcher::event_db::EventDbImpl;
 use event_watcher::event_watcher::EventWatcher;
-use futures::future;
+use futures::Future;
 use plasma_db::impls::kvs::memory::CoreDbMemoryImpl;
 use plasma_db::traits::DatabaseTrait;
 
 fn main() {
     println!("Watcher started");
-    let address: Address = match "aF712Cc731F120d5f6c7dA8CF1D09b5fB7dCd38c".parse() {
+    // Use MockDeposit.sol
+    // https://github.com/cryptoeconomicslab/plasma-predicates/blob/master/contracts/deposit/MockDeposit.sol
+    let address: Address = match "8f0483125FCb9aaAEFA9209D8E9d7b9C8B9Fb90F".parse() {
         Ok(v) => v,
         Err(e) => panic!(e),
     };
 
     let abi: Vec<Event> = vec![Event {
-        name: "StoreValue".to_owned(),
+        name: "CheckpointFinalized".to_owned(),
         inputs: vec![EventParam {
-            name: "value".to_owned(),
-            kind: ParamType::Uint(256),
+            name: "checkpointId".to_owned(),
+            kind: ParamType::FixedBytes(32),
             indexed: false,
         }],
         anonymous: false,
@@ -29,14 +31,14 @@ fn main() {
 
     let kvs = CoreDbMemoryImpl::open("kvs");
     let db = EventDbImpl::from(kvs);
-    let mut watcher = EventWatcher::new("http://localhost:9545", address, abi, db);
+    let mut watcher = EventWatcher::new("http://localhost:8545", address, abi, db);
 
-    watcher.subscribe(Box::new(|log| {
-        println!("{:?}", log);
-    }));
-
+    let logs = watcher.poll().ok().unwrap();
+    println!("{:?}", logs);
+    /*
     tokio::run(future::lazy(|| {
         tokio::spawn(watcher);
         Ok(())
     }));
+    */
 }

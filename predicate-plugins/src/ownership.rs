@@ -5,6 +5,7 @@ use plasma_core::data_structure::abi::Decodable;
 use plasma_core::data_structure::{StateObject, StateUpdate, Transaction};
 
 /// Parameters of ownership predicate
+#[derive(Clone, Debug)]
 pub struct OwnershipPredicateParameters {
     state_object: StateObject,
     origin_block: u64,
@@ -31,16 +32,16 @@ impl OwnershipPredicateParameters {
     }
     /// Parse parameters from ABI
     pub fn decode(data: &[u8]) -> Option<Self> {
-        ethabi::decode(
+        let a = ethabi::decode(
             &[
                 ParamType::Tuple(vec![ParamType::Address, ParamType::Bytes]),
-                ParamType::Uint(16),
-                ParamType::Uint(16),
+                ParamType::Uint(256),
+                ParamType::Uint(256),
             ],
             data,
-        )
-        .ok()
-        .and_then(|decoded| {
+        );
+        println!("{:?}", data);
+        a.ok().and_then(|decoded| {
             let state_object_tuple = decoded[0].clone().to_tuple();
             let origin_block = decoded[1].clone().to_uint();
             let max_block = decoded[2].clone().to_uint();
@@ -94,6 +95,10 @@ impl PredicatePlugin for OwnershipPredicate {
     ) -> StateUpdate {
         // should parse transaction.parameters
         // make new state update
+        println!(
+            "{:?}",
+            OwnershipPredicateParameters::decode(transaction.get_parameters())
+        );
         let parameters =
             OwnershipPredicateParameters::decode(transaction.get_parameters()).unwrap();
         // Where does the function get pending block number from?
