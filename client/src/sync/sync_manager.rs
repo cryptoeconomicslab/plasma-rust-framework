@@ -11,19 +11,19 @@ use event_watcher::event_watcher::EventWatcher;
 use futures::{Async, Future, Poll};
 use plasma_core::data_structure::{abi::Decodable, Checkpoint, StateQuery, StateQueryResult};
 use plasma_core::types::BlockNumber;
-use plasma_db::traits::{Bucket, DatabaseTrait, KeyValueStore};
+use plasma_db::traits::{DatabaseTrait, KeyValueStore};
 use std::sync::{Arc, Mutex};
 
 /// SyncManager synchronize client state with operator's state.
-pub struct SyncManager<'a, KVS: KeyValueStore> {
+pub struct SyncManager<KVS: KeyValueStore> {
     sync_db: Arc<Mutex<SyncDb<KVS>>>,
     uri: String,
     mainchain_endpoint: String,
-    watchers: Arc<Mutex<Vec<EventWatcher<EventDbImpl<Bucket<'a>>>>>>,
+    watchers: Arc<Mutex<Vec<EventWatcher<EventDbImpl<KVS>>>>>,
     state_manager: Arc<Mutex<StateManager<KVS>>>,
 }
 
-impl<'a, KVS> SyncManager<'a, KVS>
+impl<KVS> SyncManager<KVS>
 where
     KVS: DatabaseTrait + KeyValueStore,
 {
@@ -38,7 +38,7 @@ where
     }
 }
 
-impl<'a, KVS> Default for SyncManager<'a, KVS>
+impl<KVS> Default for SyncManager<KVS>
 where
     KVS: DatabaseTrait + KeyValueStore,
 {
@@ -53,11 +53,11 @@ where
     }
 }
 
-impl<'a, KVS> SyncManager<'a, KVS>
+impl<KVS> SyncManager<KVS>
 where
     KVS: DatabaseTrait + KeyValueStore,
 {
-    pub fn initialize(&mut self, kvs: &'a Bucket) {
+    pub fn initialize(&mut self) {
         let commitment_contracts = self.sync_db.lock().ok().unwrap().get_commitment_contracts();
         let deposit_contracts = self.get_deposit_contracts(commitment_contracts);
 
@@ -68,7 +68,7 @@ where
         }];
 
         for d in deposit_contracts {
-            let db = EventDbImpl::from(kvs.bucket(&d.as_bytes().into()));
+            let db = EventDbImpl::from(KVS::open("aaa" /*&d.as_bytes().to_str() */));
             let watcher = EventWatcher::new(&self.mainchain_endpoint, d, abi.clone(), db);
             let mut watchers = self.watchers.lock().unwrap();
             watchers.push(watcher);
@@ -76,7 +76,7 @@ where
     }
 }
 
-impl<'a, KVS> Future for SyncManager<'a, KVS>
+impl<KVS> Future for SyncManager<KVS>
 where
     KVS: DatabaseTrait + KeyValueStore,
 {
@@ -104,7 +104,7 @@ where
     }
 }
 
-impl<'a, KVS> SyncManager<'a, KVS>
+impl<KVS> SyncManager<KVS>
 where
     KVS: DatabaseTrait + KeyValueStore,
 {
@@ -228,13 +228,11 @@ where
 #[cfg(test)]
 mod tests {
     use super::SyncManager;
-    use crate::futures::Future;
+    use crate::futures::{future, Future};
     use bytes::Bytes;
     use ethereum_types::Address;
     use plasma_core::data_structure::StateQuery;
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
-    use plasma_db::traits::db::DatabaseTrait;
-    use plasma_db::traits::kvs::KeyValueStore;
 
     #[test]
     fn test_add_and_remove_deposit_contract() {
@@ -278,10 +276,23 @@ mod tests {
         assert!(sync_manager
             .add_deposit_contract(deposit_contract, commit_contract)
             .is_ok());
-        let db = CoreDbMemoryImpl::open("aaa");
-        let bucket = db.bucket(&b"aaa"[..].into());
-        sync_manager.initialize(&bucket);
+        sync_manager.initialize();
         assert!(sync_manager.poll().is_ok());
+    }
+
+    #[test]
+    fn test_polling() {
+        let mut sync_manager: SyncManager<CoreDbMemoryImpl> = Default::default();
+        let deposit_contract: Address = Address::zero();
+        let commit_contract: Address = Address::zero();
+        assert!(sync_manager
+            .add_deposit_contract(deposit_contract, commit_contract)
+            .is_ok());
+        sync_manager.initialize();
+        tokio::run(future::lazy(|| {
+            tokio::spawn(sync_manager);
+            Ok(())
+        }));
     }
 
 }
