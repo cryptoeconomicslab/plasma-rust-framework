@@ -42,7 +42,7 @@ where
 
 impl<KVS> StateManager<KVS>
 where
-    KVS: DatabaseTrait + KeyValueStore,
+    KVS: KeyValueStore,
 {
     /// force to put state update
     pub fn deposit(&self, start: u64, end: u64, state_update: StateUpdate) -> Result<(), Error> {
