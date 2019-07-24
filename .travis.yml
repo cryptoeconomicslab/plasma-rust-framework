@@ -1,51 +1,14 @@
 language: rust
 cache:
   cargo: true
-stages:
-  - tests
-  - name: deploy
-    if: branch = master
-jobs:
-  include:
-    - stage: tests
-      rust: stable
-      before_script:
-        - rustup component add rustfmt
-        - rustup component add clippy
-      script:
-        - cargo fmt --all -- --check
-        - cargo clippy --all --all-targets --all-features -- -D warnings
-        - cargo test --all
-        - cargo doc --no-deps --document-private-items --all
-    - stage: tests
-      rust: beta
-      before_script:
-        - rustup component add rustfmt
-        - rustup component add clippy
-      script:
-        - cargo fmt --all -- --check
-        - cargo clippy --all --all-targets --all-features -- -D warnings
-        - cargo test --all --all-features
-    - stage: deploy
-      rust: stable
-      before_install:
-        - sh android-ci.sh
-      before_script:
-        - rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android
-        - cp ./android/config $HOME/.cargo/config
-      script:
-        - cd android
-        - cargo build --target aarch64-linux-android --release
-        - cargo build --target armv7-linux-androideabi --release
-        - cargo build --target i686-linux-android --release
-        - cd ../
-      deploy:
-        provider: bintray
-        file: 'descriptor.json'
-        user: syuhei
-        key:
-          secure: S+f1tLc6ZxO03mlN72G4a7bQE5h5EiDehR+fSQo/RP+B1J9SggQoKbeMyFchy6jOpY0yL0WCC4H0NNJsyCKLOUtobmHNFYB5ios+XM2xQjIcWguzGwDp41dr/eYiFxla/u6ExSamnFdFc9mFr7zfNpr8wV/e11AVA78JzQL5r7BRJF5MyuBm0mBZfpHapQtHNSDtHlwHRXG2nmMoBiSnq2pmT3Vj3QvM5jeLBRo1Ka74TRaP5Dk+MyG5FcLdlQlhtcp/vs/Loo6GG3YIVqMcvdYP8XqJc157FBqAUyJ6liJseeYRWSEGUKoa7JjLae1HqyqlfTk+sVf+2kY0UnBFlp77NBi/samcbp4+I+QIzImXoqM/XfxouFXUlgc301agU2GhXNYCXMZKzD6zFEB8dMJjW54AQei1RDVfr0k5GS+ou39mp6n608SKEQvhislzw+Ll2H8JGLOEhykmSA+AFkLmDk2Et8NXPYr/PEqQXw7qnxWDMDDr3n2NLCM9dzmxaX/PhgQqi/4DEwqzjtV+WHGk23JIfJDaBNxF/NQ70EWvYVqk0lIknCyVE5xtKKykaOQieLXygL8XJ8igsjHnMSKnxBTN9FD3nswDdYzmruStos3spupl8tF5I3ewIV8Gri2EoEbUrnBIHD7G7YptUzBMlDxRUY2Qpz0TnABzGPY=
-        skip_cleanup: true
-        on:
-          branch: master
-          rust: stable
+rust:
+  - stable
+  - beta
+before_script:
+  - rustup component add rustfmt
+  - rustup component add clippy
+script:
+  - cargo fmt --all -- --check
+  - cargo clippy --all --all-targets --all-features -- -D warnings
+  - cargo test --all --all-features
+  - cargo doc --no-deps --document-private-items --all
