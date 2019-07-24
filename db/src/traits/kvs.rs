@@ -70,7 +70,7 @@ impl Batch {
 
 pub struct Bucket<'a> {
     prefix: BaseDbKey,
-    store: &'a KeyValueStore,
+    store: &'a dyn KeyValueStore,
 }
 
 pub struct KeyValue {
@@ -101,7 +101,7 @@ pub trait KeyValueStore {
     fn iter_all(
         &self,
         prefix: &BaseDbKey,
-        f: Box<FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
+        f: Box<dyn FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
     ) -> Vec<KeyValue>;
     fn bucket(&self, prefix: &BaseDbKey) -> Bucket;
     fn root(&self) -> Bucket {
@@ -110,7 +110,7 @@ pub trait KeyValueStore {
 }
 
 impl<'a> Bucket<'a> {
-    pub fn new(prefix: BaseDbKey, store: &'a KeyValueStore) -> Self {
+    pub fn new(prefix: BaseDbKey, store: &'a dyn KeyValueStore) -> Self {
         Self { prefix, store }
     }
 }
@@ -141,7 +141,7 @@ impl<'a> KeyValueStore for Bucket<'a> {
     fn iter_all(
         &self,
         prefix: &BaseDbKey,
-        f: Box<FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
+        f: Box<dyn FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
     ) -> Vec<KeyValue> {
         self.store
             .iter_all(&self.prefix.concat(prefix), f)
