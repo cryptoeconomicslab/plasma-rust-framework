@@ -78,7 +78,7 @@ impl<'a> KeyValueStore for CoreDb {
     fn iter_all(
         &self,
         prefix: &BaseDbKey,
-        mut f: Box<FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
+        mut f: Box<dyn FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
     ) -> Vec<KeyValue> {
         let read_lock = self.db.read();
         let iter = read_lock.iter(ReadOptions::new());
