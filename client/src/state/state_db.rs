@@ -103,7 +103,7 @@ where
 
 impl<KVS> StateDb<KVS>
 where
-    KVS: DatabaseTrait + KeyValueStore,
+    KVS: KeyValueStore,
 {
     pub fn get_verified_state_updates(
         &self,
