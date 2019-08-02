@@ -1,37 +1,32 @@
-use crate::ovm::Decider;
 use bytes::Bytes;
+use ethereum_types::Address;
 
+pub type DeciderId = Address;
 pub trait Input {}
 pub trait Witness {}
 
 /// The property which will be decided by Decider
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Property<D: Decider> {
-    decider: D,
+pub struct Property {
+    decider: DeciderId,
     input: Bytes,
 }
 
-impl<D> Property<D>
-where
-    D: Decider,
-{
-    pub fn new(decider: D, input: Bytes) -> Self {
+impl Property {
+    pub fn new(decider: DeciderId, input: Bytes) -> Self {
         Property { decider, input }
     }
 }
 
 /// Implication proof element has the property which is decided by Decider
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ImplicationProofElement<D: Decider> {
-    implication: Property<D>,
+pub struct ImplicationProofElement {
+    implication: Property,
     implication_witness: Bytes,
 }
 
-impl<D> ImplicationProofElement<D>
-where
-    D: Decider,
-{
-    pub fn new(implication: Property<D>, implication_witness: Bytes) -> Self {
+impl ImplicationProofElement {
+    pub fn new(implication: Property, implication_witness: Bytes) -> Self {
         ImplicationProofElement {
             implication,
             implication_witness,
@@ -48,19 +43,13 @@ pub enum DecisionStatus {
 
 /// Decision made by Decider
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Decision<D: Decider> {
+pub struct Decision {
     outcome: DecisionStatus,
-    implication_proof: Vec<ImplicationProofElement<D>>,
+    implication_proof: Vec<ImplicationProofElement>,
 }
 
-impl<D> Decision<D>
-where
-    D: Decider,
-{
-    pub fn new(
-        outcome: DecisionStatus,
-        implication_proof: Vec<ImplicationProofElement<D>>,
-    ) -> Self {
+impl Decision {
+    pub fn new(outcome: DecisionStatus, implication_proof: Vec<ImplicationProofElement>) -> Self {
         Decision {
             outcome,
             implication_proof,
