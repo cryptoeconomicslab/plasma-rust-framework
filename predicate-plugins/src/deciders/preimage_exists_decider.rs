@@ -1,12 +1,11 @@
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
-use ethereum_types::{Address, H256};
+use ethereum_types::H256;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{Error, ErrorKind};
 use plasma_core::ovm::{
-    Decider, Decision, DecisionStatus, ImplicationProofElement, Property, Witness,
+    Decider, DeciderId, Decision, DecisionStatus, ImplicationProofElement, Property, Witness,
 };
-use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::{BaseDbKey, KeyValueStore};
 use tiny_keccak::Keccak;
@@ -142,21 +141,33 @@ impl Decodable for PreimageExistsDecisionValue {
     }
 }
 
-pub struct PreimageExistsDecider {
-    db: CoreDbLevelDbImpl,
+pub struct PreimageExistsDecider<KVS: KeyValueStore> {
+    id: DeciderId,
+    db: KVS,
 }
 
-impl Default for PreimageExistsDecider {
-    fn default() -> Self {
+impl<KVS> PreimageExistsDecider<KVS>
+where
+    KVS: DatabaseTrait + KeyValueStore,
+{
+    pub fn new(id: DeciderId) -> Self {
         PreimageExistsDecider {
-            db: CoreDbLevelDbImpl::open("test"),
+            id,
+            db: KVS::open("test"),
         }
     }
 }
 
-impl Decider for PreimageExistsDecider {
+impl<KVS> Decider for PreimageExistsDecider<KVS>
+where
+    KVS: DatabaseTrait + KeyValueStore,
+{
     type Input = PreimageExistsInput;
     type Witness = PreimageExistsWitness;
+
+    fn get_address(&self) -> DeciderId {
+        self.id
+    }
 
     fn decide(&self, input: &PreimageExistsInput, witness: PreimageExistsWitness) -> Decision {
         let preimage = &witness.preimage;
@@ -193,7 +204,7 @@ impl Decider for PreimageExistsDecider {
             return Decision::new(
                 DecisionStatus::Decided(decision_value.get_decision()),
                 vec![ImplicationProofElement::new(
-                    Property::new(Address::zero(), input.get_parameters().clone()),
+                    Property::new(self.get_address(), input.get_parameters().clone()),
                     Bytes::from(decision_value.get_witness().to_abi()),
                 )],
             );
@@ -210,11 +221,14 @@ mod tests {
         PreimageExistsWitness, Verifier,
     };
     use bytes::Bytes;
-    use plasma_core::ovm::Decider;
+    use ethereum_types::Address;
+    use plasma_core::ovm::decider::Decider;
+    use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     #[test]
     fn test_decide() {
-        let preimage_exists_decider: PreimageExistsDecider = Default::default();
+        let preimage_exists_decider: PreimageExistsDecider<CoreDbLevelDbImpl> =
+            PreimageExistsDecider::new(Address::zero());
         let input = PreimageExistsInput::new(
             Default::default(),
             Bytes::from(""),
