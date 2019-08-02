@@ -1,4 +1,7 @@
+use crate::data_structure::abi::{Decodable, Encodable};
+use crate::data_structure::error::{Error, ErrorKind};
 use bytes::Bytes;
+use ethabi::{ParamType, Token};
 use ethereum_types::Address;
 
 pub type DeciderId = Address;
@@ -15,6 +18,42 @@ pub struct Property {
 impl Property {
     pub fn new(decider: DeciderId, input: Bytes) -> Self {
         Property { decider, input }
+    }
+    pub fn get_decider_id(&self) -> DeciderId {
+        self.decider
+    }
+    pub fn get_input(&self) -> &Bytes {
+        &self.input
+    }
+}
+
+impl Encodable for Property {
+    fn to_abi(&self) -> Vec<u8> {
+        ethabi::encode(&self.to_tuple())
+    }
+    fn to_tuple(&self) -> Vec<Token> {
+        vec![
+            Token::Address(self.decider),
+            Token::Bytes(self.input.to_vec()),
+        ]
+    }
+}
+
+impl Decodable for Property {
+    type Ok = Property;
+    fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
+        let decider = tuple[0].clone().to_address();
+        let input = tuple[1].clone().to_bytes();
+        if let (Some(decider), Some(input)) = (decider, input) {
+            Ok(Property::new(decider, Bytes::from(input)))
+        } else {
+            Err(Error::from(ErrorKind::AbiDecode))
+        }
+    }
+    fn from_abi(data: &[u8]) -> Result<Self, Error> {
+        let decoded = ethabi::decode(&[ParamType::Address, ParamType::Bytes], data)
+            .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;
+        Self::from_tuple(&decoded)
     }
 }
 

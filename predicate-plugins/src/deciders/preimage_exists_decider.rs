@@ -35,21 +35,41 @@ impl Verifier {
 }
 
 pub struct PreimageExistsInput {
-    verifier: Verifier,
-    parameters: Bytes,
     hash: H256,
 }
 
 impl PreimageExistsInput {
-    pub fn new(verifier: Verifier, parameters: Bytes, hash: H256) -> Self {
-        PreimageExistsInput {
-            verifier,
-            parameters,
-            hash,
+    pub fn new(hash: H256) -> Self {
+        PreimageExistsInput { hash }
+    }
+    pub fn get_hash(&self) -> H256 {
+        self.hash
+    }
+}
+
+impl Encodable for PreimageExistsInput {
+    fn to_abi(&self) -> Vec<u8> {
+        ethabi::encode(&self.to_tuple())
+    }
+    fn to_tuple(&self) -> Vec<Token> {
+        vec![Token::Bytes(self.hash.as_bytes().to_vec())]
+    }
+}
+
+impl Decodable for PreimageExistsInput {
+    type Ok = PreimageExistsInput;
+    fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
+        let hash = tuple[0].clone().to_bytes();
+        if let Some(hash) = hash {
+            Ok(PreimageExistsInput::new(H256::from_slice(hash.as_ref())))
+        } else {
+            Err(Error::from(ErrorKind::AbiDecode))
         }
     }
-    pub fn get_parameters(&self) -> &Bytes {
-        &self.parameters
+    fn from_abi(data: &[u8]) -> Result<Self, Error> {
+        let decoded = ethabi::decode(&[ParamType::Bytes], data)
+            .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;
+        Self::from_tuple(&decoded)
     }
 }
 
@@ -144,12 +164,14 @@ impl Decodable for PreimageExistsDecisionValue {
 
 pub struct PreimageExistsDecider {
     db: CoreDbLevelDbImpl,
+    verifier: Verifier,
 }
 
 impl Default for PreimageExistsDecider {
     fn default() -> Self {
         PreimageExistsDecider {
             db: CoreDbLevelDbImpl::open("test"),
+            verifier: Default::default(),
         }
     }
 }
@@ -161,7 +183,7 @@ impl Decider for PreimageExistsDecider {
     fn decide(&self, input: &PreimageExistsInput, witness: PreimageExistsWitness) -> Decision {
         let preimage = &witness.preimage;
 
-        if input.verifier.hash(preimage) != input.hash {
+        if self.verifier.hash(preimage) != input.hash {
             panic!("invalid preimage")
         }
 
@@ -193,13 +215,21 @@ impl Decider for PreimageExistsDecider {
             return Decision::new(
                 DecisionStatus::Decided(decision_value.get_decision()),
                 vec![ImplicationProofElement::new(
-                    Property::new(Address::zero(), input.get_parameters().clone()),
+                    Property::new(Address::zero(), Bytes::from(input.to_abi())),
                     Bytes::from(decision_value.get_witness().to_abi()),
                 )],
             );
         }
 
         Decision::new(DecisionStatus::Undecided, vec![])
+    }
+
+    fn decode_input(&self, input: &Bytes) -> PreimageExistsInput {
+        PreimageExistsInput::from_abi(&input.to_vec()).unwrap()
+    }
+
+    fn decode_witness(&self, input: &Bytes) -> PreimageExistsWitness {
+        PreimageExistsWitness::from_abi(&input.to_vec()).unwrap()
     }
 }
 
@@ -215,11 +245,7 @@ mod tests {
     #[test]
     fn test_decide() {
         let preimage_exists_decider: PreimageExistsDecider = Default::default();
-        let input = PreimageExistsInput::new(
-            Default::default(),
-            Bytes::from(""),
-            Verifier::static_hash(&Bytes::from("test")),
-        );
+        let input = PreimageExistsInput::new(Verifier::static_hash(&Bytes::from("test")));
         let decided: Decision =
             preimage_exists_decider.decide(&input, PreimageExistsWitness::new(Bytes::from("test")));
         assert_eq!(decided.get_outcome(), &DecisionStatus::Decided(true));
