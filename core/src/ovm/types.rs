@@ -97,4 +97,7 @@ impl Decision {
     pub fn get_outcome(&self) -> &DecisionStatus {
         &self.outcome
     }
+    pub fn get_implication_proof(&self) -> &Vec<ImplicationProofElement> {
+        &self.implication_proof
+    }
 }

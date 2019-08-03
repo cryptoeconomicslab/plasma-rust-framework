@@ -1,15 +1,9 @@
 use crate::DeciderManager;
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
-use ethereum_types::{Address, H256};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{Error, ErrorKind};
-use plasma_core::ovm::{
-    Decider, Decision, DecisionStatus, ImplicationProofElement, Property, Witness,
-};
-use plasma_db::impls::kvs::CoreDbLevelDbImpl;
-use plasma_db::traits::db::DatabaseTrait;
-use plasma_db::traits::kvs::{BaseDbKey, KeyValueStore};
+use plasma_core::ovm::{Decider, Decision, DecisionStatus, Property};
 
 pub struct AndDeciderInput {
     left: Property,
@@ -103,7 +97,7 @@ impl Encodable for AndDeciderWitness {
 
 impl Decodable for AndDeciderWitness {
     type Ok = AndDeciderWitness;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
+    fn from_tuple(_tuple: &[Token]) -> Result<Self, Error> {
         Ok(AndDeciderWitness {})
     }
     fn from_abi(data: &[u8]) -> Result<Self, Error> {
@@ -116,49 +110,95 @@ pub struct AndDecider {
     decider_manager: DeciderManager,
 }
 
+impl AndDecider {
+    pub fn new(decider_manager: DeciderManager) -> Self {
+        AndDecider { decider_manager }
+    }
+    fn decode_input(input: &Bytes) -> AndDeciderInput {
+        AndDeciderInput::from_abi(&input.to_vec()).unwrap()
+    }
+    fn decode_witness(input: &Bytes) -> AndDeciderWitness {
+        AndDeciderWitness::from_abi(&input.to_vec()).unwrap()
+    }
+}
+
 impl Default for AndDecider {
     fn default() -> Self {
         AndDecider {
-            decider_manager: DeciderManager {},
+            decider_manager: Default::default(),
         }
     }
 }
 
 impl Decider for AndDecider {
-    type Input = AndDeciderInput;
-    type Witness = AndDeciderWitness;
-
-    fn decide(&self, input: &AndDeciderInput, witness: AndDeciderWitness) -> Decision {
+    fn decide(&self, input_bytes: &Bytes, witness_bytes: &Bytes) -> Decision {
+        let input = Self::decode_input(input_bytes);
+        let _witness = Self::decode_witness(witness_bytes);
         let left_decider = self
             .decider_manager
             .get_decider(input.get_left().get_decider_id());
         let right_decider = self
             .decider_manager
             .get_decider(input.get_right().get_decider_id());
-        let left_decision = left_decider.decide(
-            &left_decider.decode_input(input.get_left().get_input()),
-            left_decider.decode_witness(input.get_left_witness()),
-        );
-        let right_decision = right_decider.decide(
-            &right_decider.decode_input(input.get_right().get_input()),
-            right_decider.decode_witness(input.get_right_witness()),
-        );
+        let left_decision =
+            left_decider.decide(input.get_left().get_input(), input.get_left_witness());
+        let right_decision =
+            right_decider.decide(input.get_right().get_input(), input.get_right_witness());
         if let DecisionStatus::Decided(false) = left_decision.get_outcome() {
             return left_decision;
         }
-        return right_decision;
-        Decision::new(DecisionStatus::Decided(true), vec![])
+        if let DecisionStatus::Decided(false) = right_decision.get_outcome() {
+            return right_decision;
+        }
+        Decision::new(
+            DecisionStatus::Decided(true),
+            [
+                &left_decision.get_implication_proof()[..],
+                &right_decision.get_implication_proof()[..],
+            ]
+            .concat(),
+        )
     }
 
-    fn check_decision(&self, input: &AndDeciderInput) -> Decision {
-        self.decide(input, AndDeciderWitness {})
+    fn check_decision(&self, input_bytes: &Bytes) -> Decision {
+        let witness = AndDeciderWitness {};
+        self.decide(input_bytes, &Bytes::from(witness.to_abi()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{AndDecider, AndDeciderInput, AndDeciderWitness, Decision, DecisionStatus};
+    use crate::deciders::preimage_exists_decider::{
+        PreimageExistsInput, PreimageExistsWitness, Verifier,
+    };
+    use crate::DeciderManager;
+    use bytes::Bytes;
+    use plasma_core::data_structure::abi::Encodable;
+    use plasma_core::ovm::{Decider, Property};
+
+    #[test]
+    fn test_decide() {
+        let left_input = PreimageExistsInput::new(Verifier::static_hash(&Bytes::from("left")));
+        let left_witness = PreimageExistsWitness::new(Bytes::from("left"));
+        let right_input = PreimageExistsInput::new(Verifier::static_hash(&Bytes::from("right")));
+        let right_witness = PreimageExistsWitness::new(Bytes::from("right"));
+
+        let decider_manager: DeciderManager = Default::default();
+        let decider_address = decider_manager.get_preimage_exists_decider_id();
+        let and_decider: AndDecider = AndDecider::new(decider_manager);
+        let input = AndDeciderInput::new(
+            Property::new(decider_address, Bytes::from(left_input.to_abi())),
+            Bytes::from(left_witness.to_abi()),
+            Property::new(decider_address, Bytes::from(right_input.to_abi())),
+            Bytes::from(right_witness.to_abi()),
+        );
+        let and_decider_witness = AndDeciderWitness {};
+        let decided: Decision =
+            and_decider.decide(&input.to_abi().into(), &and_decider_witness.to_abi().into());
+        assert_eq!(decided.get_outcome(), &DecisionStatus::Decided(true));
+        let status = and_decider.check_decision(&input.to_abi().into());
+        assert_eq!(status.get_outcome(), &DecisionStatus::Decided(true));
     }
 
-    fn decode_input(&self, input: &Bytes) -> AndDeciderInput {
-        AndDeciderInput::from_abi(&input.to_vec()).unwrap()
-    }
-
-    fn decode_witness(&self, input: &Bytes) -> AndDeciderWitness {
-        AndDeciderWitness::from_abi(&input.to_vec()).unwrap()
-    }
 }

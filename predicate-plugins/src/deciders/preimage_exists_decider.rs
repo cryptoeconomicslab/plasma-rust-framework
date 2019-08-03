@@ -167,6 +167,16 @@ pub struct PreimageExistsDecider {
     verifier: Verifier,
 }
 
+impl PreimageExistsDecider {
+    fn decode_input(input: &Bytes) -> PreimageExistsInput {
+        PreimageExistsInput::from_abi(&input.to_vec()).unwrap()
+    }
+
+    fn decode_witness(input: &Bytes) -> PreimageExistsWitness {
+        PreimageExistsWitness::from_abi(&input.to_vec()).unwrap()
+    }
+}
+
 impl Default for PreimageExistsDecider {
     fn default() -> Self {
         PreimageExistsDecider {
@@ -177,10 +187,9 @@ impl Default for PreimageExistsDecider {
 }
 
 impl Decider for PreimageExistsDecider {
-    type Input = PreimageExistsInput;
-    type Witness = PreimageExistsWitness;
-
-    fn decide(&self, input: &PreimageExistsInput, witness: PreimageExistsWitness) -> Decision {
+    fn decide(&self, input_bytes: &Bytes, witness_bytes: &Bytes) -> Decision {
+        let input = Self::decode_input(input_bytes);
+        let witness = Self::decode_witness(witness_bytes);
         let preimage = &witness.preimage;
 
         if self.verifier.hash(preimage) != input.hash {
@@ -203,7 +212,8 @@ impl Decider for PreimageExistsDecider {
 
         Decision::new(DecisionStatus::Decided(true), vec![])
     }
-    fn check_decision(&self, input: &PreimageExistsInput) -> Decision {
+    fn check_decision(&self, input_bytes: &Bytes) -> Decision {
+        let input = Self::decode_input(input_bytes);
         let decision_key = input.hash;
         let result = self
             .db
@@ -223,14 +233,6 @@ impl Decider for PreimageExistsDecider {
 
         Decision::new(DecisionStatus::Undecided, vec![])
     }
-
-    fn decode_input(&self, input: &Bytes) -> PreimageExistsInput {
-        PreimageExistsInput::from_abi(&input.to_vec()).unwrap()
-    }
-
-    fn decode_witness(&self, input: &Bytes) -> PreimageExistsWitness {
-        PreimageExistsWitness::from_abi(&input.to_vec()).unwrap()
-    }
 }
 
 #[cfg(test)]
@@ -240,16 +242,21 @@ mod tests {
         PreimageExistsWitness, Verifier,
     };
     use bytes::Bytes;
+    use plasma_core::data_structure::abi::Encodable;
     use plasma_core::ovm::Decider;
 
     #[test]
     fn test_decide() {
         let preimage_exists_decider: PreimageExistsDecider = Default::default();
         let input = PreimageExistsInput::new(Verifier::static_hash(&Bytes::from("test")));
-        let decided: Decision =
-            preimage_exists_decider.decide(&input, PreimageExistsWitness::new(Bytes::from("test")));
+        let decided: Decision = preimage_exists_decider.decide(
+            &input.to_abi().into(),
+            &PreimageExistsWitness::new(Bytes::from("test"))
+                .to_abi()
+                .into(),
+        );
         assert_eq!(decided.get_outcome(), &DecisionStatus::Decided(true));
-        let status = preimage_exists_decider.check_decision(&input);
+        let status = preimage_exists_decider.check_decision(&Bytes::from(input.to_abi()));
         assert_eq!(status.get_outcome(), &DecisionStatus::Decided(true));
     }
 
