@@ -4,6 +4,7 @@ pub mod ownership;
 pub mod parameters;
 pub mod predicate;
 pub mod predicate_manager;
+pub mod quantifiers;
 
 pub use decider_manager::DeciderManager;
 pub use ownership::{OwnershipPredicate, OwnershipPredicateParameters};

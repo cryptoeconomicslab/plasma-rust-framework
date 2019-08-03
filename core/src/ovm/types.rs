@@ -101,3 +101,5 @@ impl Decision {
         &self.implication_proof
     }
 }
+
+pub type PropertyFactory = Fn(Bytes) -> Property;
