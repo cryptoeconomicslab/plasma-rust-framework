@@ -1,5 +1,5 @@
 [package]
-name = "predicate-plugins"
+name = "ovm"
 version = "0.1.0"
 authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"
@@ -9,6 +9,6 @@ bytes = "0.4.12"
 ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
 ethereum-types = "^0.5.2"
 failure = "0.1.5"
-tiny-keccak = "1.5"
-primitive-types = "0.3.0"
+tiny-keccak = "1.4.2"
 plasma-core = { path = "../core" }
+plasma-db = { path = "../db" }

@@ -1,31 +1,11 @@
+use crate::types::{Integer, QuantifierResult};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{Error, ErrorKind};
-use plasma_core::ovm::{Quantifier, QuantifierResult};
 
-#[derive(Clone, Debug)]
-pub struct Integer {
-    n: u64,
-}
-
-impl Integer {
-    pub fn new(n: u64) -> Self {
-        Integer { n }
-    }
-}
-
-impl Encodable for Integer {
-    fn to_abi(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple())
-    }
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![Token::Uint(self.n.into())]
-    }
-}
-
-fn get_range(start: u64, end: u64) -> Vec<Bytes> {
-    (start..end)
+fn get_range(start: Integer, end: Integer) -> Vec<Bytes> {
+    (start.0..end.0)
         .map(|n| Bytes::from(Integer::new(n).to_abi()))
         .collect()
 }
@@ -77,18 +57,18 @@ impl Decodable for IntegerRangeParameters {
 
 pub struct IntegerRangeQuantifier {}
 
-impl Quantifier for IntegerRangeQuantifier {
-    fn get_all_quantified(&self, parameters: Bytes) -> QuantifierResult {
-        let integer_range_parameters = IntegerRangeParameters::from_abi(&parameters).unwrap();
-        if integer_range_parameters.get_end() < integer_range_parameters.get_start() {
+impl Default for IntegerRangeQuantifier {
+    fn default() -> Self {
+        IntegerRangeQuantifier {}
+    }
+}
+
+impl IntegerRangeQuantifier {
+    pub fn get_all_quantified(start: Integer, end: Integer) -> QuantifierResult {
+        // let integer_range_parameters = IntegerRangeParameters::from_abi(&parameters).unwrap();
+        if end < start {
             panic!("invalid start and end");
         }
-        QuantifierResult::new(
-            get_range(
-                integer_range_parameters.get_start(),
-                integer_range_parameters.get_end(),
-            ),
-            true,
-        )
+        QuantifierResult::new(get_range(start, end), true)
     }
 }

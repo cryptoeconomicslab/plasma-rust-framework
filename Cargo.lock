@@ -1065,6 +1065,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ovm"
+version = "0.1.0"
+dependencies = [
+ "bytes 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ethabi 7.0.0 (git+https://github.com/cryptoeconomicslab/ethabi?branch=tuple-support-v7.0.0)",
+ "ethereum-types 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "plasma-core 0.1.0",
+ "plasma-db 0.1.0",
+ "tiny-keccak 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "owning_ref"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1246,7 +1259,6 @@ dependencies = [
  "ethereum-types 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "plasma-core 0.1.0",
- "plasma-db 0.1.0",
  "primitive-types 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tiny-keccak 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
