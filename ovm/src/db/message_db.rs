@@ -8,11 +8,12 @@ use plasma_core::data_structure::error::{
 };
 use plasma_db::traits::kvs::KeyValueStore;
 
+#[derive(Clone, Debug)]
 pub struct Message {
-    channel_id: Bytes,
+    pub channel_id: Bytes,
     sender: Address,
     recipient: Address,
-    nonce: Integer,
+    pub nonce: Integer,
     signers: Vec<Address>,
     message: Bytes,
     signed_message: Bytes,

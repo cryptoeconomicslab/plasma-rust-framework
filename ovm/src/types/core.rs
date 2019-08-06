@@ -1,11 +1,12 @@
 use super::inputs::{
-    AndDeciderInput, ForAllSuchThatInput, NotDeciderInput, PreimageExistsInput, SignedByInput,
+    AndDeciderInput, ChannelUpdateSignatureExistsDeciderInput, ForAllSuchThatInput,
+    HasLowerNonceInput, NotDeciderInput, PreimageExistsInput, SignedByInput,
 };
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
 use bytes::{BufMut, Bytes, BytesMut};
 use ethabi::Token;
-use ethereum_types::{Address, H256};
+use ethereum_types::Address;
 use plasma_core::data_structure::abi::Encodable;
 use plasma_db::traits::kvs::KeyValueStore;
 use std::sync::Arc;
@@ -54,8 +55,10 @@ pub enum Property {
     PreimageExistsDecider(Box<PreimageExistsInput>),
     // message, public_key
     SignedByDecider(SignedByInput),
+    // message, nonce
+    HasLowerNonceDecider(HasLowerNonceInput),
     // channelId, nonce, participant
-    ChannelUpdateSignatureExistsDecider(H256, Integer, Address),
+    ChannelUpdateSignatureExistsDecider(ChannelUpdateSignatureExistsDeciderInput),
 }
 
 #[derive(Clone, Debug)]
@@ -64,6 +67,8 @@ pub enum Quantifier {
     IntegerRangeQuantifier(Integer, Integer),
     // 0 to upperBound
     NonnegativeIntegerLessThanQuantifier(Integer),
+    // signer
+    SignedByQuantifier(Address),
     // blocknumber, start and end
     IncludedCoinRangeQuantifier(Integer, Integer, Integer),
 }

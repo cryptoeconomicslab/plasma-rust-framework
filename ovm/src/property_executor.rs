@@ -1,9 +1,12 @@
 use crate::db::MessageDb;
 use crate::deciders::{
-    AndDecider, ForAllSuchThatDecider, NotDecider, PreimageExistsDecider, SignedByDecider,
+    AndDecider, ForAllSuchThatDecider, HasLowerNonceDecider, NotDecider, PreimageExistsDecider,
+    SignedByDecider,
 };
 use crate::error::Error;
-use crate::quantifiers::{IntegerRangeQuantifier, NonnegativeIntegerLessThanQuantifier};
+use crate::quantifiers::{
+    IntegerRangeQuantifier, NonnegativeIntegerLessThanQuantifier, SignedByQuantifier,
+};
 use crate::types::Decider;
 use crate::types::{Decision, Property, Quantifier, QuantifierResult};
 use bytes::Bytes;
@@ -71,6 +74,9 @@ where
                 ForAllSuchThatDecider::decide(self, input, witness)
             }
             Property::SignedByDecider(input) => SignedByDecider::decide(self, input, witness),
+            Property::HasLowerNonceDecider(input) => {
+                HasLowerNonceDecider::decide(self, input, witness)
+            }
             _ => panic!("not implemented!!"),
         }
     }
@@ -81,6 +87,9 @@ where
             }
             Quantifier::NonnegativeIntegerLessThanQuantifier(upper_bound) => {
                 NonnegativeIntegerLessThanQuantifier::get_all_quantified(*upper_bound)
+            }
+            Quantifier::SignedByQuantifier(signer) => {
+                SignedByQuantifier::get_all_quantified(self, *signer)
             }
             _ => panic!("not implemented!!"),
         }
