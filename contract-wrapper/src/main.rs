@@ -12,9 +12,11 @@ fn main() {
     let reader = BufReader::new(f);
     let contract_abi = ContractABI::load(reader).unwrap();
     let contract = UniversalDecisionContractAdaptor::new(
+        "http://127.0.0.1:9545/",
         "661E0De345B6AE4848c4Efd7F4094ae1014091F7",
         contract_abi,
-    );
+    )
+    .unwrap();
 
     let from: Address = "ce397e30544d737195a341291675ec1ecaf19b13".parse().unwrap();
     let property = Property::new(
@@ -22,8 +24,8 @@ fn main() {
         b"012345678"[..].into(),
     );
 
-    if let Ok(result) = contract.claim_property(from, property.clone()) {
-        println!("claim_property: {}", result);
+    if let Ok(res) = contract.claim_property(from, property.clone()) {
+        println!("{:?}", res);
     };
 
     if let Ok(result) = contract.decide_property(from, property.clone(), true) {
