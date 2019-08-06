@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 bytes = "0.4.12"
 ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
+web3 = { git = "https://github.com/cryptoeconomicslab/rust-web3", branch = 'ethabi-tuple' }
 ethereum-types = "^0.5.2"
 failure = "0.1.5"
 num-traits = { version = "0.2.8", default-features = false }

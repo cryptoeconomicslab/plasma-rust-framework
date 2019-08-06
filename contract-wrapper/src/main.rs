@@ -1,36 +1,31 @@
 extern crate serde;
 
-use contract_wrapper::contract_wrapper::ContractWrapper;
+use contract_wrapper::universal_decision_contract_adaptor::UniversalDecisionContractAdaptor;
 use ethabi::Contract as ContractABI;
-use plasma_core::data_structure::StateObject;
+use plasma_core::ovm::types::Property;
 use std::fs::File;
 use std::io::BufReader;
 use web3::types::Address;
 
-fn block_submit() {
-    let f = File::open("CommitmentChain.json").unwrap();
-    let reader = BufReader::new(f);
-    let contract_abi = ContractABI::load(reader).unwrap();
-    let contract = ContractWrapper::new("b8EE7cFB77034f882Bb282ffB4e67f7b5a629E2f", contract_abi);
-    let address: Address = "ce397e30544d737195a341291675ec1ecaf19b13".parse().unwrap();
-    let hash: [u8; 32] = [1; 32];
-    let _ = contract.submit_block(address, &hash);
-}
-
-fn deposit() {
-    let f = File::open("Deposit.json").unwrap();
-    let reader = BufReader::new(f);
-    let contract_abi = ContractABI::load(reader).unwrap();
-    let contract = ContractWrapper::new("F59Ae4F3A76AAC629aC52A98a9193ca32432316E", contract_abi);
-    let from: Address = "ce397e30544d737195a341291675ec1ecaf19b13".parse().unwrap();
-    let state_object = StateObject::new(
-        "F59Ae4F3A76AAC629aC52A98a9193ca32432316E".parse().unwrap(),
-        vec![].into(),
-    );
-    let _ = contract.deposit(from, 5, state_object);
-}
-
 fn main() {
-    block_submit();
-    deposit();
+    let f = File::open("UniversalDecisionContract.json").unwrap();
+    let reader = BufReader::new(f);
+    let contract_abi = ContractABI::load(reader).unwrap();
+    let contract = UniversalDecisionContractAdaptor::new(
+        "661E0De345B6AE4848c4Efd7F4094ae1014091F7",
+        contract_abi,
+    );
+
+    let from: Address = "ce397e30544d737195a341291675ec1ecaf19b13".parse().unwrap();
+    let property = Property::new(
+        "1a50faDFab6b21AaaED82bb17A541993304786E7".parse().unwrap(),
+        b"012345678"[..].into(),
+    );
+
+    if let Ok(result) = contract.claim_property(from, property.clone()) {
+        println!("claim_property: {}", result);
+    };
+    if let Ok(result) = contract.decide_property(from, property.clone(), true) {
+        println!("decide_property: {}", result);
+    };
 }

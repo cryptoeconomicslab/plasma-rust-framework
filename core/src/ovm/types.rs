@@ -1,6 +1,7 @@
 use bytes::Bytes;
-use ethereum_types::Address;
 
+use ethabi::Token;
+use ethereum_types::Address;
 pub type DeciderId = Address;
 pub trait Input {}
 pub trait Witness {}
@@ -18,6 +19,15 @@ impl Property {
     }
 }
 
+impl From<Property> for Token {
+    fn from(property: Property) -> Token {
+        Token::Tuple(vec![
+            Token::Address(property.decider),
+            Token::Bytes(property.input.to_vec()),
+        ])
+    }
+}
+
 /// Implication proof element has the property which is decided by Decider
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ImplicationProofElement {
@@ -31,6 +41,15 @@ impl ImplicationProofElement {
             implication,
             implication_witness,
         }
+    }
+}
+
+impl From<ImplicationProofElement> for Token {
+    fn from(element: ImplicationProofElement) -> Token {
+        Token::Tuple(vec![
+            element.implication.into(),
+            Token::Bytes(element.implication_witness.to_vec()),
+        ])
     }
 }
 

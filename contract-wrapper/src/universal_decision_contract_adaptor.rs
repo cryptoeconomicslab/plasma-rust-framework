@@ -1,5 +1,7 @@
 use ethabi::Contract as ContractABI;
+use ethabi::Token;
 use plasma_core::ovm::types::Property;
+use web3::contract::tokens::Tokenize;
 use web3::contract::{Contract, Options};
 use web3::futures::Future;
 use web3::transports::{EventLoopHandle, Http};
@@ -32,17 +34,12 @@ impl UniversalDecisionContractAdaptor {
     }
 
     pub fn claim_property(&self, from: Address, property: Property) -> Result<H256, Error> {
-        let result = self.inner.call(
-            "claim_property",
-            (
-                
-            )
-            property,
-            from,
-            Options::default(),
-        );
+        let params: Token = property.into();
+        let result = self
+            .inner
+            .call("claimProperty", params, from, Options::default());
 
-        // TODO: Error handling
+        // TODO: error handling
         match result.wait() {
             Ok(r) => Ok(r),
             Err(e) => {
@@ -50,6 +47,28 @@ impl UniversalDecisionContractAdaptor {
                 Err(())
             }
         }
+    }
 
+    pub fn decide_property(
+        &self,
+        from: Address,
+        property: Property,
+        decision: bool,
+    ) -> Result<H256, Error> {
+        let params: Token = property.into();
+        let result = self.inner.call(
+            "decideProperty",
+            (params, Token::Bool(decision)),
+            from,
+            Options::default(),
+        );
+
+        match result.wait() {
+            Ok(r) => Ok(r),
+            Err(e) => {
+                println!("{}", e);
+                Err(())
+            }
+        }
     }
 }
