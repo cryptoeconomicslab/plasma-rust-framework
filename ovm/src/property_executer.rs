@@ -2,7 +2,7 @@ use crate::deciders::{
     AndDecider, ForAllSuchThatDecider, NotDecider, PreimageExistsDecider, SignedByDecider,
 };
 use crate::error::Error;
-use crate::quantifiers::IntegerRangeQuantifier;
+use crate::quantifiers::{IntegerRangeQuantifier, NonnegativeIntegerLessThanQuantifier};
 use crate::types::Decider;
 use crate::types::{Decision, Property, Quantifier, QuantifierResult};
 use bytes::Bytes;
@@ -43,6 +43,9 @@ impl PropertyExecuter {
         match quantifier {
             Quantifier::IntegerRangeQuantifier(start, end) => {
                 IntegerRangeQuantifier::get_all_quantified(*start, *end)
+            }
+            Quantifier::NonnegativeIntegerLessThanQuantifier(upper_bound) => {
+                NonnegativeIntegerLessThanQuantifier::get_all_quantified(*upper_bound)
             }
             _ => panic!("not implemented!!"),
         }

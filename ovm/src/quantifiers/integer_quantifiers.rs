@@ -72,3 +72,20 @@ impl IntegerRangeQuantifier {
         QuantifierResult::new(get_range(start, end), true)
     }
 }
+
+pub struct NonnegativeIntegerLessThanQuantifier {}
+
+impl Default for NonnegativeIntegerLessThanQuantifier {
+    fn default() -> Self {
+        NonnegativeIntegerLessThanQuantifier {}
+    }
+}
+
+impl NonnegativeIntegerLessThanQuantifier {
+    pub fn get_all_quantified(upper_bound: Integer) -> QuantifierResult {
+        if upper_bound < Integer(0) {
+            panic!("upper_bound shouldn't negative value.");
+        }
+        QuantifierResult::new(get_range(Integer(0), upper_bound), true)
+    }
+}

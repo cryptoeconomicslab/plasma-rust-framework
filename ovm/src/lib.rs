@@ -46,4 +46,21 @@ mod tests {
         let decided_result = decider.decide(&property, None);
         assert_eq!(decided_result.is_ok(), false);
     }
+
+    #[test]
+    fn test_decide_less_than_and_preimage() {
+        let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
+            Quantifier::NonnegativeIntegerLessThanQuantifier(Integer(10)),
+            PropertyFactory::new(Box::new(|bytes| {
+                Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+                    Verifier::static_hash(&bytes),
+                )))
+            })),
+            WitnessFactory::new(Box::new(|bytes| bytes.clone())),
+        )));
+        let decider: PropertyExecuter = Default::default();
+        let decided: Decision = decider.decide(&property, None).unwrap();
+        assert_eq!(decided.get_outcome(), true);
+    }
+
 }
