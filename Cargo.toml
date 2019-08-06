@@ -19,6 +19,7 @@ members = [
 	"core",
 	"db",
 	"operator",
+	"ovm",
 	"predicate-plugins",
 	"event-watcher",
 	"merkle-interval-tree",
