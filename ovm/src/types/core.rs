@@ -1,4 +1,6 @@
-use super::inputs::{AndDeciderInput, ForAllSuchThatInput, NotDeciderInput, PreimageExistsInput};
+use super::inputs::{
+    AndDeciderInput, ForAllSuchThatInput, NotDeciderInput, PreimageExistsInput, SignedByInput,
+};
 use crate::error::Error;
 use crate::property_executer::PropertyExecuter;
 use bytes::Bytes;
@@ -42,7 +44,7 @@ pub enum Property {
     // hash
     PreimageExistsDecider(Box<PreimageExistsInput>),
     // message, public_key
-    SignedByDecider(Bytes, Address),
+    SignedByDecider(SignedByInput),
     // channelId, nonce, participant
     ChannelUpdateSignatureExistsDecider(H256, Integer, Address),
 }

@@ -6,5 +6,5 @@ pub use self::core::{
     QuantifierResult, WitnessFactory,
 };
 pub use self::inputs::{
-    AndDeciderInput, ForAllSuchThatInput, NotDeciderInput, PreimageExistsInput,
+    AndDeciderInput, ForAllSuchThatInput, NotDeciderInput, PreimageExistsInput, SignedByInput,
 };

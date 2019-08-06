@@ -9,6 +9,12 @@ bytes = "0.4.12"
 ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
 ethereum-types = "^0.5.2"
 failure = "0.1.5"
+hex = "0.3.1"
 tiny-keccak = "1.4.2"
 plasma-core = { path = "../core" }
 plasma-db = { path = "../db" }
+
+[dependencies.ethsign]
+version = "0.6.1"
+default-features = false
+features = ["pure-rust"]

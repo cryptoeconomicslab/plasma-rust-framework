@@ -1,4 +1,6 @@
-use crate::deciders::{AndDecider, ForAllSuchThatDecider, NotDecider, PreimageExistsDecider};
+use crate::deciders::{
+    AndDecider, ForAllSuchThatDecider, NotDecider, PreimageExistsDecider, SignedByDecider,
+};
 use crate::error::Error;
 use crate::quantifiers::IntegerRangeQuantifier;
 use crate::types::Decider;
@@ -33,6 +35,7 @@ impl PropertyExecuter {
             Property::ForAllSuchThatDecider(input) => {
                 ForAllSuchThatDecider::decide(self, input, witness)
             }
+            Property::SignedByDecider(input) => SignedByDecider::decide(self, input, witness),
             _ => panic!("not implemented!!"),
         }
     }
