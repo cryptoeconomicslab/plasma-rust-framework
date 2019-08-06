@@ -1,3 +1,4 @@
+use crate::db::MessageDb;
 use crate::deciders::{
     AndDecider, ForAllSuchThatDecider, NotDecider, PreimageExistsDecider, SignedByDecider,
 };
@@ -6,22 +7,25 @@ use crate::quantifiers::{IntegerRangeQuantifier, NonnegativeIntegerLessThanQuant
 use crate::types::Decider;
 use crate::types::{Decision, Property, Quantifier, QuantifierResult};
 use bytes::Bytes;
-use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 use plasma_db::traits::db::DatabaseTrait;
+use plasma_db::traits::kvs::KeyValueStore;
 
 /// Mixin for adding decide method to Property
-pub trait DecideMixin {
+pub trait DecideMixin<KVS: KeyValueStore> {
     fn decide(
         &self,
-        decider: &PropertyExecutor,
+        decider: &PropertyExecutor<KVS>,
         witness: Option<&Bytes>,
     ) -> Result<Decision, Error>;
 }
 
-impl DecideMixin for Property {
+impl<KVS> DecideMixin<KVS> for Property
+where
+    KVS: KeyValueStore,
+{
     fn decide(
         &self,
-        decider: &PropertyExecutor,
+        decider: &PropertyExecutor<KVS>,
         witness: Option<&Bytes>,
     ) -> Result<Decision, Error> {
         decider.decide(self, witness)
@@ -29,21 +33,32 @@ impl DecideMixin for Property {
 }
 
 /// Core runtime for Property
-pub struct PropertyExecutor {
-    db: CoreDbLevelDbImpl,
+pub struct PropertyExecutor<KVS: KeyValueStore> {
+    db: KVS,
+    message_db: MessageDb<KVS>,
 }
 
-impl Default for PropertyExecutor {
+impl<KVS> Default for PropertyExecutor<KVS>
+where
+    KVS: KeyValueStore + DatabaseTrait,
+{
     fn default() -> Self {
         PropertyExecutor {
-            db: CoreDbLevelDbImpl::open("test"),
+            db: KVS::open("kvs"),
+            message_db: MessageDb::from(KVS::open("message")),
         }
     }
 }
 
-impl PropertyExecutor {
-    pub fn get_db(&self) -> &CoreDbLevelDbImpl {
+impl<KVS> PropertyExecutor<KVS>
+where
+    KVS: KeyValueStore,
+{
+    pub fn get_db(&self) -> &KVS {
         &self.db
+    }
+    pub fn get_message_db(&self) -> &MessageDb<KVS> {
+        &self.message_db
     }
     pub fn decide(&self, property: &Property, witness: Option<&Bytes>) -> Result<Decision, Error> {
         match property {

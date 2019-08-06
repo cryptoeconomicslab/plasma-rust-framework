@@ -3,10 +3,11 @@ use super::inputs::{
 };
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
-use bytes::Bytes;
+use bytes::{BufMut, Bytes, BytesMut};
 use ethabi::Token;
 use ethereum_types::{Address, H256};
 use plasma_core::data_structure::abi::Encodable;
+use plasma_db::traits::kvs::KeyValueStore;
 use std::sync::Arc;
 
 pub type DeciderId = Address;
@@ -20,6 +21,14 @@ pub struct Integer(pub u64);
 impl Integer {
     pub fn new(n: u64) -> Self {
         Integer(n)
+    }
+}
+
+impl From<Integer> for Bytes {
+    fn from(i: Integer) -> Self {
+        let mut buf = BytesMut::with_capacity(64);
+        buf.put_u64_le(i.0);
+        Bytes::from(buf.to_vec())
     }
 }
 
@@ -183,12 +192,15 @@ impl std::fmt::Debug for WitnessFactory {
 
 pub trait Decider {
     type Input;
-    fn decide(
-        decider: &PropertyExecutor,
+    fn decide<T: KeyValueStore>(
+        decider: &PropertyExecutor<T>,
         input: &Self::Input,
         witness: Option<&Bytes>,
     ) -> Result<Decision, Error>;
-    fn check_decision(decider: &PropertyExecutor, input: &Self::Input) -> Result<Decision, Error>;
+    fn check_decision<T: KeyValueStore>(
+        decider: &PropertyExecutor<T>,
+        input: &Self::Input,
+    ) -> Result<Decision, Error>;
 }
 
 pub struct QuantifierResult {

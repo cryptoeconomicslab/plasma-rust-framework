@@ -3,6 +3,7 @@ use crate::property_executor::PropertyExecutor;
 use crate::types::{AndDeciderInput, Decider, Decision};
 use crate::DecideMixin;
 use bytes::Bytes;
+use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct AndDecider {}
 
@@ -20,8 +21,8 @@ impl Default for AndDecider {
 
 impl Decider for AndDecider {
     type Input = AndDeciderInput;
-    fn decide(
-        decider: &PropertyExecutor,
+    fn decide<T: KeyValueStore>(
+        decider: &PropertyExecutor<T>,
         input: &AndDeciderInput,
         _witness: Option<&Bytes>,
     ) -> Result<Decision, Error> {
@@ -47,8 +48,8 @@ impl Decider for AndDecider {
         ))
     }
 
-    fn check_decision(
-        decider: &PropertyExecutor,
+    fn check_decision<T: KeyValueStore>(
+        decider: &PropertyExecutor<T>,
         input: &AndDeciderInput,
     ) -> Result<Decision, Error> {
         Self::decide(decider, input, None)
@@ -62,6 +63,7 @@ mod tests {
     use crate::property_executor::PropertyExecutor;
     use crate::types::{AndDeciderInput, Decider, Decision, PreimageExistsInput, Property};
     use bytes::Bytes;
+    use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     #[test]
     fn test_decide() {
@@ -75,7 +77,7 @@ mod tests {
         let right_witness = Bytes::from("right");
         let input = AndDeciderInput::new(left, left_witness, right, right_witness);
         let and_decider = Property::AndDecider(Box::new(input.clone()));
-        let decider: PropertyExecutor = Default::default();
+        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided: Decision = decider.decide(&and_decider, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
         let status = AndDecider::check_decision(&decider, &input).unwrap();

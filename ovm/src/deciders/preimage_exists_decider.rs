@@ -122,8 +122,8 @@ impl Default for PreimageExistsDecider {
 
 impl Decider for PreimageExistsDecider {
     type Input = PreimageExistsInput;
-    fn decide(
-        decider: &PropertyExecutor,
+    fn decide<T: KeyValueStore>(
+        decider: &PropertyExecutor<T>,
         input: &PreimageExistsInput,
         witness_bytes: Option<&Bytes>,
     ) -> Result<Decision, Error> {
@@ -146,8 +146,8 @@ impl Decider for PreimageExistsDecider {
 
         Ok(Decision::new(true, vec![]))
     }
-    fn check_decision(
-        decider: &PropertyExecutor,
+    fn check_decision<T: KeyValueStore>(
+        decider: &PropertyExecutor<T>,
         input: &PreimageExistsInput,
     ) -> Result<Decision, Error> {
         let decision_key = input.get_hash();
@@ -179,13 +179,14 @@ mod tests {
     use crate::property_executor::PropertyExecutor;
     use crate::types::{Decider, Decision, PreimageExistsInput, Property};
     use bytes::Bytes;
+    use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     #[test]
     fn test_decide() {
         let input = PreimageExistsInput::new(Verifier::static_hash(&Bytes::from("left")));
         let property = Property::PreimageExistsDecider(Box::new(input.clone()));
         let witness = Bytes::from("left");
-        let decider: PropertyExecutor = Default::default();
+        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided: Decision = decider.decide(&property, Some(&witness)).unwrap();
         assert_eq!(decided.get_outcome(), true);
         let status = PreimageExistsDecider::check_decision(&decider, &input).unwrap();

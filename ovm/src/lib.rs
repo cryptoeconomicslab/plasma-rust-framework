@@ -1,3 +1,4 @@
+pub mod db;
 pub mod deciders;
 pub mod error;
 pub mod property_executor;
@@ -16,6 +17,7 @@ mod tests {
         Quantifier, WitnessFactory,
     };
     use bytes::Bytes;
+    use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     ///
     /// ```ignore
@@ -35,7 +37,7 @@ mod tests {
             })),
             WitnessFactory::new(Box::new(|bytes| bytes.clone())),
         )));
-        let decider: PropertyExecutor = Default::default();
+        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided: Decision = decider.decide(&property, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
@@ -52,7 +54,7 @@ mod tests {
             })),
             WitnessFactory::new(Box::new(|_bytes| Bytes::from(&b"aaa"[..]))),
         )));
-        let decider: PropertyExecutor = Default::default();
+        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided_result = decider.decide(&property, None);
         assert_eq!(decided_result.is_ok(), false);
     }
@@ -75,7 +77,7 @@ mod tests {
             })),
             WitnessFactory::new(Box::new(|bytes| bytes.clone())),
         )));
-        let decider: PropertyExecutor = Default::default();
+        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided: Decision = decider.decide(&property, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
