@@ -15,6 +15,13 @@ mod tests {
     };
     use bytes::Bytes;
 
+    ///
+    /// ```ignore
+    /// ForAllSuchThat(nonce, IntegerRangeQuantifier(0, 10), PropertyFactory((nonce) => {
+    ///   PreimageExistsDecider(nonce)
+    /// }))
+    /// ```
+    ///
     #[test]
     fn test_decide_range_and_preimage() {
         let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
@@ -31,6 +38,7 @@ mod tests {
         assert_eq!(decided.get_outcome(), true);
     }
 
+    /// Test to fail
     #[test]
     fn test_fail_to_decide_range_and_preimage() {
         let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
@@ -47,6 +55,13 @@ mod tests {
         assert_eq!(decided_result.is_ok(), false);
     }
 
+    ///
+    /// ```ignore
+    /// ForAllSuchThat(nonce, LessThanQuantifier(10), PropertyFactory((nonce) => {
+    ///   PreimageExistsDecider(nonce)
+    /// }))
+    /// ```
+    ///
     #[test]
     fn test_decide_less_than_and_preimage() {
         let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(

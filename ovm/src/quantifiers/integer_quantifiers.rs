@@ -55,6 +55,7 @@ impl Decodable for IntegerRangeParameters {
     }
 }
 
+/// IntegerRangeQuantifier quantify specific range
 pub struct IntegerRangeQuantifier {}
 
 impl Default for IntegerRangeQuantifier {
@@ -73,6 +74,7 @@ impl IntegerRangeQuantifier {
     }
 }
 
+/// NonnegativeIntegerLessThanQuantifier quantify 0 to upper bound
 pub struct NonnegativeIntegerLessThanQuantifier {}
 
 impl Default for NonnegativeIntegerLessThanQuantifier {

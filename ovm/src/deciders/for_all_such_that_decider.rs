@@ -5,6 +5,7 @@ use crate::types::{
 };
 use bytes::Bytes;
 
+/// ForAllSuchThatDecider decides for all quantified results by PropertyFactory and WitnessFactory
 pub struct ForAllSuchThatDecider {}
 
 impl ForAllSuchThatDecider {

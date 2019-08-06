@@ -9,6 +9,7 @@ use bytes::Bytes;
 use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 use plasma_db::traits::db::DatabaseTrait;
 
+/// Core runtime for Property
 pub struct PropertyExecuter {
     db: CoreDbLevelDbImpl,
 }
