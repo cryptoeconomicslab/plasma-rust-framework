@@ -25,7 +25,50 @@ fn main() {
     if let Ok(result) = contract.claim_property(from, property.clone()) {
         println!("claim_property: {}", result);
     };
+
     if let Ok(result) = contract.decide_property(from, property.clone(), true) {
         println!("decide_property: {}", result);
     };
+
+    if let Ok(result) = contract.verify_implication(from, property.clone(), vec![]) {
+        println!("verify_implication: {}", result);
+    };
+
+    if let Ok(result) = contract.verify_contradicting_implications(
+        from,
+        property.clone(),
+        vec![],
+        property.clone(),
+        vec![],
+        b""[..].into(),
+    ) {
+        println!("verify_contradicting_implications: {}", result);
+    };
+
+    if let Ok(result) = contract.prove_claim_contradicts_decision(
+        from,
+        property.clone(),
+        vec![],
+        property.clone(),
+        vec![],
+        b""[..].into(),
+    ) {
+        println!("prove_claim_contradicts_decision: {}", result);
+    };
+
+    if let Ok(result) = contract.prove_undecided_contradiction(
+        from,
+        (property.clone(), property.clone()),
+        vec![],
+        vec![],
+        b""[..].into(),
+    ) {
+        println!("prove_undecided_contradiction: {}", result);
+    };
+
+    if let Ok(result) = contract.remove_contradiction(from, (property.clone(), property.clone()), 1)
+    {
+        println!("remove_contradiction: {}", result);
+    };
+
 }

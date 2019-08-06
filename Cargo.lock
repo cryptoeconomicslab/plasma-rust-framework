@@ -191,6 +191,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "contract-wrapper"
 version = "0.1.0"
 dependencies = [
+ "bytes 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethabi 7.0.0 (git+https://github.com/cryptoeconomicslab/ethabi?branch=tuple-support-v7.0.0)",
  "hex-literal 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "plasma-core 0.1.0",

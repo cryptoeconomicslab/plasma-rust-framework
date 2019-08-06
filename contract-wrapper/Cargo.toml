@@ -10,3 +10,4 @@ ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple
 serde = '*'
 hex-literal = '*'
 plasma-core = { path = '../core' }
+bytes = "0.4.12"
