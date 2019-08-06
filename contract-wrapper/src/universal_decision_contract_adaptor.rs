@@ -2,7 +2,7 @@ use crate::error::{Error, ErrorKind};
 use bytes::Bytes;
 use ethabi::Contract as ContractABI;
 use ethabi::Token;
-use plasma_core::ovm::types::{ImplicationProofElement, Property};
+use ovm::types::core::{ImplicationProofElement, Property};
 use web3::contract::{Contract, Options};
 use web3::futures::Future;
 use web3::transports::{EventLoopHandle, Http};

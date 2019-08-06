@@ -10,5 +10,6 @@ ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple
 serde = '*'
 hex-literal = '*'
 plasma-core = { path = '../core' }
+ovm = { path = '../ovm' }
 bytes = "0.4.12"
 failure = "0.1.5"

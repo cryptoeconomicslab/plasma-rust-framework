@@ -277,6 +277,7 @@ dependencies = [
  "ethabi 7.0.0 (git+https://github.com/cryptoeconomicslab/ethabi?branch=tuple-support-v7.0.0)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex-literal 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ovm 0.1.0",
  "plasma-core 0.1.0",
  "serde 1.0.91 (registry+https://github.com/rust-lang/crates.io-index)",
  "web3 0.7.0 (git+https://github.com/cryptoeconomicslab/rust-web3?branch=ethabi-tuple)",
