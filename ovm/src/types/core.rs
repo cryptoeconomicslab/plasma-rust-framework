@@ -146,10 +146,10 @@ impl Decision {
 }
 
 #[derive(Clone)]
-pub struct PropertyFactory(Arc<Fn(Bytes) -> Property>);
+pub struct PropertyFactory(Arc<dyn Fn(Bytes) -> Property>);
 
 impl PropertyFactory {
-    pub fn new(handler: Box<Fn(Bytes) -> Property>) -> Self {
+    pub fn new(handler: Box<dyn Fn(Bytes) -> Property>) -> Self {
         PropertyFactory(Arc::new(handler))
     }
     pub fn call(&self, bytes: Bytes) -> Property {
@@ -164,10 +164,10 @@ impl std::fmt::Debug for PropertyFactory {
 }
 
 #[derive(Clone)]
-pub struct WitnessFactory(Arc<Fn(Bytes) -> Bytes>);
+pub struct WitnessFactory(Arc<dyn Fn(Bytes) -> Bytes>);
 
 impl WitnessFactory {
-    pub fn new(handler: Box<Fn(Bytes) -> Bytes>) -> Self {
+    pub fn new(handler: Box<dyn Fn(Bytes) -> Bytes>) -> Self {
         WitnessFactory(Arc::new(handler))
     }
     pub fn call(&self, bytes: Bytes) -> Bytes {
