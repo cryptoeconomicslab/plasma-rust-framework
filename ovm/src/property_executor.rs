@@ -10,19 +10,19 @@ use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 use plasma_db::traits::db::DatabaseTrait;
 
 /// Core runtime for Property
-pub struct PropertyExecuter {
+pub struct PropertyExecutor {
     db: CoreDbLevelDbImpl,
 }
 
-impl Default for PropertyExecuter {
+impl Default for PropertyExecutor {
     fn default() -> Self {
-        PropertyExecuter {
+        PropertyExecutor {
             db: CoreDbLevelDbImpl::open("test"),
         }
     }
 }
 
-impl PropertyExecuter {
+impl PropertyExecutor {
     pub fn get_db(&self) -> &CoreDbLevelDbImpl {
         &self.db
     }

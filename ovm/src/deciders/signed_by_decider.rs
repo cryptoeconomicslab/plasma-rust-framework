@@ -1,5 +1,5 @@
 use crate::error::{Error, ErrorKind};
-use crate::property_executer::PropertyExecuter;
+use crate::property_executor::PropertyExecutor;
 use crate::types::{Decider, Decision, ImplicationProofElement, Property, SignedByInput};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
@@ -112,7 +112,7 @@ impl Default for SignedByDecider {
 impl Decider for SignedByDecider {
     type Input = SignedByInput;
     fn decide(
-        decider: &PropertyExecuter,
+        decider: &PropertyExecutor,
         input: &SignedByInput,
         witness_bytes: Option<&Bytes>,
     ) -> Result<Decision, Error> {
@@ -136,7 +136,7 @@ impl Decider for SignedByDecider {
         Ok(Decision::new(true, vec![]))
     }
     fn check_decision(
-        decider: &PropertyExecuter,
+        decider: &PropertyExecutor,
         input: &SignedByInput,
     ) -> Result<Decision, Error> {
         let decision_key = input.hash();
@@ -163,7 +163,7 @@ impl Decider for SignedByDecider {
 #[cfg(test)]
 mod tests {
     use super::{SignedByDecider, Verifier};
-    use crate::property_executer::PropertyExecuter;
+    use crate::property_executor::PropertyExecutor;
     use crate::types::{Decider, Decision, Property, SignedByInput};
     use bytes::Bytes;
     use ethsign::SecretKey;
@@ -178,7 +178,7 @@ mod tests {
         let signature = Verifier::sign(&secret_key, &message);
         let input = SignedByInput::new(message, secret_key.public().address().into());
         let property = Property::SignedByDecider(input.clone());
-        let decider: PropertyExecuter = Default::default();
+        let decider: PropertyExecutor = Default::default();
         let decided: Decision = decider.decide(&property, Some(&signature)).unwrap();
         assert_eq!(decided.get_outcome(), true);
         let status = SignedByDecider::check_decision(&decider, &input).unwrap();

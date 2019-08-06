@@ -1,5 +1,5 @@
 use crate::error::{Error, ErrorKind};
-use crate::property_executer::PropertyExecuter;
+use crate::property_executor::PropertyExecutor;
 use crate::types::{Decider, Decision, ImplicationProofElement, PreimageExistsInput, Property};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
@@ -123,7 +123,7 @@ impl Default for PreimageExistsDecider {
 impl Decider for PreimageExistsDecider {
     type Input = PreimageExistsInput;
     fn decide(
-        decider: &PropertyExecuter,
+        decider: &PropertyExecutor,
         input: &PreimageExistsInput,
         witness_bytes: Option<&Bytes>,
     ) -> Result<Decision, Error> {
@@ -147,7 +147,7 @@ impl Decider for PreimageExistsDecider {
         Ok(Decision::new(true, vec![]))
     }
     fn check_decision(
-        decider: &PropertyExecuter,
+        decider: &PropertyExecutor,
         input: &PreimageExistsInput,
     ) -> Result<Decision, Error> {
         let decision_key = input.get_hash();
@@ -176,7 +176,7 @@ impl Decider for PreimageExistsDecider {
 mod tests {
     use super::PreimageExistsDecider;
     use crate::deciders::preimage_exists_decider::Verifier;
-    use crate::property_executer::PropertyExecuter;
+    use crate::property_executor::PropertyExecutor;
     use crate::types::{Decider, Decision, PreimageExistsInput, Property};
     use bytes::Bytes;
 
@@ -185,7 +185,7 @@ mod tests {
         let input = PreimageExistsInput::new(Verifier::static_hash(&Bytes::from("left")));
         let property = Property::PreimageExistsDecider(Box::new(input.clone()));
         let witness = Bytes::from("left");
-        let decider: PropertyExecuter = Default::default();
+        let decider: PropertyExecutor = Default::default();
         let decided: Decision = decider.decide(&property, Some(&witness)).unwrap();
         assert_eq!(decided.get_outcome(), true);
         let status = PreimageExistsDecider::check_decision(&decider, &input).unwrap();

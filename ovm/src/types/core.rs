@@ -2,7 +2,7 @@ use super::inputs::{
     AndDeciderInput, ForAllSuchThatInput, NotDeciderInput, PreimageExistsInput, SignedByInput,
 };
 use crate::error::Error;
-use crate::property_executer::PropertyExecuter;
+use crate::property_executor::PropertyExecutor;
 use bytes::Bytes;
 use ethabi::Token;
 use ethereum_types::{Address, H256};
@@ -184,11 +184,11 @@ impl std::fmt::Debug for WitnessFactory {
 pub trait Decider {
     type Input;
     fn decide(
-        decider: &PropertyExecuter,
+        decider: &PropertyExecutor,
         input: &Self::Input,
         witness: Option<&Bytes>,
     ) -> Result<Decision, Error>;
-    fn check_decision(decider: &PropertyExecuter, input: &Self::Input) -> Result<Decision, Error>;
+    fn check_decision(decider: &PropertyExecutor, input: &Self::Input) -> Result<Decision, Error>;
 }
 
 pub struct QuantifierResult {

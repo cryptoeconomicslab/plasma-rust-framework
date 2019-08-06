@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::property_executer::PropertyExecuter;
+use crate::property_executor::PropertyExecutor;
 use crate::types::{Decider, Decision, ImplicationProofElement, NotDeciderInput, Property};
 use bytes::Bytes;
 
@@ -20,7 +20,7 @@ impl Default for NotDecider {
 impl Decider for NotDecider {
     type Input = NotDeciderInput;
     fn decide(
-        decider: &PropertyExecuter,
+        decider: &PropertyExecutor,
         input: &NotDeciderInput,
         _witness: Option<&Bytes>,
     ) -> Result<Decision, Error> {
@@ -40,7 +40,7 @@ impl Decider for NotDecider {
     }
 
     fn check_decision(
-        decider: &PropertyExecuter,
+        decider: &PropertyExecutor,
         input: &NotDeciderInput,
     ) -> Result<Decision, Error> {
         Self::decide(decider, input, None)

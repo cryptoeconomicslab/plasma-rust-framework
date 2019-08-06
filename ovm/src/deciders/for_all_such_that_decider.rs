@@ -1,5 +1,5 @@
 use crate::error::{Error, ErrorKind};
-use crate::property_executer::PropertyExecuter;
+use crate::property_executor::PropertyExecutor;
 use crate::types::{
     Decider, Decision, ForAllSuchThatInput, ImplicationProofElement, Property, QuantifierResult,
 };
@@ -43,7 +43,7 @@ impl Default for ForAllSuchThatDecider {
 impl Decider for ForAllSuchThatDecider {
     type Input = ForAllSuchThatInput;
     fn decide(
-        decider: &PropertyExecuter,
+        decider: &PropertyExecutor,
         input: &ForAllSuchThatInput,
         _witness: Option<&Bytes>,
     ) -> Result<Decision, Error> {
@@ -81,7 +81,7 @@ impl Decider for ForAllSuchThatDecider {
         )
     }
     fn check_decision(
-        decider: &PropertyExecuter,
+        decider: &PropertyExecutor,
         input: &ForAllSuchThatInput,
     ) -> Result<Decision, Error> {
         Self::decide(decider, input, None)
@@ -92,7 +92,7 @@ impl Decider for ForAllSuchThatDecider {
 mod tests {
     use super::ForAllSuchThatDecider;
     use crate::deciders::preimage_exists_decider::Verifier;
-    use crate::property_executer::PropertyExecuter;
+    use crate::property_executor::PropertyExecutor;
     use crate::types::{
         Decider, Decision, ForAllSuchThatInput, Integer, PreimageExistsInput, Property,
         PropertyFactory, Quantifier, WitnessFactory,
@@ -109,7 +109,7 @@ mod tests {
             })),
             WitnessFactory::new(Box::new(|bytes| bytes.clone())),
         );
-        let decider: PropertyExecuter = Default::default();
+        let decider: PropertyExecutor = Default::default();
         let decided: Decision = ForAllSuchThatDecider::decide(&decider, &input, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
