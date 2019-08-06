@@ -3,6 +3,7 @@ use crate::property_executor::PropertyExecutor;
 use crate::types::{
     Decider, Decision, ForAllSuchThatInput, ImplicationProofElement, Property, QuantifierResult,
 };
+use crate::DecideMixin;
 use bytes::Bytes;
 
 /// ForAllSuchThatDecider decides for all quantified results by PropertyFactory and WitnessFactory
@@ -57,8 +58,8 @@ impl Decider for ForAllSuchThatDecider {
             let prop: Property = input.get_property_factory().call(res.clone());
             let witness: Bytes = input.get_witness_factory().call(res.clone());
             let _no_cache = false;
-            let decision_result = decider.decide(
-                &prop,
+            let decision_result = prop.decide(
+                decider,
                 Some(&witness),
                 //no_cache,
             );

@@ -1,6 +1,7 @@
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
 use crate::types::{Decider, Decision, ImplicationProofElement, NotDeciderInput, Property};
+use crate::DecideMixin;
 use bytes::Bytes;
 
 pub struct NotDecider {}
@@ -24,7 +25,9 @@ impl Decider for NotDecider {
         input: &NotDeciderInput,
         _witness: Option<&Bytes>,
     ) -> Result<Decision, Error> {
-        let decision = decider.decide(input.get_property(), Some(input.get_witness()))?;
+        let decision = input
+            .get_property()
+            .decide(decider, Some(input.get_witness()))?;
 
         Ok(Decision::new(
             !decision.get_outcome(),

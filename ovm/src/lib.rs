@@ -4,6 +4,8 @@ pub mod property_executor;
 pub mod quantifiers;
 pub mod types;
 
+pub use self::property_executor::DecideMixin;
+
 #[cfg(test)]
 mod tests {
 

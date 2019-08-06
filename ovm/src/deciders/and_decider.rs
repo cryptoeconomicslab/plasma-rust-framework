@@ -1,6 +1,7 @@
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
 use crate::types::{AndDeciderInput, Decider, Decision};
+use crate::DecideMixin;
 use bytes::Bytes;
 
 pub struct AndDecider {}
@@ -24,8 +25,12 @@ impl Decider for AndDecider {
         input: &AndDeciderInput,
         _witness: Option<&Bytes>,
     ) -> Result<Decision, Error> {
-        let left_decision = decider.decide(input.get_left(), Some(input.get_left_witness()))?;
-        let right_decision = decider.decide(input.get_right(), Some(input.get_right_witness()))?;
+        let left_decision = input
+            .get_left()
+            .decide(decider, Some(input.get_left_witness()))?;
+        let right_decision = input
+            .get_right()
+            .decide(decider, Some(input.get_right_witness()))?;
         if !left_decision.get_outcome() {
             return Ok(left_decision);
         }

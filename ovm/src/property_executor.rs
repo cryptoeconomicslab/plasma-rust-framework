@@ -9,6 +9,25 @@ use bytes::Bytes;
 use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 use plasma_db::traits::db::DatabaseTrait;
 
+/// Mixin for adding decide method to Property
+pub trait DecideMixin {
+    fn decide(
+        &self,
+        decider: &PropertyExecutor,
+        witness: Option<&Bytes>,
+    ) -> Result<Decision, Error>;
+}
+
+impl DecideMixin for Property {
+    fn decide(
+        &self,
+        decider: &PropertyExecutor,
+        witness: Option<&Bytes>,
+    ) -> Result<Decision, Error> {
+        decider.decide(self, witness)
+    }
+}
+
 /// Core runtime for Property
 pub struct PropertyExecutor {
     db: CoreDbLevelDbImpl,
