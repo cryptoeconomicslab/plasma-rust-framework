@@ -1,0 +1,59 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "name": "decision",
+        "type": "bool"
+      },
+      {
+        "indexed": false,
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "name": "ValueDecided",
+    "type": "event"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "name": "value",
+            "type": "uint256"
+          }
+        ],
+        "name": "_input",
+        "type": "tuple"
+      }
+    ],
+    "name": "decideTrue",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "name": "value",
+            "type": "uint256"
+          }
+        ],
+        "name": "_input",
+        "type": "tuple"
+      }
+    ],
+    "name": "decideFalse",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

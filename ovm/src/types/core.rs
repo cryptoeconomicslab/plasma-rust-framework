@@ -86,6 +86,12 @@ impl Encodable for Property {
     }
 }
 
+impl From<Property> for Token {
+    fn from(property: Property) -> Token {
+        Token::Tuple(property.to_tuple())
+    }
+}
+
 /*
 We don't define decoder for Property now
 impl Decodable for Property {
@@ -120,6 +126,18 @@ impl ImplicationProofElement {
             implication,
             implication_witness,
         }
+    }
+}
+
+impl From<ImplicationProofElement> for Token {
+    fn from(element: ImplicationProofElement) -> Token {
+        Token::Tuple(vec![
+            element.implication.into(),
+            Token::Bytes(match element.implication_witness {
+                Some(v) => v.to_vec(),
+                None => vec![],
+            }),
+        ])
     }
 }
 

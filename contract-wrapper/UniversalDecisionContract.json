@@ -1,0 +1,436 @@
+[
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "name": "predicate",
+            "type": "address"
+          },
+          {
+            "name": "input",
+            "type": "bytes"
+          }
+        ],
+        "name": "_claim",
+        "type": "tuple"
+      }
+    ],
+    "name": "claimProperty",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "name": "predicate",
+            "type": "address"
+          },
+          {
+            "name": "input",
+            "type": "bytes"
+          }
+        ],
+        "name": "_claim",
+        "type": "tuple"
+      },
+      {
+        "name": "_decision",
+        "type": "bool"
+      }
+    ],
+    "name": "decideProperty",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "name": "predicate",
+            "type": "address"
+          },
+          {
+            "name": "input",
+            "type": "bytes"
+          }
+        ],
+        "name": "_rootPremise",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "name": "predicate",
+                "type": "address"
+              },
+              {
+                "name": "input",
+                "type": "bytes"
+              }
+            ],
+            "name": "implication",
+            "type": "tuple"
+          },
+          {
+            "name": "witness",
+            "type": "bytes[]"
+          }
+        ],
+        "name": "_implicationProof",
+        "type": "tuple[]"
+      }
+    ],
+    "name": "verifyImplication",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "name": "predicate",
+            "type": "address"
+          },
+          {
+            "name": "input",
+            "type": "bytes"
+          }
+        ],
+        "name": "_root1",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "name": "predicate",
+                "type": "address"
+              },
+              {
+                "name": "input",
+                "type": "bytes"
+              }
+            ],
+            "name": "implication",
+            "type": "tuple"
+          },
+          {
+            "name": "witness",
+            "type": "bytes[]"
+          }
+        ],
+        "name": "_implicationProof1",
+        "type": "tuple[]"
+      },
+      {
+        "components": [
+          {
+            "name": "predicate",
+            "type": "address"
+          },
+          {
+            "name": "input",
+            "type": "bytes"
+          }
+        ],
+        "name": "_root2",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "name": "predicate",
+                "type": "address"
+              },
+              {
+                "name": "input",
+                "type": "bytes"
+              }
+            ],
+            "name": "implication",
+            "type": "tuple"
+          },
+          {
+            "name": "witness",
+            "type": "bytes[]"
+          }
+        ],
+        "name": "_implicationProof2",
+        "type": "tuple[]"
+      },
+      {
+        "name": "_contradictionWitness",
+        "type": "bytes"
+      }
+    ],
+    "name": "verifyContradictingImplications",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "name": "predicate",
+            "type": "address"
+          },
+          {
+            "name": "input",
+            "type": "bytes"
+          }
+        ],
+        "name": "_decidedProperty",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "name": "predicate",
+                "type": "address"
+              },
+              {
+                "name": "input",
+                "type": "bytes"
+              }
+            ],
+            "name": "implication",
+            "type": "tuple"
+          },
+          {
+            "name": "witness",
+            "type": "bytes[]"
+          }
+        ],
+        "name": "_decidedImplicationProof",
+        "type": "tuple[]"
+      },
+      {
+        "components": [
+          {
+            "name": "predicate",
+            "type": "address"
+          },
+          {
+            "name": "input",
+            "type": "bytes"
+          }
+        ],
+        "name": "_contradictingClaim",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "name": "predicate",
+                "type": "address"
+              },
+              {
+                "name": "input",
+                "type": "bytes"
+              }
+            ],
+            "name": "implication",
+            "type": "tuple"
+          },
+          {
+            "name": "witness",
+            "type": "bytes[]"
+          }
+        ],
+        "name": "_contradictionImplicationProof",
+        "type": "tuple[]"
+      },
+      {
+        "name": "_contradictionWitness",
+        "type": "bytes"
+      }
+    ],
+    "name": "proveClaimContradictsDecision",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "name": "predicate",
+                "type": "address"
+              },
+              {
+                "name": "input",
+                "type": "bytes"
+              }
+            ],
+            "name": "property",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "name": "predicate",
+                "type": "address"
+              },
+              {
+                "name": "input",
+                "type": "bytes"
+              }
+            ],
+            "name": "counterProperty",
+            "type": "tuple"
+          }
+        ],
+        "name": "_contradiction",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "name": "predicate",
+                "type": "address"
+              },
+              {
+                "name": "input",
+                "type": "bytes"
+              }
+            ],
+            "name": "implication",
+            "type": "tuple"
+          },
+          {
+            "name": "witness",
+            "type": "bytes[]"
+          }
+        ],
+        "name": "_implicationProof0",
+        "type": "tuple[]"
+      },
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "name": "predicate",
+                "type": "address"
+              },
+              {
+                "name": "input",
+                "type": "bytes"
+              }
+            ],
+            "name": "implication",
+            "type": "tuple"
+          },
+          {
+            "name": "witness",
+            "type": "bytes[]"
+          }
+        ],
+        "name": "_implicationProof1",
+        "type": "tuple[]"
+      },
+      {
+        "name": "_contradictionWitness",
+        "type": "bytes"
+      }
+    ],
+    "name": "proveUndecidedContradiction",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "name": "predicate",
+                "type": "address"
+              },
+              {
+                "name": "input",
+                "type": "bytes"
+              }
+            ],
+            "name": "property",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "name": "predicate",
+                "type": "address"
+              },
+              {
+                "name": "input",
+                "type": "bytes"
+              }
+            ],
+            "name": "counterProperty",
+            "type": "tuple"
+          }
+        ],
+        "name": "_contradiction",
+        "type": "tuple"
+      },
+      {
+        "name": "_remainingClaimIndex",
+        "type": "uint256"
+      }
+    ],
+    "name": "removeContradiction",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
