@@ -1,5 +1,5 @@
 use crate::error::Error;
-use bytes::{BufMut, BytesMut};
+use bytes::{BufMut, Bytes, BytesMut};
 use std::cmp::Ordering;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -27,6 +27,12 @@ impl BaseDbKey {
 impl From<&[u8]> for BaseDbKey {
     fn from(array: &[u8]) -> Self {
         BaseDbKey::new(array.to_vec())
+    }
+}
+
+impl From<Bytes> for BaseDbKey {
+    fn from(bytes: Bytes) -> Self {
+        BaseDbKey::new(bytes.to_vec())
     }
 }
 

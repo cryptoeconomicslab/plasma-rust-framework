@@ -111,8 +111,8 @@ impl Default for SignedByDecider {
 
 impl Decider for SignedByDecider {
     type Input = SignedByInput;
-    fn decide(
-        decider: &PropertyExecutor,
+    fn decide<T: KeyValueStore>(
+        decider: &PropertyExecutor<T>,
         input: &SignedByInput,
         witness_bytes: Option<&Bytes>,
     ) -> Result<Decision, Error> {
@@ -135,8 +135,8 @@ impl Decider for SignedByDecider {
 
         Ok(Decision::new(true, vec![]))
     }
-    fn check_decision(
-        decider: &PropertyExecutor,
+    fn check_decision<T: KeyValueStore>(
+        decider: &PropertyExecutor<T>,
         input: &SignedByInput,
     ) -> Result<Decision, Error> {
         let decision_key = input.hash();
@@ -167,6 +167,7 @@ mod tests {
     use crate::types::{Decider, Decision, Property, SignedByInput};
     use bytes::Bytes;
     use ethsign::SecretKey;
+    use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     #[test]
     fn test_decide() {
@@ -178,7 +179,7 @@ mod tests {
         let signature = Verifier::sign(&secret_key, &message);
         let input = SignedByInput::new(message, secret_key.public().address().into());
         let property = Property::SignedByDecider(input.clone());
-        let decider: PropertyExecutor = Default::default();
+        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided: Decision = decider.decide(&property, Some(&signature)).unwrap();
         assert_eq!(decided.get_outcome(), true);
         let status = SignedByDecider::check_decision(&decider, &input).unwrap();

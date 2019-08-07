@@ -1,4 +1,5 @@
 use super::core::{Integer, Property, PropertyFactory, Quantifier, WitnessFactory};
+use crate::db::Message;
 use bytes::Bytes;
 use ethereum_types::{Address, H256};
 
@@ -121,14 +122,32 @@ impl SignedByInput {
 }
 
 #[derive(Clone, Debug)]
-pub struct ChannelUpdateSignatureExistsDeciderInput {
-    channel_id: H256,
+pub struct HasLowerNonceInput {
+    message: Message,
     nonce: Integer,
-    particilant: Address,
+}
+
+impl HasLowerNonceInput {
+    pub fn new(message: Message, nonce: Integer) -> Self {
+        HasLowerNonceInput { message, nonce }
+    }
+    pub fn get_message(&self) -> &Message {
+        &self.message
+    }
+    pub fn get_nonce(&self) -> Integer {
+        self.nonce
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ChannelUpdateSignatureExistsDeciderInput {
+    pub channel_id: Bytes,
+    pub nonce: Integer,
+    pub particilant: Address,
 }
 
 impl ChannelUpdateSignatureExistsDeciderInput {
-    pub fn new(channel_id: H256, nonce: Integer, particilant: Address) -> Self {
+    pub fn new(channel_id: Bytes, nonce: Integer, particilant: Address) -> Self {
         ChannelUpdateSignatureExistsDeciderInput {
             channel_id,
             nonce,

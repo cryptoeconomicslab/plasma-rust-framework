@@ -3,6 +3,7 @@ use crate::property_executor::PropertyExecutor;
 use crate::types::{Decider, Decision, ImplicationProofElement, NotDeciderInput, Property};
 use crate::DecideMixin;
 use bytes::Bytes;
+use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct NotDecider {}
 
@@ -20,8 +21,8 @@ impl Default for NotDecider {
 
 impl Decider for NotDecider {
     type Input = NotDeciderInput;
-    fn decide(
-        decider: &PropertyExecutor,
+    fn decide<T: KeyValueStore>(
+        decider: &PropertyExecutor<T>,
         input: &NotDeciderInput,
         _witness: Option<&Bytes>,
     ) -> Result<Decision, Error> {
@@ -42,8 +43,8 @@ impl Decider for NotDecider {
         ))
     }
 
-    fn check_decision(
-        decider: &PropertyExecutor,
+    fn check_decision<T: KeyValueStore>(
+        decider: &PropertyExecutor<T>,
         input: &NotDeciderInput,
     ) -> Result<Decision, Error> {
         Self::decide(decider, input, None)

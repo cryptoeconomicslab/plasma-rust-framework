@@ -5,6 +5,7 @@ use crate::types::{
 };
 use crate::DecideMixin;
 use bytes::Bytes;
+use plasma_db::traits::kvs::KeyValueStore;
 
 /// ForAllSuchThatDecider decides for all quantified results by PropertyFactory and WitnessFactory
 pub struct ForAllSuchThatDecider {}
@@ -43,8 +44,8 @@ impl Default for ForAllSuchThatDecider {
 
 impl Decider for ForAllSuchThatDecider {
     type Input = ForAllSuchThatInput;
-    fn decide(
-        decider: &PropertyExecutor,
+    fn decide<T: KeyValueStore>(
+        decider: &PropertyExecutor<T>,
         input: &ForAllSuchThatInput,
         _witness: Option<&Bytes>,
     ) -> Result<Decision, Error> {
@@ -81,8 +82,8 @@ impl Decider for ForAllSuchThatDecider {
             any_undecided || !quantifier_result.get_all_results_quantified(),
         )
     }
-    fn check_decision(
-        decider: &PropertyExecutor,
+    fn check_decision<T: KeyValueStore>(
+        decider: &PropertyExecutor<T>,
         input: &ForAllSuchThatInput,
     ) -> Result<Decision, Error> {
         Self::decide(decider, input, None)
@@ -98,6 +99,7 @@ mod tests {
         Decider, Decision, ForAllSuchThatInput, Integer, PreimageExistsInput, Property,
         PropertyFactory, Quantifier, WitnessFactory,
     };
+    use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     #[test]
     fn test_decide() {
@@ -110,7 +112,7 @@ mod tests {
             })),
             WitnessFactory::new(Box::new(|bytes| bytes.clone())),
         );
-        let decider: PropertyExecutor = Default::default();
+        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided: Decision = ForAllSuchThatDecider::decide(&decider, &input, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
