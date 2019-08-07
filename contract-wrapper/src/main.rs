@@ -2,7 +2,8 @@ extern crate serde;
 
 use contract_wrapper::universal_decision_contract_adaptor::UniversalDecisionContractAdaptor;
 use ethabi::Contract as ContractABI;
-use plasma_core::ovm::types::Property;
+use ovm::types::core::Property;
+use ovm::types::inputs::SignedByInput;
 use std::fs::File;
 use std::io::BufReader;
 use web3::types::Address;
@@ -19,10 +20,11 @@ fn main() {
     .unwrap();
 
     let from: Address = "ce397e30544d737195a341291675ec1ecaf19b13".parse().unwrap();
-    let property = Property::new(
-        "1a50faDFab6b21AaaED82bb17A541993304786E7".parse().unwrap(),
+    let input = SignedByInput::new(
         b"012345678"[..].into(),
+        "1a50faDFab6b21AaaED82bb17A541993304786E7".parse().unwrap(),
     );
+    let property = Property::SignedByDecider(input);
 
     if let Ok(res) = contract.claim_property(from, property.clone()) {
         println!("{:?}", res);
@@ -72,5 +74,4 @@ fn main() {
     {
         println!("remove_contradiction: {}", result);
     };
-
 }

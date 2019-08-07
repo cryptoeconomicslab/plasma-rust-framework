@@ -42,10 +42,10 @@ impl UniversalDecisionContractAdaptor {
 
         match result.wait() {
             Ok(r) => Ok(r),
-            Err(e) => { 
+            Err(e) => {
                 println!("{}", e);
                 Err(e.into())
-            },
+            }
         }
     }
 
@@ -89,7 +89,6 @@ impl UniversalDecisionContractAdaptor {
             Err(e) => Err(e.into()),
         }
     }
-
 
     pub fn verify_contradicting_implications(
         &self,
@@ -196,7 +195,6 @@ impl UniversalDecisionContractAdaptor {
             Err(e) => Err(e.into()),
         }
     }
-
 
     pub fn remove_contradiction(
         &self,

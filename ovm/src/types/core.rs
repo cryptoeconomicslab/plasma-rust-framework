@@ -133,7 +133,10 @@ impl From<ImplicationProofElement> for Token {
     fn from(element: ImplicationProofElement) -> Token {
         Token::Tuple(vec![
             element.implication.into(),
-            Token::Bytes(element.implication_witness.unwrap_or(Bytes::default()).to_vec()),
+            Token::Bytes(match element.implication_witness {
+                Some(v) => v.to_vec(),
+                None => vec![],
+            }),
         ])
     }
 }
