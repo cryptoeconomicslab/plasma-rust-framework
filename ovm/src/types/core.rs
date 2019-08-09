@@ -1,6 +1,6 @@
 use super::inputs::{
     AndDeciderInput, ChannelUpdateSignatureExistsDeciderInput, ForAllSuchThatInput,
-    HasLowerNonceInput, NotDeciderInput, PreimageExistsInput, SignedByInput,
+    HasLowerNonceInput, NotDeciderInput, OrDeciderInput, PreimageExistsInput, SignedByInput,
 };
 use crate::db::Message;
 use crate::error::Error;
@@ -56,6 +56,8 @@ pub enum Property {
     PreimageExistsDecider(Box<PreimageExistsInput>),
     // message, public_key
     SignedByDecider(SignedByInput),
+    // left, right
+    OrDecider(Box<OrDeciderInput>),
     // message, nonce
     HasLowerNonceDecider(HasLowerNonceInput),
     // channelId, nonce, participant

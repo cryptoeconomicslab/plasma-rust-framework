@@ -35,6 +35,37 @@ impl AndDeciderInput {
 }
 
 #[derive(Clone, Debug)]
+pub struct OrDeciderInput {
+    left: Property,
+    left_witness: Bytes,
+    right: Property,
+    right_witness: Bytes,
+}
+
+impl OrDeciderInput {
+    pub fn new(left: Property, left_witness: Bytes, right: Property, right_witness: Bytes) -> Self {
+        OrDeciderInput {
+            left,
+            left_witness,
+            right,
+            right_witness,
+        }
+    }
+    pub fn get_left(&self) -> &Property {
+        &self.left
+    }
+    pub fn get_right(&self) -> &Property {
+        &self.right
+    }
+    pub fn get_left_witness(&self) -> &Bytes {
+        &self.left_witness
+    }
+    pub fn get_right_witness(&self) -> &Bytes {
+        &self.right_witness
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct NotDeciderInput {
     property: Property,
     witness: Bytes,
