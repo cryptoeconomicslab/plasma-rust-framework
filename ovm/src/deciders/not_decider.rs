@@ -24,11 +24,11 @@ impl Decider for NotDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &NotDeciderInput,
-        _witness: Option<&Bytes>,
+        _witness: Option<Bytes>,
     ) -> Result<Decision, Error> {
         let decision = input
             .get_property()
-            .decide(decider, Some(input.get_witness()))?;
+            .decide(decider, Some(input.get_witness().clone()))?;
 
         Ok(Decision::new(
             !decision.get_outcome(),

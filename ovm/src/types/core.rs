@@ -2,6 +2,7 @@ use super::inputs::{
     AndDeciderInput, ChannelUpdateSignatureExistsDeciderInput, ForAllSuchThatInput,
     HasLowerNonceInput, NotDeciderInput, PreimageExistsInput, SignedByInput,
 };
+use crate::db::Message;
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
 use bytes::{BufMut, Bytes, BytesMut};
@@ -178,14 +179,14 @@ impl Decision {
 }
 
 #[derive(Clone)]
-pub struct PropertyFactory(Arc<dyn Fn(Bytes) -> Property>);
+pub struct PropertyFactory(Arc<dyn Fn(QuantifierResultItem) -> Property>);
 
 impl PropertyFactory {
-    pub fn new(handler: Box<dyn Fn(Bytes) -> Property>) -> Self {
+    pub fn new(handler: Box<dyn Fn(QuantifierResultItem) -> Property>) -> Self {
         PropertyFactory(Arc::new(handler))
     }
-    pub fn call(&self, bytes: Bytes) -> Property {
-        self.0(bytes)
+    pub fn call(&self, item: QuantifierResultItem) -> Property {
+        self.0(item)
     }
 }
 
@@ -196,14 +197,14 @@ impl std::fmt::Debug for PropertyFactory {
 }
 
 #[derive(Clone)]
-pub struct WitnessFactory(Arc<dyn Fn(Bytes) -> Bytes>);
+pub struct WitnessFactory(Arc<dyn Fn(QuantifierResultItem) -> Bytes>);
 
 impl WitnessFactory {
-    pub fn new(handler: Box<dyn Fn(Bytes) -> Bytes>) -> Self {
+    pub fn new(handler: Box<dyn Fn(QuantifierResultItem) -> Bytes>) -> Self {
         WitnessFactory(Arc::new(handler))
     }
-    pub fn call(&self, bytes: Bytes) -> Bytes {
-        self.0(bytes)
+    pub fn call(&self, item: QuantifierResultItem) -> Bytes {
+        self.0(item)
     }
 }
 
@@ -218,7 +219,7 @@ pub trait Decider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &Self::Input,
-        witness: Option<&Bytes>,
+        witness: Option<Bytes>,
     ) -> Result<Decision, Error>;
     fn check_decision<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
@@ -226,19 +227,27 @@ pub trait Decider {
     ) -> Result<Decision, Error>;
 }
 
+#[derive(Clone, Debug)]
+pub enum QuantifierResultItem {
+    Integer(Integer),
+    Bytes(Bytes),
+    Message(Message),
+    Property(Property),
+}
+
 pub struct QuantifierResult {
-    results: Vec<Bytes>,
+    results: Vec<QuantifierResultItem>,
     all_results_quantified: bool,
 }
 
 impl QuantifierResult {
-    pub fn new(results: Vec<Bytes>, all_results_quantified: bool) -> Self {
+    pub fn new(results: Vec<QuantifierResultItem>, all_results_quantified: bool) -> Self {
         QuantifierResult {
             results,
             all_results_quantified,
         }
     }
-    pub fn get_results(&self) -> &Vec<Bytes> {
+    pub fn get_results(&self) -> &Vec<QuantifierResultItem> {
         &self.results
     }
     pub fn get_all_results_quantified(&self) -> bool {

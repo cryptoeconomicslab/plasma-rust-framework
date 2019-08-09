@@ -23,7 +23,7 @@ impl Decider for HasLowerNonceDecider {
     fn decide<T: KeyValueStore>(
         _decider: &PropertyExecutor<T>,
         input: &HasLowerNonceInput,
-        _witness: Option<&Bytes>,
+        _witness: Option<Bytes>,
     ) -> Result<Decision, Error> {
         if input.get_message().nonce < input.get_nonce() {
             Ok(Decision::new(

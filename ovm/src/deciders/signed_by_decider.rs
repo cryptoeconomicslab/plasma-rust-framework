@@ -114,11 +114,11 @@ impl Decider for SignedByDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &SignedByInput,
-        witness_bytes: Option<&Bytes>,
+        witness_bytes: Option<Bytes>,
     ) -> Result<Decision, Error> {
         let signature = witness_bytes.unwrap();
 
-        if Verifier::recover(signature, input.get_message()) != input.get_public_key() {
+        if Verifier::recover(&signature, input.get_message()) != input.get_public_key() {
             return Err(Error::from(ErrorKind::InvalidPreimage));
         }
 
@@ -180,7 +180,7 @@ mod tests {
         let input = SignedByInput::new(message, secret_key.public().address().into());
         let property = Property::SignedByDecider(input.clone());
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
-        let decided: Decision = decider.decide(&property, Some(&signature)).unwrap();
+        let decided: Decision = decider.decide(&property, Some(signature)).unwrap();
         assert_eq!(decided.get_outcome(), true);
         let status = SignedByDecider::check_decision(&decider, &input).unwrap();
         assert_eq!(status.get_outcome(), true);

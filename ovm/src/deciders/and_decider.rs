@@ -24,14 +24,14 @@ impl Decider for AndDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &AndDeciderInput,
-        _witness: Option<&Bytes>,
+        _witness: Option<Bytes>,
     ) -> Result<Decision, Error> {
         let left_decision = input
             .get_left()
-            .decide(decider, Some(input.get_left_witness()))?;
+            .decide(decider, Some(input.get_left_witness().clone()))?;
         let right_decision = input
             .get_right()
-            .decide(decider, Some(input.get_right_witness()))?;
+            .decide(decider, Some(input.get_right_witness().clone()))?;
         if !left_decision.get_outcome() {
             return Ok(left_decision);
         }

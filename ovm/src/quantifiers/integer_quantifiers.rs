@@ -1,12 +1,11 @@
-use crate::types::{Integer, QuantifierResult};
-use bytes::Bytes;
+use crate::types::{Integer, QuantifierResult, QuantifierResultItem};
 use ethabi::{ParamType, Token};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{Error, ErrorKind};
 
-fn get_range(start: Integer, end: Integer) -> Vec<Bytes> {
+fn get_range(start: Integer, end: Integer) -> Vec<QuantifierResultItem> {
     (start.0..end.0)
-        .map(|n| Bytes::from(Integer::new(n).to_abi()))
+        .map(|n| QuantifierResultItem::Integer(Integer::new(n)))
         .collect()
 }
 

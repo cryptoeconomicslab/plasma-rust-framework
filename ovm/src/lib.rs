@@ -10,18 +10,17 @@ pub use self::property_executor::DecideMixin;
 #[cfg(test)]
 mod tests {
 
-    use crate::db::Message;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::deciders::SignVerifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
         AndDeciderInput, Decision, ForAllSuchThatInput, HasLowerNonceInput, Integer,
-        PreimageExistsInput, Property, PropertyFactory, Quantifier, SignedByInput, WitnessFactory,
+        PreimageExistsInput, Property, PropertyFactory, Quantifier, QuantifierResultItem,
+        SignedByInput, WitnessFactory,
     };
     use bytes::Bytes;
     use ethereum_types::Address;
     use ethsign::SecretKey;
-    use plasma_core::data_structure::abi::Decodable;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     ///
@@ -35,12 +34,22 @@ mod tests {
     fn test_decide_range_and_preimage() {
         let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
             Quantifier::IntegerRangeQuantifier(Integer(0), Integer(10)),
-            PropertyFactory::new(Box::new(|bytes| {
-                Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-                    Verifier::static_hash(&bytes),
-                )))
+            PropertyFactory::new(Box::new(|item| {
+                if let QuantifierResultItem::Integer(number) = item {
+                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+                        Verifier::static_hash(&number.into()),
+                    )))
+                } else {
+                    panic!("invalid type in PropertyFactory");
+                }
             })),
-            WitnessFactory::new(Box::new(|bytes| bytes.clone())),
+            Some(WitnessFactory::new(Box::new(|item| {
+                if let QuantifierResultItem::Integer(number) = item {
+                    number.into()
+                } else {
+                    panic!("invalid type in PropertyFactory");
+                }
+            }))),
         )));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided: Decision = decider.decide(&property, None).unwrap();
@@ -52,12 +61,18 @@ mod tests {
     fn test_fail_to_decide_range_and_preimage() {
         let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
             Quantifier::IntegerRangeQuantifier(Integer(0), Integer(10)),
-            PropertyFactory::new(Box::new(|bytes| {
-                Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-                    Verifier::static_hash(&bytes),
-                )))
+            PropertyFactory::new(Box::new(|item| {
+                if let QuantifierResultItem::Integer(number) = item {
+                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+                        Verifier::static_hash(&number.into()),
+                    )))
+                } else {
+                    panic!("invalid type in PropertyFactory");
+                }
             })),
-            WitnessFactory::new(Box::new(|_bytes| Bytes::from(&b"aaa"[..]))),
+            Some(WitnessFactory::new(Box::new(|_item| {
+                Bytes::from(&b"aaa"[..])
+            }))),
         )));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided_result = decider.decide(&property, None);
@@ -75,12 +90,22 @@ mod tests {
     fn test_decide_less_than_and_preimage() {
         let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
             Quantifier::NonnegativeIntegerLessThanQuantifier(Integer(10)),
-            PropertyFactory::new(Box::new(|bytes| {
-                Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-                    Verifier::static_hash(&bytes),
-                )))
+            PropertyFactory::new(Box::new(|item| {
+                if let QuantifierResultItem::Integer(number) = item {
+                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+                        Verifier::static_hash(&number.into()),
+                    )))
+                } else {
+                    panic!("invalid type in PropertyFactory");
+                }
             })),
-            WitnessFactory::new(Box::new(|bytes| bytes.clone())),
+            Some(WitnessFactory::new(Box::new(|item| {
+                if let QuantifierResultItem::Integer(number) = item {
+                    number.into()
+                } else {
+                    panic!("invalid type in PropertyFactory");
+                }
+            }))),
         )));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided: Decision = decider.decide(&property, None).unwrap();
@@ -105,13 +130,14 @@ mod tests {
         let _nonce = Integer(10);
         let left_property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
             Quantifier::SignedByQuantifier(alice),
-            PropertyFactory::new(Box::new(|bytes| {
-                Property::HasLowerNonceDecider(HasLowerNonceInput::new(
-                    Message::from_abi(&bytes.to_vec()).unwrap(),
-                    Integer(11),
-                ))
+            PropertyFactory::new(Box::new(|item| {
+                if let QuantifierResultItem::Message(message) = item {
+                    Property::HasLowerNonceDecider(HasLowerNonceInput::new(message, Integer(11)))
+                } else {
+                    panic!("invalid type in PropertyFactory");
+                }
             })),
-            WitnessFactory::new(Box::new(|bytes| bytes.clone())),
+            None,
         )));
         let right_property =
             Property::SignedByDecider(SignedByInput::new(Bytes::from("state_update"), bob));

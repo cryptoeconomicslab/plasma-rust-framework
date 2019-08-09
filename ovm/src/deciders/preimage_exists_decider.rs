@@ -125,11 +125,11 @@ impl Decider for PreimageExistsDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &PreimageExistsInput,
-        witness_bytes: Option<&Bytes>,
+        witness_bytes: Option<Bytes>,
     ) -> Result<Decision, Error> {
         let preimage = witness_bytes.unwrap();
 
-        if Verifier::hash(preimage) != input.get_hash() {
+        if Verifier::hash(&preimage) != input.get_hash() {
             return Err(Error::from(ErrorKind::InvalidPreimage));
         }
 
@@ -187,7 +187,7 @@ mod tests {
         let property = Property::PreimageExistsDecider(Box::new(input.clone()));
         let witness = Bytes::from("left");
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
-        let decided: Decision = decider.decide(&property, Some(&witness)).unwrap();
+        let decided: Decision = decider.decide(&property, Some(witness)).unwrap();
         assert_eq!(decided.get_outcome(), true);
         let status = PreimageExistsDecider::check_decision(&decider, &input).unwrap();
         assert_eq!(status.get_outcome(), true);

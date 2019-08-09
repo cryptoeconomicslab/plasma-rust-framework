@@ -47,7 +47,7 @@ impl Decider for ForAllSuchThatDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &ForAllSuchThatInput,
-        _witness: Option<&Bytes>,
+        _witness: Option<Bytes>,
     ) -> Result<Decision, Error> {
         let quantifier_result: QuantifierResult =
             decider.get_all_quantified(input.get_quantifier());
@@ -57,11 +57,14 @@ impl Decider for ForAllSuchThatDecider {
         let mut true_decisions: Vec<Decision> = vec![];
         for res in quantifier_result.get_results() {
             let prop: Property = input.get_property_factory().call(res.clone());
-            let witness: Bytes = input.get_witness_factory().call(res.clone());
+            let witness: Option<Bytes> = input
+                .get_witness_factory()
+                .clone()
+                .map(|wf| wf.call(res.clone()));
             let _no_cache = false;
             let decision_result = prop.decide(
                 decider,
-                Some(&witness),
+                witness
                 //no_cache,
             );
             if let Ok(decision) = decision_result {
@@ -97,7 +100,7 @@ mod tests {
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
         Decider, Decision, ForAllSuchThatInput, Integer, PreimageExistsInput, Property,
-        PropertyFactory, Quantifier, WitnessFactory,
+        PropertyFactory, Quantifier, QuantifierResultItem, WitnessFactory,
     };
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
@@ -105,12 +108,22 @@ mod tests {
     fn test_decide() {
         let input = ForAllSuchThatInput::new(
             Quantifier::IntegerRangeQuantifier(Integer(5), Integer(20)),
-            PropertyFactory::new(Box::new(|bytes| {
-                Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-                    Verifier::static_hash(&bytes),
-                )))
+            PropertyFactory::new(Box::new(|item| {
+                if let QuantifierResultItem::Integer(number) = item {
+                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+                        Verifier::static_hash(&number.into()),
+                    )))
+                } else {
+                    panic!("invalid type of item");
+                }
             })),
-            WitnessFactory::new(Box::new(|bytes| bytes.clone())),
+            Some(WitnessFactory::new(Box::new(|item| {
+                if let QuantifierResultItem::Integer(number) = item {
+                    number.into()
+                } else {
+                    panic!("invalid type of item");
+                }
+            }))),
         );
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided: Decision = ForAllSuchThatDecider::decide(&decider, &input, None).unwrap();

@@ -3,7 +3,7 @@ pub mod inputs;
 
 pub use self::core::{
     Decider, Decision, ImplicationProofElement, Integer, Property, PropertyFactory, Quantifier,
-    QuantifierResult, WitnessFactory,
+    QuantifierResult, QuantifierResultItem, WitnessFactory,
 };
 pub use self::inputs::{
     AndDeciderInput, ChannelUpdateSignatureExistsDeciderInput, ForAllSuchThatInput,
