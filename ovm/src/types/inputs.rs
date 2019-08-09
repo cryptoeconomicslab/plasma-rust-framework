@@ -57,14 +57,14 @@ pub struct ForAllSuchThatInput {
     quantifier: Quantifier,
     // PropertyFactory and WitnessFactory isn't serializable. Clients don't send these to smart contract directly
     property_factory: PropertyFactory,
-    witness_factory: WitnessFactory,
+    witness_factory: Option<WitnessFactory>,
 }
 
 impl ForAllSuchThatInput {
     pub fn new(
         quantifier: Quantifier,
         property_factory: PropertyFactory,
-        witness_factory: WitnessFactory,
+        witness_factory: Option<WitnessFactory>,
     ) -> Self {
         ForAllSuchThatInput {
             quantifier,
@@ -78,7 +78,7 @@ impl ForAllSuchThatInput {
     pub fn get_property_factory(&self) -> &PropertyFactory {
         &self.property_factory
     }
-    pub fn get_witness_factory(&self) -> &WitnessFactory {
+    pub fn get_witness_factory(&self) -> &Option<WitnessFactory> {
         &self.witness_factory
     }
 }

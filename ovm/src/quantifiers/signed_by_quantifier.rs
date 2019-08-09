@@ -1,8 +1,6 @@
 use crate::property_executor::PropertyExecutor;
-use crate::types::QuantifierResult;
-use bytes::Bytes;
+use crate::types::{QuantifierResult, QuantifierResultItem};
 use ethereum_types::Address;
-use plasma_core::data_structure::abi::Encodable;
 use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct SignedByQuantifier {}
@@ -25,7 +23,10 @@ impl SignedByQuantifier {
             .get_message_db()
             .get_messages_signed_by(signed_by, None, None);
         QuantifierResult::new(
-            messages.iter().map(|m| Bytes::from(m.to_abi())).collect(),
+            messages
+                .iter()
+                .map(|m| QuantifierResultItem::Message(m.clone()))
+                .collect(),
             true,
         )
     }
