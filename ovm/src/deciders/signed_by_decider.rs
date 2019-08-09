@@ -133,7 +133,13 @@ impl Decider for SignedByDecider {
             )
             .map_err::<Error, _>(Into::into)?;
 
-        Ok(Decision::new(true, vec![]))
+        Ok(Decision::new(
+            true,
+            vec![ImplicationProofElement::new(
+                Property::SignedByDecider(input.clone()),
+                Some(decision_value.get_witness().clone()),
+            )],
+        ))
     }
     fn check_decision<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
