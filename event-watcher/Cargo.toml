@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 web3 = { git = "https://github.com/tomusdrw/rust-web3" }
-ethabi = "7.0.0"
+ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
 futures = "0.1.27"
 tokio = "0.1.21"
 serde = { version="1.0.90", features = ["derive"] }
