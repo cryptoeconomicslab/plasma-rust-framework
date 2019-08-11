@@ -542,7 +542,7 @@ dependencies = [
  "rlp 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.91 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.1.21 (registry+https://github.com/rust-lang/crates.io-index)",
- "web3 0.7.0 (git+https://github.com/tomusdrw/rust-web3)",
+ "web3 0.7.0 (git+https://github.com/cryptoeconomicslab/rust-web3?branch=ethabi-tuple)",
 ]
 
 [[package]]
@@ -2613,34 +2613,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "web3"
-version = "0.7.0"
-source = "git+https://github.com/tomusdrw/rust-web3#21cb38c7203a026f292d65059272b88e2050626e"
-dependencies = [
- "arrayvec 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "base64 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "derive_more 0.14.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethabi 7.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethereum-types 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.12.29 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper-tls 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "jsonrpc-core 11.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "native-tls 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "parking_lot 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-hex 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.91 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 1.0.39 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-core 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-io 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-timer 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-uds 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 1.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "websocket 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "websocket"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3001,7 +2973,6 @@ dependencies = [
 "checksum wasm-bindgen-test 0.2.47 (registry+https://github.com/rust-lang/crates.io-index)" = "7dcceff686a33d286a139c7634aae6d821835bf9cd69bc186bd28e08bd4cc9f0"
 "checksum wasm-bindgen-test-macro 0.2.47 (registry+https://github.com/rust-lang/crates.io-index)" = "0e50836aa591b9f552c8b2c364cca72c3f8fd40e4104d4551c1d9ac5b5bef3d3"
 "checksum web3 0.7.0 (git+https://github.com/cryptoeconomicslab/rust-web3?branch=ethabi-tuple)" = "<none>"
-"checksum web3 0.7.0 (git+https://github.com/tomusdrw/rust-web3)" = "<none>"
 "checksum websocket 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8c9faed2bff8af2ea6b9f8b917d3d00b467583f6781fe3def174a9e33c879703"
 "checksum wee_alloc 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "31d4e6572d21ac55398bc91db827f48c3fdb8152ae60f4c358f6780e1035ffcc"
 "checksum winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "167dc9d6949a9b857f3451275e911c3f44255842c1f7a76f33c55103a909087a"

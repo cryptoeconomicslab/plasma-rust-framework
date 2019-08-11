@@ -5,7 +5,7 @@ authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"
 
 [dependencies]
-web3 = { git = "https://github.com/tomusdrw/rust-web3" }
+web3 = { git = "https://github.com/cryptoeconomicslab/rust-web3", branch = 'ethabi-tuple' }
 ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
 futures = "0.1.27"
 tokio = "0.1.21"
