@@ -8,8 +8,7 @@ use crate::quantifiers::{
     IntegerRangeQuantifier, NonnegativeIntegerLessThanQuantifier, SignedByQuantifier,
 };
 use crate::types::Decider;
-use crate::types::{Decision, Property, Quantifier, QuantifierResult};
-use bytes::Bytes;
+use crate::types::{Decision, Property, Quantifier, QuantifierResult, Witness};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
@@ -19,7 +18,7 @@ pub trait DecideMixin<KVS: KeyValueStore> {
     fn decide(
         &self,
         decider: &PropertyExecutor<KVS>,
-        witness: Option<Bytes>,
+        witness: Option<Witness>,
     ) -> Result<Decision, Error>;
 }
 
@@ -30,7 +29,7 @@ where
     fn decide(
         &self,
         decider: &PropertyExecutor<KVS>,
-        witness: Option<Bytes>,
+        witness: Option<Witness>,
     ) -> Result<Decision, Error> {
         decider.decide(self, witness)
     }
@@ -69,7 +68,7 @@ where
     pub fn get_range_db(&self) -> &RangeDbImpl<KVS> {
         &self.range_db
     }
-    pub fn decide(&self, property: &Property, witness: Option<Bytes>) -> Result<Decision, Error> {
+    pub fn decide(&self, property: &Property, witness: Option<Witness>) -> Result<Decision, Error> {
         match property {
             Property::AndDecider(input) => AndDecider::decide(self, input, witness),
             Property::NotDecider(input) => NotDecider::decide(self, input, witness),

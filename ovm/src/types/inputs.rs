@@ -1,4 +1,5 @@
 use super::core::{Integer, Property, PropertyFactory, Quantifier, WitnessFactory};
+use super::witness::Witness;
 use crate::db::Message;
 use bytes::Bytes;
 use ethereum_types::{Address, H256};
@@ -6,13 +7,18 @@ use ethereum_types::{Address, H256};
 #[derive(Clone, Debug)]
 pub struct AndDeciderInput {
     left: Property,
-    left_witness: Bytes,
+    left_witness: Witness,
     right: Property,
-    right_witness: Bytes,
+    right_witness: Witness,
 }
 
 impl AndDeciderInput {
-    pub fn new(left: Property, left_witness: Bytes, right: Property, right_witness: Bytes) -> Self {
+    pub fn new(
+        left: Property,
+        left_witness: Witness,
+        right: Property,
+        right_witness: Witness,
+    ) -> Self {
         AndDeciderInput {
             left,
             left_witness,
@@ -26,10 +32,10 @@ impl AndDeciderInput {
     pub fn get_right(&self) -> &Property {
         &self.right
     }
-    pub fn get_left_witness(&self) -> &Bytes {
+    pub fn get_left_witness(&self) -> &Witness {
         &self.left_witness
     }
-    pub fn get_right_witness(&self) -> &Bytes {
+    pub fn get_right_witness(&self) -> &Witness {
         &self.right_witness
     }
 }
@@ -68,17 +74,17 @@ impl OrDeciderInput {
 #[derive(Clone, Debug)]
 pub struct NotDeciderInput {
     property: Property,
-    witness: Bytes,
+    witness: Witness,
 }
 
 impl NotDeciderInput {
-    pub fn new(property: Property, witness: Bytes) -> Self {
+    pub fn new(property: Property, witness: Witness) -> Self {
         NotDeciderInput { property, witness }
     }
     pub fn get_property(&self) -> &Property {
         &self.property
     }
-    pub fn get_witness(&self) -> &Bytes {
+    pub fn get_witness(&self) -> &Witness {
         &self.witness
     }
 }
@@ -149,6 +155,32 @@ impl SignedByInput {
     }
     pub fn hash(&self) -> &Bytes {
         &self.message
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct IncludedInIntervalTreeAtBlockInput {
+    block_number: Integer,
+    start: Integer,
+    end: Integer,
+}
+
+impl IncludedInIntervalTreeAtBlockInput {
+    pub fn new(block_number: Integer, start: Integer, end: Integer) -> Self {
+        Self {
+            block_number,
+            start,
+            end,
+        }
+    }
+    pub fn get_block_number(&self) -> Integer {
+        self.block_number
+    }
+    pub fn get_start(&self) -> Integer {
+        self.start
+    }
+    pub fn get_end(&self) -> Integer {
+        self.end
     }
 }
 

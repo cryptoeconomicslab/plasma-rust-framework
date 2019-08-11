@@ -1,6 +1,8 @@
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, PreimageExistsInput, Property};
+use crate::types::{
+    Decider, Decision, ImplicationProofElement, PreimageExistsInput, Property, Witness,
+};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::H256;
@@ -125,26 +127,28 @@ impl Decider for PreimageExistsDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &PreimageExistsInput,
-        witness_bytes: Option<Bytes>,
+        witness: Option<Witness>,
     ) -> Result<Decision, Error> {
-        let preimage = witness_bytes.unwrap();
+        if let Some(Witness::Bytes(preimage)) = witness {
+            if Verifier::hash(&preimage) != input.get_hash() {
+                return Err(Error::from(ErrorKind::InvalidPreimage));
+            }
 
-        if Verifier::hash(&preimage) != input.get_hash() {
-            return Err(Error::from(ErrorKind::InvalidPreimage));
+            let decision_key = input.get_hash();
+            let decision_value = PreimageExistsDecisionValue::new(true, preimage.clone());
+            decider
+                .get_db()
+                .bucket(&BaseDbKey::from(&b"preimage_exists_decider"[..]))
+                .put(
+                    &BaseDbKey::from(decision_key.as_bytes()),
+                    &decision_value.to_abi(),
+                )
+                .map_err::<Error, _>(Into::into)?;
+
+            Ok(Decision::new(true, vec![]))
+        } else {
+            panic!("invalid witness")
         }
-
-        let decision_key = input.get_hash();
-        let decision_value = PreimageExistsDecisionValue::new(true, preimage.clone());
-        decider
-            .get_db()
-            .bucket(&BaseDbKey::from(&b"preimage_exists_decider"[..]))
-            .put(
-                &BaseDbKey::from(decision_key.as_bytes()),
-                &decision_value.to_abi(),
-            )
-            .map_err::<Error, _>(Into::into)?;
-
-        Ok(Decision::new(true, vec![]))
     }
     fn check_decision<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
@@ -177,7 +181,7 @@ mod tests {
     use super::PreimageExistsDecider;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decider, Decision, PreimageExistsInput, Property};
+    use crate::types::{Decider, Decision, PreimageExistsInput, Property, Witness};
     use bytes::Bytes;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
@@ -185,7 +189,7 @@ mod tests {
     fn test_decide() {
         let input = PreimageExistsInput::new(Verifier::static_hash(&Bytes::from("left")));
         let property = Property::PreimageExistsDecider(Box::new(input.clone()));
-        let witness = Bytes::from("left");
+        let witness = Witness::Bytes(Bytes::from("left"));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided: Decision = decider.decide(&property, Some(witness)).unwrap();
         assert_eq!(decided.get_outcome(), true);

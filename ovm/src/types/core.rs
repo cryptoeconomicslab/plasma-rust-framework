@@ -2,6 +2,7 @@ use super::inputs::{
     AndDeciderInput, ChannelUpdateSignatureExistsDeciderInput, ForAllSuchThatInput,
     HasLowerNonceInput, NotDeciderInput, OrDeciderInput, PreimageExistsInput, SignedByInput,
 };
+use super::witness::Witness;
 use crate::db::Message;
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
@@ -15,7 +16,6 @@ use std::sync::Arc;
 pub type DeciderId = Address;
 pub type QuantifierId = Address;
 pub trait Input {}
-pub trait Witness {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd)]
 pub struct Integer(pub u64);
@@ -94,9 +94,9 @@ impl Encodable for Property {
             Property::AndDecider(input) => vec![
                 Token::Address(self.get_decider_id()),
                 Token::Tuple(input.get_left().to_tuple()),
-                Token::Bytes(input.get_left_witness().to_vec()),
+                Token::Tuple(input.get_left_witness().to_tuple()),
                 Token::Tuple(input.get_right().to_tuple()),
-                Token::Bytes(input.get_right_witness().to_vec()),
+                Token::Tuple(input.get_right_witness().to_tuple()),
             ],
             _ => vec![Token::Address(self.get_decider_id())],
         }
@@ -199,13 +199,13 @@ impl std::fmt::Debug for PropertyFactory {
 }
 
 #[derive(Clone)]
-pub struct WitnessFactory(Arc<dyn Fn(QuantifierResultItem) -> Bytes>);
+pub struct WitnessFactory(Arc<dyn Fn(QuantifierResultItem) -> Witness>);
 
 impl WitnessFactory {
-    pub fn new(handler: Box<dyn Fn(QuantifierResultItem) -> Bytes>) -> Self {
+    pub fn new(handler: Box<dyn Fn(QuantifierResultItem) -> Witness>) -> Self {
         WitnessFactory(Arc::new(handler))
     }
-    pub fn call(&self, item: QuantifierResultItem) -> Bytes {
+    pub fn call(&self, item: QuantifierResultItem) -> Witness {
         self.0(item)
     }
 }
@@ -221,7 +221,7 @@ pub trait Decider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &Self::Input,
-        witness: Option<Bytes>,
+        witness: Option<Witness>,
     ) -> Result<Decision, Error>;
     fn check_decision<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,

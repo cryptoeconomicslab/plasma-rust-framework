@@ -1,8 +1,7 @@
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{AndDeciderInput, Decider, Decision};
+use crate::types::{AndDeciderInput, Decider, Decision, Witness};
 use crate::DecideMixin;
-use bytes::Bytes;
 use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct AndDecider {}
@@ -24,7 +23,7 @@ impl Decider for AndDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &AndDeciderInput,
-        _witness: Option<Bytes>,
+        _witness: Option<Witness>,
     ) -> Result<Decision, Error> {
         let left_decision = input
             .get_left()
@@ -61,7 +60,9 @@ mod tests {
     use super::AndDecider;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{AndDeciderInput, Decider, Decision, PreimageExistsInput, Property};
+    use crate::types::{
+        AndDeciderInput, Decider, Decision, PreimageExistsInput, Property, Witness,
+    };
     use bytes::Bytes;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
@@ -70,11 +71,11 @@ mod tests {
         let left = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
             Verifier::static_hash(&Bytes::from("left")),
         )));
-        let left_witness = Bytes::from("left");
+        let left_witness = Witness::Bytes("left".into());
         let right = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
             Verifier::static_hash(&Bytes::from("right")),
         )));
-        let right_witness = Bytes::from("right");
+        let right_witness = Witness::Bytes("right".into());
         let input = AndDeciderInput::new(left, left_witness, right, right_witness);
         let and_decider = Property::AndDecider(Box::new(input.clone()));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();

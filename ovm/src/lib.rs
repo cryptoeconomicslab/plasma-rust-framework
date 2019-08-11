@@ -16,7 +16,7 @@ mod tests {
     use crate::types::{
         AndDeciderInput, Decision, ForAllSuchThatInput, HasLowerNonceInput, Integer,
         PreimageExistsInput, Property, PropertyFactory, Quantifier, QuantifierResultItem,
-        SignedByInput, WitnessFactory,
+        SignedByInput, Witness, WitnessFactory,
     };
     use bytes::Bytes;
     use ethereum_types::Address;
@@ -45,7 +45,7 @@ mod tests {
             })),
             Some(WitnessFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
-                    number.into()
+                    Witness::Bytes(number.into())
                 } else {
                     panic!("invalid type in PropertyFactory");
                 }
@@ -71,7 +71,7 @@ mod tests {
                 }
             })),
             Some(WitnessFactory::new(Box::new(|_item| {
-                Bytes::from(&b"aaa"[..])
+                Witness::Bytes(Bytes::from(&b"aaa"[..]))
             }))),
         )));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
@@ -101,7 +101,7 @@ mod tests {
             })),
             Some(WitnessFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
-                    number.into()
+                    Witness::Bytes(number.into())
                 } else {
                     panic!("invalid type in PropertyFactory");
                 }
@@ -143,9 +143,9 @@ mod tests {
             Property::SignedByDecider(SignedByInput::new(Bytes::from("state_update"), bob));
         let property = Property::AndDecider(Box::new(AndDeciderInput::new(
             left_property,
-            Bytes::from(""),
+            Witness::Bytes("".into()),
             right_property,
-            signature,
+            Witness::Bytes(signature),
         )));
 
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();

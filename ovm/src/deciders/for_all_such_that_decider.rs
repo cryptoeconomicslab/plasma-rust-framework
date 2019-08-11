@@ -2,9 +2,9 @@ use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
     Decider, Decision, ForAllSuchThatInput, ImplicationProofElement, Property, QuantifierResult,
+    Witness,
 };
 use crate::DecideMixin;
-use bytes::Bytes;
 use plasma_db::traits::kvs::KeyValueStore;
 
 /// ForAllSuchThatDecider decides for all quantified results by PropertyFactory and WitnessFactory
@@ -47,7 +47,7 @@ impl Decider for ForAllSuchThatDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &ForAllSuchThatInput,
-        _witness: Option<Bytes>,
+        _witness: Option<Witness>,
     ) -> Result<Decision, Error> {
         let quantifier_result: QuantifierResult =
             decider.get_all_quantified(input.get_quantifier());
@@ -57,7 +57,7 @@ impl Decider for ForAllSuchThatDecider {
         let mut true_decisions: Vec<Decision> = vec![];
         for res in quantifier_result.get_results() {
             let prop: Property = input.get_property_factory().call(res.clone());
-            let witness: Option<Bytes> = input
+            let witness: Option<Witness> = input
                 .get_witness_factory()
                 .clone()
                 .map(|wf| wf.call(res.clone()));
@@ -100,7 +100,7 @@ mod tests {
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
         Decider, Decision, ForAllSuchThatInput, Integer, PreimageExistsInput, Property,
-        PropertyFactory, Quantifier, QuantifierResultItem, WitnessFactory,
+        PropertyFactory, Quantifier, QuantifierResultItem, Witness, WitnessFactory,
     };
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
@@ -119,7 +119,7 @@ mod tests {
             })),
             Some(WitnessFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
-                    number.into()
+                    Witness::Bytes(number.into())
                 } else {
                     panic!("invalid type of item");
                 }
