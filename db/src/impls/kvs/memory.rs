@@ -17,7 +17,7 @@ impl DatabaseTrait for CoreDbMemoryImpl {
     fn close(&self) {}
 }
 
-impl<'a> KeyValueStore for CoreDbMemoryImpl {
+impl KeyValueStore for CoreDbMemoryImpl {
     fn get(&self, key: &BaseDbKey) -> Result<Option<Vec<u8>>, Error> {
         Ok(self.db.read().get(key).map(|v| v.to_vec()))
     }
@@ -62,7 +62,7 @@ impl<'a> KeyValueStore for CoreDbMemoryImpl {
         }
         result
     }
-    fn bucket(&self, prefix: &BaseDbKey) -> Bucket {
+    fn bucket<'a>(&'a self, prefix: &BaseDbKey) -> Bucket<'a> {
         Bucket::new(prefix.clone(), self)
     }
 }
