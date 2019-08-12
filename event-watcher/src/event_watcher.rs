@@ -1,5 +1,5 @@
 use super::event_db::EventDb;
-use ethabi::{Event, Topic, TopicFilter, Token, decode, ParamType, EventParam};
+use ethabi::{decode, Event, EventParam, ParamType, Token, Topic, TopicFilter};
 use ethereum_types::{Address, H256};
 use futures::{Async, Future, Poll, Stream};
 use std::marker::Send;
@@ -57,19 +57,21 @@ where
                 .iter()
                 .map(|event_param| event_param.kind.clone())
                 .collect::<Vec<ParamType>>(),
-            &log.data.0
-        ).unwrap();
+            &log.data.0,
+        )
+        .unwrap();
 
         assert_eq!(event_params.len(), tokens.len());
 
         // In order to `pop` in order from the first element, reverse the tokens.
         tokens.reverse();
-        event_params.iter().map(|ep| {
-            DecodedParam {
+        event_params
+            .iter()
+            .map(|ep| DecodedParam {
                 event_param: ep.clone(),
                 token: tokens.pop().unwrap(),
-            }
-        }).collect()
+            })
+            .collect()
     }
 }
 
@@ -116,16 +118,15 @@ where
 
             match self.web3.eth().logs(filter).wait().map_err(|e| e) {
                 Ok(v) => {
-                    let entities =
-                        self.filter_logs(event, v)
-                            .iter()
-                            .map(|log| {
-                                LogEntity {
-                                    event_signature: event.signature(),
-                                    log: log.clone(),
-                                    params: self.decode_params(event, log)
-                                }
-                            }).collect::<Vec<LogEntity>>();
+                    let entities = self
+                        .filter_logs(event, v)
+                        .iter()
+                        .map(|log| LogEntity {
+                            event_signature: event.signature(),
+                            log: log.clone(),
+                            params: self.decode_params(event, log),
+                        })
+                        .collect::<Vec<LogEntity>>();
 
                     if let Some(last_entity) = entities.last() {
                         if let Some(block_num) = last_entity.log.block_number {
