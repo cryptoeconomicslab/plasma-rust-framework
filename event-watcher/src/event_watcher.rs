@@ -95,7 +95,7 @@ where
 
     fn poll(&mut self) -> Poll<Option<Vec<LogEntity>>, ()> {
         try_ready!(self.interval.poll().map_err(|_| ()));
-        let mut all_logs: Vec<LogEntity> = vec![];
+        let mut all_entities: Vec<LogEntity> = vec![];
 
         for event in self.abi.iter() {
             let sig = event.signature();
@@ -116,7 +116,7 @@ where
 
             match self.web3.eth().logs(filter).wait().map_err(|e| e) {
                 Ok(v) => {
-                    let newer_logs =
+                    let entities =
                         self.filter_logs(event, v)
                             .iter()
                             .map(|log| {
@@ -127,13 +127,13 @@ where
                                 }
                             }).collect::<Vec<LogEntity>>();
 
-                    if let Some(last_log) = newer_logs.last() {
-                        if let Some(block_num) = last_log.log.block_number {
+                    if let Some(last_entity) = entities.last() {
+                        if let Some(block_num) = last_entity.log.block_number {
                             self.db.set_last_logged_block(sig, block_num.low_u64());
                         };
                     };
 
-                    all_logs.extend_from_slice(&newer_logs);
+                    all_entities.extend_from_slice(&entities);
                 }
                 Err(e) => {
                     println!("{}", e);
@@ -141,7 +141,7 @@ where
             };
         }
 
-        Ok(Async::Ready(Some(all_logs)))
+        Ok(Async::Ready(Some(all_entities)))
     }
 }
 
@@ -184,14 +184,14 @@ where
 
     fn poll(&mut self) -> Poll<(), Self::Error> {
         loop {
-            let logs = match try_ready!(self.stream.poll()) {
+            let entities = match try_ready!(self.stream.poll()) {
                 Some(value) => value,
                 None => continue,
             };
 
-            for log in logs.iter() {
+            for entity in entities.iter() {
                 for listener in self.listeners.iter() {
-                    listener(&log);
+                    listener(&entity);
                 }
             }
         }
