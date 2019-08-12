@@ -7,5 +7,5 @@ pub use self::core::{
 };
 pub use self::inputs::{
     AndDeciderInput, ChannelUpdateSignatureExistsDeciderInput, ForAllSuchThatInput,
-    HasLowerNonceInput, NotDeciderInput, PreimageExistsInput, SignedByInput,
+    HasLowerNonceInput, NotDeciderInput, OrDeciderInput, PreimageExistsInput, SignedByInput,
 };
