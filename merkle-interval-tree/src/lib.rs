@@ -134,6 +134,16 @@ where
             MerkleIntervalNode::ProofNode { end, .. } => *end,
         }
     }
+    fn encode(&self) -> Bytes {
+        match self {
+            MerkleIntervalNode::ProofNode { end, data } => {
+                let mut buf = Bytes::from(end.encode_as_le());
+                buf.extend_from_slice(data);
+                buf.clone()
+            }
+            _ => panic!("Leaf and Node can't be encoded"),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -194,8 +204,9 @@ where
     }
 
     /// Returns inclusion proof for a leaf
-    pub fn get_inclusion_proof(&self, idx: usize, count: usize) -> Vec<MerkleIntervalNode<I>> {
-        MerkleIntervalTree::get_inclusion_proof_of_tree(&self.tree, idx, count)
+    pub fn get_inclusion_proof(&self, idx: usize, count: usize) -> Bytes {
+        let nodes = MerkleIntervalTree::get_inclusion_proof_of_tree(&self.tree, idx, count);
+        Self::encode_proof(nodes)
     }
 
     fn get_inclusion_proof_of_tree(
@@ -269,12 +280,12 @@ where
     pub fn verify(
         leaf: &MerkleIntervalNode<I>,
         idx: usize,
-        inclusion_proof: Vec<MerkleIntervalNode<I>>,
+        inclusion_proof_bytes: Bytes,
         root: &Bytes,
     ) -> Result<ImplicitBounds<I>, Error> {
+        let inclusion_proof: Vec<MerkleIntervalNode<I>> = Self::decode_proof(inclusion_proof_bytes);
         let mut path: Vec<bool> = vec![];
         Self::get_path(idx, inclusion_proof.len(), path.as_mut());
-        println!("{:?}, {:?}", path, inclusion_proof);
         let first_left_end = path
             .iter()
             .position(|&p| p)
@@ -304,6 +315,26 @@ where
             Err(Error::VerifyError)
         }
     }
+
+    pub fn encode_proof(inclusion_proof_nodes: Vec<MerkleIntervalNode<I>>) -> Bytes {
+        let mut inclusion_proof = Bytes::from("");
+        for n in inclusion_proof_nodes.iter() {
+            inclusion_proof.extend_from_slice(&n.encode().to_vec());
+        }
+        inclusion_proof
+    }
+
+    pub fn decode_proof(inclusion_proof: Bytes) -> Vec<MerkleIntervalNode<I>> {
+        let mut nodes = vec![];
+        let num_nodes = inclusion_proof.len() / 40;
+        for i in 0..num_nodes {
+            let index = i * 40;
+            let end = I::decode_as_le(&inclusion_proof.slice(index, index + 8).to_vec());
+            let data = inclusion_proof.slice(index + 8, index + 40);
+            nodes.push(MerkleIntervalNode::ProofNode { end, data });
+        }
+        nodes
+    }
 }
 
 #[cfg(test)]
@@ -326,6 +357,21 @@ mod tests {
         };
         let parent = MerkleIntervalNode::compute_parent(&leaf1, &leaf2);
         assert_eq!(parent.get_end(), 200);
+    }
+
+    #[test]
+    fn test_encode_and_decode() {
+        let mut leaves = vec![];
+        for i in 0..100 {
+            leaves.push(MerkleIntervalNode::Leaf {
+                end: i * 100 + 100,
+                data: Bytes::from(&b"message"[..]),
+            })
+        }
+        let tree = MerkleIntervalTree::generate(&leaves);
+        let inclusion_proof = tree.get_inclusion_proof(5, 100);
+        let nodes: Vec<MerkleIntervalNode<u64>> = MerkleIntervalTree::decode_proof(inclusion_proof);
+        assert_eq!(nodes.len(), 7);
     }
 
     #[test]
@@ -358,7 +404,7 @@ mod tests {
         };
         let tree = MerkleIntervalTree::generate(&[leaf1.clone(), leaf2]);
         let inclusion_proof = tree.get_inclusion_proof(0, 2);
-        assert_eq!(inclusion_proof.len(), 1);
+        assert_eq!(inclusion_proof.len(), 40);
         assert_eq!(
             MerkleIntervalTree::verify(&leaf1.clone(), 0, inclusion_proof, &tree.get_root())
                 .is_ok(),
@@ -377,7 +423,7 @@ mod tests {
         }
         let tree = MerkleIntervalTree::generate(&leaves);
         let inclusion_proof = tree.get_inclusion_proof(5, 100);
-        assert_eq!(inclusion_proof.len(), 7);
+        assert_eq!(inclusion_proof.len(), 280);
         assert_eq!(
             MerkleIntervalTree::verify(&leaves[5].clone(), 5, inclusion_proof, &tree.get_root())
                 .is_ok(),
@@ -396,7 +442,7 @@ mod tests {
         }
         let tree = MerkleIntervalTree::generate(&leaves);
         let inclusion_proof = tree.get_inclusion_proof(5, 100);
-        assert_eq!(inclusion_proof.len(), 7);
+        assert_eq!(inclusion_proof.len(), 280);
         assert_eq!(
             MerkleIntervalTree::verify(&leaves[5].clone(), 7, inclusion_proof, &tree.get_root())
                 .is_ok(),
