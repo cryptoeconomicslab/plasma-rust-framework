@@ -162,6 +162,12 @@ where
             implicit_end,
         }
     }
+    pub fn get_start(&self) -> I {
+        self.implicit_start
+    }
+    pub fn get_end(&self) -> I {
+        self.implicit_end
+    }
 }
 
 #[derive(Debug)]
