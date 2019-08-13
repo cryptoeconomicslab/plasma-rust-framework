@@ -1,4 +1,5 @@
 pub mod core;
+pub mod decision_value;
 pub mod inputs;
 pub mod witness;
 
@@ -6,8 +7,10 @@ pub use self::core::{
     Decider, Decision, ImplicationProofElement, Integer, Property, PropertyFactory, Quantifier,
     QuantifierResult, QuantifierResultItem, WitnessFactory,
 };
+pub use self::decision_value::DecisionValue;
 pub use self::inputs::{
     AndDeciderInput, ChannelUpdateSignatureExistsDeciderInput, ForAllSuchThatInput,
-    HasLowerNonceInput, NotDeciderInput, OrDeciderInput, PreimageExistsInput, SignedByInput,
+    HasLowerNonceInput, IncludedInIntervalTreeAtBlockInput, NotDeciderInput, PreimageExistsInput,
+    SignedByInput,
 };
-pub use self::witness::Witness;
+pub use self::witness::{PlasmaDataBlock, Witness};

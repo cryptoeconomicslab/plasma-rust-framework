@@ -1,14 +1,12 @@
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, Property, SignedByInput, Witness};
+use crate::types::{
+    Decider, Decision, DecisionValue, ImplicationProofElement, Property, SignedByInput, Witness,
+};
 use bytes::Bytes;
-use ethabi::{ParamType, Token};
 use ethereum_types::{Address, H256};
 use ethsign::{SecretKey, Signature};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
-use plasma_core::data_structure::error::{
-    Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
-};
 use plasma_db::traits::kvs::{BaseDbKey, KeyValueStore};
 use tiny_keccak::Keccak;
 
@@ -54,53 +52,6 @@ impl Verifier {
     }
 }
 
-pub struct SignedByDecisionValue {
-    decision: bool,
-    witness: Bytes,
-}
-
-impl SignedByDecisionValue {
-    pub fn new(decision: bool, witness: Bytes) -> Self {
-        SignedByDecisionValue { decision, witness }
-    }
-    pub fn get_decision(&self) -> bool {
-        self.decision
-    }
-    pub fn get_witness(&self) -> &Bytes {
-        &self.witness
-    }
-}
-
-impl Encodable for SignedByDecisionValue {
-    fn to_abi(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple())
-    }
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![
-            Token::Bool(self.decision),
-            Token::Bytes(self.witness.to_vec()),
-        ]
-    }
-}
-
-impl Decodable for SignedByDecisionValue {
-    type Ok = SignedByDecisionValue;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
-        let decision = tuple[0].clone().to_bool();
-        let signature = tuple[1].clone().to_bytes();
-        if let (Some(decision), Some(signature)) = (decision, signature) {
-            Ok(SignedByDecisionValue::new(decision, signature.into()))
-        } else {
-            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
-        }
-    }
-    fn from_abi(data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        let decoded = ethabi::decode(&[ParamType::Bool, ParamType::Bytes], data)
-            .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
-    }
-}
-
 pub struct SignedByDecider {}
 
 impl Default for SignedByDecider {
@@ -121,7 +72,7 @@ impl Decider for SignedByDecider {
                 return Err(Error::from(ErrorKind::InvalidPreimage));
             }
             let decision_key = input.hash();
-            let decision_value = SignedByDecisionValue::new(true, signature.clone());
+            let decision_value = DecisionValue::new(true, Witness::Bytes(signature.clone()));
             decider
                 .get_db()
                 .bucket(&BaseDbKey::from(&b"signed_by_decider"[..]))
@@ -153,7 +104,7 @@ impl Decider for SignedByDecider {
             .get(&BaseDbKey::from(decision_key.to_vec().as_slice()))
             .map_err::<Error, _>(Into::into)?;
         if let Some(decision_value_bytes) = result {
-            let decision_value = SignedByDecisionValue::from_abi(&decision_value_bytes).unwrap();
+            let decision_value = DecisionValue::from_abi(&decision_value_bytes).unwrap();
             return Ok(Decision::new(
                 decision_value.get_decision(),
                 vec![ImplicationProofElement::new(

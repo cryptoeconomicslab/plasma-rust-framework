@@ -1,5 +1,6 @@
 use ethabi::Error as AbiDecodeError;
 use failure::{Backtrace, Context, Fail};
+use plasma_core::data_structure::error::Error as PlasmaCoreError;
 use plasma_db::error::Error as PlasmaDbError;
 use std::fmt;
 use std::fmt::Display;
@@ -12,12 +13,16 @@ pub enum ErrorKind {
     Io,
     #[fail(display = "ABI Decode error")]
     AbiDecode,
+    #[fail(display = "Plasma Core error")]
+    PlasmaCoreError,
     #[fail(display = "Plasma Db error")]
     PlasmaDbError,
     #[fail(display = "Invalid Preimage")]
     InvalidPreimage,
     #[fail(display = "Undecided")]
     Undecided,
+    #[fail(display = "CannotDecide")]
+    CannotDecide,
 }
 
 #[derive(Debug)]
@@ -85,6 +90,14 @@ impl From<PlasmaDbError> for Error {
     fn from(error: PlasmaDbError) -> Error {
         Error {
             inner: error.context(ErrorKind::PlasmaDbError),
+        }
+    }
+}
+
+impl From<PlasmaCoreError> for Error {
+    fn from(error: PlasmaCoreError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::PlasmaCoreError),
         }
     }
 }

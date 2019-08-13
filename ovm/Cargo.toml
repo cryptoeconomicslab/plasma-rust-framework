@@ -13,6 +13,7 @@ hex = "0.3.1"
 tiny-keccak = "1.4.2"
 plasma-core = { path = "../core" }
 plasma-db = { path = "../db" }
+merkle-interval-tree = { path = "../merkle-interval-tree" }
 
 [dependencies.ethsign]
 version = "0.6.1"

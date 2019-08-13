@@ -2,7 +2,7 @@ use super::abi::{Decodable, Encodable};
 use super::error::{Error, ErrorKind};
 use ethabi::Token;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Range {
     start: u64,
     end: u64,
@@ -17,6 +17,15 @@ impl Range {
     }
     pub fn get_end(&self) -> u64 {
         self.end
+    }
+    pub fn get_overlapping_range(&self, b: &Range) -> Range {
+        if self.start < b.start && b.start <= self.end {
+            Range::new(b.start, self.end)
+        } else if b.start < self.start && self.start <= b.end {
+            Range::new(self.start, b.end)
+        } else {
+            Range::new(0, 0)
+        }
     }
 }
 

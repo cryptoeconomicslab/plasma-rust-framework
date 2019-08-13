@@ -3,6 +3,7 @@ use super::witness::Witness;
 use crate::db::Message;
 use bytes::Bytes;
 use ethereum_types::{Address, H256};
+use plasma_core::data_structure::Range;
 
 #[derive(Clone, Debug)]
 pub struct AndDeciderInput {
@@ -161,26 +162,21 @@ impl SignedByInput {
 #[derive(Clone, Debug)]
 pub struct IncludedInIntervalTreeAtBlockInput {
     block_number: Integer,
-    start: Integer,
-    end: Integer,
+    coin_range: Range,
 }
 
 impl IncludedInIntervalTreeAtBlockInput {
-    pub fn new(block_number: Integer, start: Integer, end: Integer) -> Self {
+    pub fn new(block_number: Integer, coin_range: Range) -> Self {
         Self {
             block_number,
-            start,
-            end,
+            coin_range,
         }
     }
     pub fn get_block_number(&self) -> Integer {
         self.block_number
     }
-    pub fn get_start(&self) -> Integer {
-        self.start
-    }
-    pub fn get_end(&self) -> Integer {
-        self.end
+    pub fn get_coin_range(&self) -> Range {
+        self.coin_range
     }
 }
 

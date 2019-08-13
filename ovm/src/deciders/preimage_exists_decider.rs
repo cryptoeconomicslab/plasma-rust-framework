@@ -1,7 +1,8 @@
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
-    Decider, Decision, ImplicationProofElement, PreimageExistsInput, Property, Witness,
+    Decider, Decision, DecisionValue, ImplicationProofElement, PreimageExistsInput, Property,
+    Witness,
 };
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
@@ -67,53 +68,6 @@ impl Decodable for PreimageExistsWitness {
     }
 }
 
-pub struct PreimageExistsDecisionValue {
-    decision: bool,
-    witness: Bytes,
-}
-
-impl PreimageExistsDecisionValue {
-    pub fn new(decision: bool, witness: Bytes) -> Self {
-        PreimageExistsDecisionValue { decision, witness }
-    }
-    pub fn get_decision(&self) -> bool {
-        self.decision
-    }
-    pub fn get_witness(&self) -> &Bytes {
-        &self.witness
-    }
-}
-
-impl Encodable for PreimageExistsDecisionValue {
-    fn to_abi(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple())
-    }
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![
-            Token::Bool(self.decision),
-            Token::Bytes(self.witness.to_vec()),
-        ]
-    }
-}
-
-impl Decodable for PreimageExistsDecisionValue {
-    type Ok = PreimageExistsDecisionValue;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
-        let decision = tuple[0].clone().to_bool();
-        let witness = tuple[1].clone().to_bytes();
-        if let (Some(decision), Some(witness)) = (decision, witness) {
-            Ok(PreimageExistsDecisionValue::new(decision, witness.into()))
-        } else {
-            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
-        }
-    }
-    fn from_abi(data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        let decoded = ethabi::decode(&[ParamType::Bool, ParamType::Bytes], data)
-            .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
-    }
-}
-
 pub struct PreimageExistsDecider {}
 
 impl Default for PreimageExistsDecider {
@@ -135,7 +89,7 @@ impl Decider for PreimageExistsDecider {
             }
 
             let decision_key = input.get_hash();
-            let decision_value = PreimageExistsDecisionValue::new(true, preimage.clone());
+            let decision_value = DecisionValue::new(true, Witness::Bytes(preimage.clone()));
             decider
                 .get_db()
                 .bucket(&BaseDbKey::from(&b"preimage_exists_decider"[..]))
@@ -161,8 +115,7 @@ impl Decider for PreimageExistsDecider {
             .get(&BaseDbKey::from(decision_key.as_bytes()))
             .map_err::<Error, _>(Into::into)?;
         if let Some(decision_value_bytes) = result {
-            let decision_value =
-                PreimageExistsDecisionValue::from_abi(&decision_value_bytes).unwrap();
+            let decision_value = DecisionValue::from_abi(&decision_value_bytes).unwrap();
             return Ok(Decision::new(
                 decision_value.get_decision(),
                 vec![ImplicationProofElement::new(

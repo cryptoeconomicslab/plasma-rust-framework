@@ -1,15 +1,19 @@
 use super::inputs::{
     AndDeciderInput, ChannelUpdateSignatureExistsDeciderInput, ForAllSuchThatInput,
-    HasLowerNonceInput, NotDeciderInput, OrDeciderInput, PreimageExistsInput, SignedByInput,
+    HasLowerNonceInput, IncludedInIntervalTreeAtBlockInput, NotDeciderInput, PreimageExistsInput,
+    SignedByInput,
 };
 use super::witness::Witness;
 use crate::db::Message;
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
 use bytes::{BufMut, Bytes, BytesMut};
-use ethabi::Token;
+use ethabi::{ParamType, Token};
 use ethereum_types::Address;
-use plasma_core::data_structure::abi::Encodable;
+use plasma_core::data_structure::abi::{Decodable, Encodable};
+use plasma_core::data_structure::error::{
+    Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
+};
 use plasma_db::traits::kvs::KeyValueStore;
 use std::sync::Arc;
 
@@ -62,6 +66,7 @@ pub enum Property {
     HasLowerNonceDecider(HasLowerNonceInput),
     // channelId, nonce, participant
     ChannelUpdateSignatureExistsDecider(ChannelUpdateSignatureExistsDeciderInput),
+    IncludedInIntervalTreeAtBlockDecider(IncludedInIntervalTreeAtBlockInput),
 }
 
 #[derive(Clone, Debug)]
@@ -83,16 +88,12 @@ impl Property {
             _ => Address::zero(),
         }
     }
-}
-
-impl Encodable for Property {
-    fn to_abi(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple())
+    pub fn to_abi_part(&self) -> Vec<u8> {
+        ethabi::encode(&self.to_tuple_part())
     }
-    fn to_tuple(&self) -> Vec<Token> {
+    pub fn to_tuple_part(&self) -> Vec<Token> {
         match self {
             Property::AndDecider(input) => vec![
-                Token::Address(self.get_decider_id()),
                 Token::Tuple(input.get_left().to_tuple()),
                 Token::Tuple(input.get_left_witness().to_tuple()),
                 Token::Tuple(input.get_right().to_tuple()),
@@ -100,6 +101,76 @@ impl Encodable for Property {
             ],
             _ => vec![Token::Address(self.get_decider_id())],
         }
+    }
+    fn from_tuple_part(_decider_id: Address, tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
+        let left = tuple[0].clone().to_bytes();
+        let left_witness = tuple[1].clone().to_bytes();
+        let right = tuple[2].clone().to_bytes();
+        let right_witness = tuple[3].clone().to_bytes();
+        if let (Some(left), Some(left_witness), Some(right), Some(right_witness)) =
+            (left, left_witness, right, right_witness)
+        {
+            Ok(Property::AndDecider(Box::new(AndDeciderInput::new(
+                Property::from_abi(&left).unwrap(),
+                Witness::from_abi(&left_witness).unwrap(),
+                Property::from_abi(&right).unwrap(),
+                Witness::from_abi(&right_witness).unwrap(),
+            ))))
+        } else {
+            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
+        }
+    }
+    fn from_abi_part(decider_id: Address, data: &[u8]) -> Result<Self, PlasmaCoreError> {
+        let decoded = ethabi::decode(&Self::get_param_types(decider_id), data)
+            .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
+        Self::from_tuple_part(decider_id, &decoded)
+    }
+    fn get_param_types(decider_id: Address) -> Vec<ParamType> {
+        if decider_id == Address::zero() {
+            vec![
+                ParamType::Bytes,
+                ParamType::Bytes,
+                ParamType::Bytes,
+                ParamType::Bytes,
+            ]
+        } else {
+            vec![
+                ParamType::Bytes,
+                ParamType::Bytes,
+                ParamType::Bytes,
+                ParamType::Bytes,
+            ]
+        }
+    }
+}
+
+impl Encodable for Property {
+    fn to_abi(&self) -> Vec<u8> {
+        ethabi::encode(&self.to_tuple())
+    }
+    fn to_tuple(&self) -> Vec<Token> {
+        vec![
+            Token::Address(self.get_decider_id()),
+            Token::Bytes(self.to_abi_part()),
+        ]
+    }
+}
+
+impl Decodable for Property {
+    type Ok = Property;
+    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
+        let decider_id = tuple[0].clone().to_address();
+        let input_data = tuple[1].clone().to_bytes();
+        if let (Some(decider_id), Some(input_data)) = (decider_id, input_data) {
+            Ok(Property::from_abi_part(decider_id, &input_data).unwrap())
+        } else {
+            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
+        }
+    }
+    fn from_abi(data: &[u8]) -> Result<Self, PlasmaCoreError> {
+        let decoded = ethabi::decode(&[ParamType::Address, ParamType::Bytes], data)
+            .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
+        Self::from_tuple(&decoded)
     }
 }
 
@@ -134,11 +205,11 @@ impl Decodable for Property {
 #[derive(Clone, Debug)]
 pub struct ImplicationProofElement {
     implication: Property,
-    implication_witness: Option<Bytes>,
+    implication_witness: Option<Witness>,
 }
 
 impl ImplicationProofElement {
-    pub fn new(implication: Property, implication_witness: Option<Bytes>) -> Self {
+    pub fn new(implication: Property, implication_witness: Option<Witness>) -> Self {
         ImplicationProofElement {
             implication,
             implication_witness,
@@ -151,7 +222,7 @@ impl From<ImplicationProofElement> for Token {
         Token::Tuple(vec![
             element.implication.into(),
             Token::Bytes(match element.implication_witness {
-                Some(v) => v.to_vec(),
+                Some(v) => v.to_abi(),
                 None => vec![],
             }),
         ])
