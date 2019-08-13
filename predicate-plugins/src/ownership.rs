@@ -102,7 +102,7 @@ impl PredicatePlugin for OwnershipPredicate {
         assert!(pending_block_number <= parameters.get_max_block());
         StateUpdate::new(
             parameters.get_state_object().clone(),
-            transaction.get_range().clone(),
+            transaction.get_range(),
             pending_block_number,
             transaction.get_plasma_contract_address(),
         )

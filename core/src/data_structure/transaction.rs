@@ -88,8 +88,8 @@ impl Transaction {
     /// ```ignore
     /// let range = tx.get_range();
     /// ```
-    pub fn get_range(&self) -> &Range {
-        &self.range
+    pub fn get_range(&self) -> Range {
+        self.range
     }
     pub fn get_parameters(&self) -> &Bytes {
         &self.parameters
