@@ -1,5 +1,5 @@
 use super::event_db::EventDb;
-use ethabi::{decode, Event, EventParam, ParamType, Token, Topic, TopicFilter};
+use ethabi::{decode, Error, Event, EventParam, ParamType, Token, Topic, TopicFilter};
 use ethereum_types::{Address, H256};
 use futures::{Async, Future, Poll, Stream};
 use std::marker::Send;
@@ -50,28 +50,31 @@ where
         }
     }
 
-    fn decode_params(&self, event: &Event, log: &RawLog) -> Vec<DecodedParam> {
+    fn decode_params(&self, event: &Event, log: &RawLog) -> Result<Vec<DecodedParam>, Error> {
         let event_params = &event.inputs;
-        let mut tokens = decode(
+        let result = decode(
             &event_params
                 .iter()
                 .map(|event_param| event_param.kind.clone())
                 .collect::<Vec<ParamType>>(),
             &log.data.0,
-        )
-        .unwrap();
+        );
 
-        assert_eq!(event_params.len(), tokens.len());
-
-        // In order to `pop` in order from the first element, reverse the tokens.
-        tokens.reverse();
-        event_params
-            .iter()
-            .map(|ep| DecodedParam {
-                event_param: ep.clone(),
-                token: tokens.pop().unwrap(),
-            })
-            .collect()
+        match result {
+            Ok(mut tokens) => {
+                // In order to `pop` in order from the first element, reverse the tokens.
+                tokens.reverse();
+                let decoded_params = event_params
+                    .iter()
+                    .map(|ep| DecodedParam {
+                        event_param: ep.clone(),
+                        token: tokens.pop().unwrap(),
+                    })
+                    .collect();
+                Ok(decoded_params)
+            }
+            Err(e) => Err(e),
+        }
     }
 }
 
@@ -118,23 +121,35 @@ where
 
             match self.web3.eth().logs(filter).wait().map_err(|e| e) {
                 Ok(v) => {
-                    let logs = self
+                    let decoded: Result<Vec<Log>, Error> = self
                         .filter_logs(event, v)
                         .iter()
-                        .map(|raw_log| Log {
-                            log: raw_log.clone(),
-                            event_signature: event.signature(),
-                            params: self.decode_params(event, raw_log),
+                        .map(|raw_log| -> Result<Log, Error> {
+                            match self.decode_params(event, raw_log) {
+                                Ok(decoded_params) => Ok(Log {
+                                    log: raw_log.clone(),
+                                    event_signature: event.signature(),
+                                    params: decoded_params,
+                                }),
+                                Err(e) => Err(e),
+                            }
                         })
-                        .collect::<Vec<Log>>();
+                        .collect();
 
-                    if let Some(last_log) = logs.last() {
-                        if let Some(block_num) = last_log.log.block_number {
-                            self.db.set_last_logged_block(sig, block_num.low_u64());
-                        };
-                    };
+                    match decoded {
+                        Ok(logs) => {
+                            if let Some(last_log) = logs.last() {
+                                if let Some(block_num) = last_log.log.block_number {
+                                    self.db.set_last_logged_block(sig, block_num.low_u64());
+                                };
+                            };
 
-                    all_logs.extend_from_slice(&logs);
+                            all_logs.extend_from_slice(&logs);
+                        }
+                        Err(e) => {
+                            println!("{}", e);
+                        }
+                    }
                 }
                 Err(e) => {
                     println!("{}", e);
