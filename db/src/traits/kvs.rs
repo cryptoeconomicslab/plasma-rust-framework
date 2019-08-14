@@ -109,7 +109,7 @@ pub trait KeyValueStore {
         prefix: &BaseDbKey,
         f: Box<dyn FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
     ) -> Vec<KeyValue>;
-    fn bucket(&self, prefix: &BaseDbKey) -> Bucket;
+    fn bucket<'a>(&'a self, prefix: &BaseDbKey) -> Bucket<'a>;
     fn root(&self) -> Bucket {
         self.bucket(&b""[..].into())
     }
@@ -160,7 +160,7 @@ impl<'a> KeyValueStore for Bucket<'a> {
             })
             .collect()
     }
-    fn bucket(&self, prefix: &BaseDbKey) -> Bucket {
+    fn bucket<'b>(&'b self, prefix: &BaseDbKey) -> Bucket<'b> {
         self.store.bucket(&self.prefix.concat(prefix))
     }
 }

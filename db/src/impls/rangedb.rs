@@ -2,8 +2,9 @@ extern crate tempdir;
 
 use crate::error::{Error, ErrorKind};
 use crate::range::Range;
-use crate::traits::kvs::{BaseDbKey, Batch, KeyValueStore};
+use crate::traits::kvs::{BaseDbKey, Batch, Bucket, KeyValueStore};
 use crate::traits::rangestore::RangeStore;
+use bytes::Bytes;
 
 /// Range DB implementation using key value store.
 /// ```rust
@@ -21,6 +22,12 @@ impl<KVS> RangeDbImpl<KVS>
 where
     KVS: KeyValueStore,
 {
+    pub fn bucket<'a>(&'a self, key: &Bytes) -> RangeDbImpl<Bucket<'a>> {
+        RangeDbImpl {
+            db: self.db.bucket(&BaseDbKey::from(key.clone())),
+        }
+    }
+
     fn validate_range(start: u64, end: u64) -> bool {
         start < end
     }
@@ -121,6 +128,7 @@ mod tests {
     use crate::impls::kvs::memory::CoreDbMemoryImpl;
     use crate::traits::db::DatabaseTrait;
     use crate::traits::rangestore::RangeStore;
+    use bytes::Bytes;
 
     #[test]
     fn test_get_same_range() {
@@ -160,6 +168,29 @@ mod tests {
         assert_eq!(result1[0].get_start(), 0);
         assert_eq!(result1[0].get_value(), b"Alice is owner");
         assert_eq!(result1.len(), 3);
+    }
+
+    #[test]
+    fn test_bucket() {
+        let base_db = CoreDbMemoryImpl::open("test");
+        let db = RangeDbImpl::from(base_db);
+        let bucket_name = Bytes::from("aaa");
+        assert_eq!(
+            db.bucket(&bucket_name)
+                .put(0, 100, b"Alice is owner")
+                .is_ok(),
+            true
+        );
+        assert_eq!(
+            db.bucket(&bucket_name)
+                .put(100, 200, b"Bob is owner")
+                .is_ok(),
+            true
+        );
+        let result1 = db.bucket(&bucket_name).get(100, 200).unwrap();
+        assert_eq!(result1.is_empty(), false);
+        assert_eq!(result1[0].get_start(), 100);
+        assert_eq!(result1[0].get_value(), b"Bob is owner");
     }
 
 }

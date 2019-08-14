@@ -39,7 +39,7 @@ impl DatabaseTrait for CoreDb {
     fn close(&self) {}
 }
 
-impl<'a> KeyValueStore for CoreDb {
+impl KeyValueStore for CoreDb {
     fn get(&self, key: &BaseDbKey) -> Result<Option<Vec<u8>>, Error> {
         let read_opts = ReadOptions::new();
         self.db
@@ -94,7 +94,7 @@ impl<'a> KeyValueStore for CoreDb {
         }
         result
     }
-    fn bucket(&self, prefix: &BaseDbKey) -> Bucket {
+    fn bucket<'a>(&'a self, prefix: &BaseDbKey) -> Bucket<'a> {
         Bucket::new(prefix.clone(), self)
     }
 }
