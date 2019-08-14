@@ -21,6 +21,7 @@ pub trait DecideMixin<KVS: KeyValueStore> {
         decider: &PropertyExecutor<KVS>,
         witness: Option<Witness>,
     ) -> Result<Decision, Error>;
+    fn check_decision(&self, decider: &PropertyExecutor<KVS>) -> Result<Decision, Error>;
 }
 
 impl<KVS> DecideMixin<KVS> for Property
@@ -33,6 +34,9 @@ where
         witness: Option<Witness>,
     ) -> Result<Decision, Error> {
         decider.decide(self, witness)
+    }
+    fn check_decision(&self, decider: &PropertyExecutor<KVS>) -> Result<Decision, Error> {
+        decider.check_decision(self)
     }
 }
 
@@ -83,6 +87,24 @@ where
             Property::SignedByDecider(input) => SignedByDecider::decide(self, input, witness),
             Property::HasLowerNonceDecider(input) => {
                 HasLowerNonceDecider::decide(self, input, witness)
+            }
+            _ => panic!("not implemented!!"),
+        }
+    }
+    pub fn check_decision(&self, property: &Property) -> Result<Decision, Error> {
+        match property {
+            Property::AndDecider(input) => AndDecider::check_decision(self, input),
+            Property::NotDecider(input) => NotDecider::check_decision(self, input),
+            Property::PreimageExistsDecider(input) => {
+                PreimageExistsDecider::check_decision(self, input)
+            }
+            Property::ForAllSuchThatDecider(input) => {
+                ForAllSuchThatDecider::check_decision(self, input)
+            }
+            Property::OrDecider(input) => OrDecider::check_decision(self, input),
+            Property::SignedByDecider(input) => SignedByDecider::check_decision(self, input),
+            Property::HasLowerNonceDecider(input) => {
+                HasLowerNonceDecider::check_decision(self, input)
             }
             _ => panic!("not implemented!!"),
         }

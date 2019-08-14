@@ -63,9 +63,8 @@ impl Decider for ForAllSuchThatDecider {
                 .map(|wf| wf.call(res.clone()));
             let _no_cache = false;
             let decision_result = prop.decide(
-                decider,
-                witness
-                //no_cache,
+                decider, witness,
+                // no_cache,
             );
             if let Ok(decision) = decision_result {
                 if !decision.get_outcome() {
