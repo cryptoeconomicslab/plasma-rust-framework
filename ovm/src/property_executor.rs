@@ -5,7 +5,8 @@ use crate::deciders::{
 };
 use crate::error::Error;
 use crate::quantifiers::{
-    IntegerRangeQuantifier, NonnegativeIntegerLessThanQuantifier, SignedByQuantifier,
+    BlockRangeQuantifier, IntegerRangeQuantifier, NonnegativeIntegerLessThanQuantifier,
+    SignedByQuantifier,
 };
 use crate::types::Decider;
 use crate::types::{Decision, Property, Quantifier, QuantifierResult, Witness};
@@ -94,10 +95,12 @@ where
             Quantifier::NonnegativeIntegerLessThanQuantifier(upper_bound) => {
                 NonnegativeIntegerLessThanQuantifier::get_all_quantified(*upper_bound)
             }
+            Quantifier::BlockRangeQuantifier(block_number, range) => {
+                BlockRangeQuantifier::get_all_quantified(self, *block_number, *range)
+            }
             Quantifier::SignedByQuantifier(signer) => {
                 SignedByQuantifier::get_all_quantified(self, *signer)
             }
-            _ => panic!("not implemented!!"),
         }
     }
 }

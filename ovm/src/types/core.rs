@@ -14,6 +14,7 @@ use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
 };
+use plasma_core::data_structure::Range;
 use plasma_db::traits::kvs::KeyValueStore;
 use std::sync::Arc;
 
@@ -77,8 +78,8 @@ pub enum Quantifier {
     NonnegativeIntegerLessThanQuantifier(Integer),
     // signer
     SignedByQuantifier(Address),
-    // blocknumber, start and end
-    IncludedCoinRangeQuantifier(Integer, Integer, Integer),
+    // blocknumber and range
+    BlockRangeQuantifier(Integer, Range),
 }
 
 impl Property {
