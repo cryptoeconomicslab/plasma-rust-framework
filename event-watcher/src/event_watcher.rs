@@ -1,5 +1,5 @@
 use super::event_db::EventDb;
-use ethabi::{decode, Error, Event, EventParam, ParamType, Token, Topic, TopicFilter};
+use ethabi::{decode, Error, ErrorKind, Event, EventParam, ParamType, Token, Topic, TopicFilter};
 use ethereum_types::{Address, H256};
 use futures::{Async, Future, Poll, Stream};
 use std::marker::Send;
@@ -68,14 +68,19 @@ where
             Ok(mut tokens) => {
                 // In order to `pop` in order from the first element, reverse the tokens.
                 tokens.reverse();
-                let decoded_params = event_params
+                event_params
                     .iter()
-                    .map(|ep| DecodedParam {
-                        event_param: ep.clone(),
-                        token: tokens.pop().unwrap(),
+                    .map(|ep| -> Result<DecodedParam, Error> {
+                        if let Some(token) = tokens.pop() {
+                            Ok(DecodedParam {
+                                event_param: ep.clone(),
+                                token,
+                            })
+                        } else {
+                            Err(ErrorKind::InvalidData.into())
+                        }
                     })
-                    .collect();
-                Ok(decoded_params)
+                    .collect()
             }
             Err(e) => Err(e),
         }
