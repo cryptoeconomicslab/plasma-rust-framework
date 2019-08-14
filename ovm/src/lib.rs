@@ -3,6 +3,7 @@ pub mod deciders;
 pub mod error;
 pub mod property_executor;
 pub mod quantifiers;
+pub mod statements;
 pub mod types;
 
 pub use self::property_executor::DecideMixin;
@@ -13,6 +14,7 @@ mod tests {
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::deciders::SignVerifier;
     use crate::property_executor::PropertyExecutor;
+    use crate::statements::create_plasma_property;
     use crate::types::{
         AndDeciderInput, Decision, ForAllSuchThatInput, HasLowerNonceInput, Integer,
         PreimageExistsInput, Property, PropertyFactory, Quantifier, QuantifierResultItem,
@@ -154,37 +156,12 @@ mod tests {
         assert_eq!(decided.get_outcome(), true);
     }
 
-    fn coin_range_property(block_number: Integer, range: Range) -> Property {
-        Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-            Quantifier::BlockRangeQuantifier(block_number, range),
-            PropertyFactory::new(Box::new(|item| {
-                if let QuantifierResultItem::Property(property) = item {
-                    property
-                } else {
-                    panic!("invalid type in PropertyFactory");
-                }
-            })),
-            None,
-        )))
-    }
-
     /// plasma
     #[test]
     fn test_fail_to_decide_plasma_checkpoint() {
         let block_number = Integer(10);
         let range = Range::new(0, 100);
-        let checkpoint_property =
-            Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-                Quantifier::NonnegativeIntegerLessThanQuantifier(block_number),
-                PropertyFactory::new(Box::new(move |item| {
-                    if let QuantifierResultItem::Integer(block_number) = item {
-                        coin_range_property(block_number, range)
-                    } else {
-                        panic!("invalid type in PropertyFactory");
-                    }
-                })),
-                None,
-            )));
+        let checkpoint_property = create_plasma_property(block_number, range);
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let result = decider.decide(&checkpoint_property, None);
         // faid to decide because no local decision
