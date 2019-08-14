@@ -1,0 +1,10 @@
+[package]
+name = "pubsub-db"
+version = "0.1.0"
+authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
+edition = "2018"
+
+[dependencies]
+failure = "0.1.5"
+plasma-db = { path = "../db" }
+ws = "*"

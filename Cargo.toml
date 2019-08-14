@@ -21,6 +21,7 @@ members = [
 	"operator",
 	"ovm",
 	"predicate-plugins",
+  "pubsub-db",
 	"event-watcher",
 	"merkle-interval-tree",
 	"wasm"
