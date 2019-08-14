@@ -44,13 +44,18 @@ impl AndDeciderInput {
 #[derive(Clone, Debug)]
 pub struct OrDeciderInput {
     left: Property,
-    left_witness: Bytes,
+    left_witness: Witness,
     right: Property,
-    right_witness: Bytes,
+    right_witness: Witness,
 }
 
 impl OrDeciderInput {
-    pub fn new(left: Property, left_witness: Bytes, right: Property, right_witness: Bytes) -> Self {
+    pub fn new(
+        left: Property,
+        left_witness: Witness,
+        right: Property,
+        right_witness: Witness,
+    ) -> Self {
         OrDeciderInput {
             left,
             left_witness,
@@ -64,10 +69,10 @@ impl OrDeciderInput {
     pub fn get_right(&self) -> &Property {
         &self.right
     }
-    pub fn get_left_witness(&self) -> &Bytes {
+    pub fn get_left_witness(&self) -> &Witness {
         &self.left_witness
     }
-    pub fn get_right_witness(&self) -> &Bytes {
+    pub fn get_right_witness(&self) -> &Witness {
         &self.right_witness
     }
 }

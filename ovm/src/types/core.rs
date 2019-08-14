@@ -1,7 +1,7 @@
 use super::inputs::{
     AndDeciderInput, ChannelUpdateSignatureExistsDeciderInput, ForAllSuchThatInput,
-    HasLowerNonceInput, IncludedInIntervalTreeAtBlockInput, NotDeciderInput, PreimageExistsInput,
-    SignedByInput,
+    HasLowerNonceInput, IncludedInIntervalTreeAtBlockInput, NotDeciderInput, OrDeciderInput,
+    PreimageExistsInput, SignedByInput,
 };
 use super::witness::Witness;
 use crate::db::Message;
