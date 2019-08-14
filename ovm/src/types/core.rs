@@ -134,12 +134,7 @@ impl Property {
                 ParamType::Bytes,
             ]
         } else {
-            vec![
-                ParamType::Bytes,
-                ParamType::Bytes,
-                ParamType::Bytes,
-                ParamType::Bytes,
-            ]
+            vec![ParamType::Bytes, ParamType::Bytes]
         }
     }
 }

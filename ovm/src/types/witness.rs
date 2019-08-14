@@ -16,7 +16,7 @@ pub struct PlasmaDataBlock {
 
 impl PlasmaDataBlock {
     pub fn get_updated_range(&self) -> Range {
-        self.updated_range.clone()
+        self.updated_range
     }
     pub fn get_property(&self) -> &Property {
         &self.property
