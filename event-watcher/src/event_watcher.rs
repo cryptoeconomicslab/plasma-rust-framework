@@ -52,7 +52,7 @@ where
 
     fn decode_params(&self, event: &Event, log: &RawLog) -> Result<Vec<DecodedParam>, Error> {
         let event_params = &event.inputs;
-        if event_params.len() == 0 {
+        if event_params.is_empty() {
             return Ok(vec![]);
         }
 
