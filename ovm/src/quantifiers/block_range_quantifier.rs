@@ -31,7 +31,11 @@ impl BlockRangeQuantifier {
             .bucket(&block_number.into())
             .get(range.get_start(), range.get_end())
             .unwrap();
-        let decision_values: Vec<Property> = result
+        let sum = result
+            .iter()
+            .fold(0, |acc, r| acc + r.get_end() - r.get_start());
+        let full_range_included: bool = sum == (range.get_end() - range.get_start());
+        let properties: Vec<Property> = result
             .iter()
             .map(|r| DecisionValue::from_abi(r.get_value()).unwrap())
             .map(|d| {
@@ -45,11 +49,11 @@ impl BlockRangeQuantifier {
             })
             .collect();
         QuantifierResult::new(
-            decision_values
+            properties
                 .iter()
                 .map(|p| QuantifierResultItem::Property(p.clone()))
                 .collect(),
-            true,
+            full_range_included,
         )
     }
 }

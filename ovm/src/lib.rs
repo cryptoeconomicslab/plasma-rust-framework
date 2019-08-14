@@ -21,6 +21,7 @@ mod tests {
     use bytes::Bytes;
     use ethereum_types::Address;
     use ethsign::SecretKey;
+    use plasma_core::data_structure::Range;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     ///
@@ -151,5 +152,42 @@ mod tests {
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided: Decision = decider.decide(&property, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
+    }
+
+    fn coin_range_property(block_number: Integer, range: Range) -> Property {
+        Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
+            Quantifier::BlockRangeQuantifier(block_number, range),
+            PropertyFactory::new(Box::new(|item| {
+                if let QuantifierResultItem::Property(property) = item {
+                    property
+                } else {
+                    panic!("invalid type in PropertyFactory");
+                }
+            })),
+            None,
+        )))
+    }
+
+    /// plasma
+    #[test]
+    fn test_fail_to_decide_plasma_checkpoint() {
+        let block_number = Integer(10);
+        let range = Range::new(0, 100);
+        let checkpoint_property =
+            Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
+                Quantifier::NonnegativeIntegerLessThanQuantifier(block_number),
+                PropertyFactory::new(Box::new(move |item| {
+                    if let QuantifierResultItem::Integer(block_number) = item {
+                        coin_range_property(block_number, range)
+                    } else {
+                        panic!("invalid type in PropertyFactory");
+                    }
+                })),
+                None,
+            )));
+        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let result = decider.decide(&checkpoint_property, None);
+        // faid to decide because no local decision
+        assert!(result.is_err());
     }
 }
