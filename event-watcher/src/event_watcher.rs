@@ -97,7 +97,7 @@ where
 
     fn poll(&mut self) -> Poll<Option<Vec<Log>>, ()> {
         try_ready!(self.interval.poll().map_err(|_| ()));
-        let mut all_entities: Vec<Log> = vec![];
+        let mut all_logs: Vec<Log> = vec![];
 
         for event in self.abi.iter() {
             let sig = event.signature();
@@ -118,23 +118,23 @@ where
 
             match self.web3.eth().logs(filter).wait().map_err(|e| e) {
                 Ok(v) => {
-                    let entities = self
+                    let logs = self
                         .filter_logs(event, v)
                         .iter()
-                        .map(|log| Log {
-                            log: log.clone(),
+                        .map(|raw_log| Log {
+                            log: raw_log.clone(),
                             event_signature: event.signature(),
-                            params: self.decode_params(event, log),
+                            params: self.decode_params(event, raw_log),
                         })
                         .collect::<Vec<Log>>();
 
-                    if let Some(last_entity) = entities.last() {
-                        if let Some(block_num) = last_entity.log.block_number {
+                    if let Some(last_log) = logs.last() {
+                        if let Some(block_num) = last_log.log.block_number {
                             self.db.set_last_logged_block(sig, block_num.low_u64());
                         };
                     };
 
-                    all_entities.extend_from_slice(&entities);
+                    all_logs.extend_from_slice(&logs);
                 }
                 Err(e) => {
                     println!("{}", e);
@@ -142,7 +142,7 @@ where
             };
         }
 
-        Ok(Async::Ready(Some(all_entities)))
+        Ok(Async::Ready(Some(all_logs)))
     }
 }
 
@@ -185,14 +185,14 @@ where
 
     fn poll(&mut self) -> Poll<(), Self::Error> {
         loop {
-            let entities = match try_ready!(self.stream.poll()) {
+            let logs = match try_ready!(self.stream.poll()) {
                 Some(value) => value,
                 None => continue,
             };
 
-            for entity in entities.iter() {
+            for log in logs.iter() {
                 for listener in self.listeners.iter() {
-                    listener(&entity);
+                    listener(&log);
                 }
             }
         }
