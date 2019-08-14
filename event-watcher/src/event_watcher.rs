@@ -5,7 +5,7 @@ use futures::{Async, Future, Poll, Stream};
 use std::marker::Send;
 use std::time::Duration;
 use tokio::timer::Interval;
-use web3::types::{BlockNumber, FilterBuilder, Log};
+use web3::types::{BlockNumber, FilterBuilder, Log as RawLog};
 use web3::{transports, Web3};
 
 pub struct EventFetcher<T>
@@ -33,7 +33,7 @@ where
         }
     }
 
-    fn filter_logs(&self, event: &Event, logs: Vec<Log>) -> Vec<Log> {
+    fn filter_logs(&self, event: &Event, logs: Vec<RawLog>) -> Vec<RawLog> {
         if let Some(last_logged_block) = self.db.get_last_logged_block(event.signature()) {
             logs.iter()
                 .filter(|&log| {
@@ -50,7 +50,7 @@ where
         }
     }
 
-    fn decode_params(&self, event: &Event, log: &Log) -> Vec<DecodedParam> {
+    fn decode_params(&self, event: &Event, log: &RawLog) -> Vec<DecodedParam> {
         let event_params = &event.inputs;
         let mut tokens = decode(
             &event_params
@@ -76,9 +76,9 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct LogEntity {
+pub struct Log {
+    pub log: RawLog,
     pub event_signature: H256,
-    pub log: Log,
     pub params: Vec<DecodedParam>,
 }
 
@@ -92,12 +92,12 @@ impl<T> Stream for EventFetcher<T>
 where
     T: EventDb,
 {
-    type Item = Vec<LogEntity>;
+    type Item = Vec<Log>;
     type Error = ();
 
-    fn poll(&mut self) -> Poll<Option<Vec<LogEntity>>, ()> {
+    fn poll(&mut self) -> Poll<Option<Vec<Log>>, ()> {
         try_ready!(self.interval.poll().map_err(|_| ()));
-        let mut all_entities: Vec<LogEntity> = vec![];
+        let mut all_entities: Vec<Log> = vec![];
 
         for event in self.abi.iter() {
             let sig = event.signature();
@@ -121,12 +121,12 @@ where
                     let entities = self
                         .filter_logs(event, v)
                         .iter()
-                        .map(|log| LogEntity {
-                            event_signature: event.signature(),
+                        .map(|log| Log {
                             log: log.clone(),
+                            event_signature: event.signature(),
                             params: self.decode_params(event, log),
                         })
-                        .collect::<Vec<LogEntity>>();
+                        .collect::<Vec<Log>>();
 
                     if let Some(last_entity) = entities.last() {
                         if let Some(block_num) = last_entity.log.block_number {
@@ -151,7 +151,7 @@ where
     T: EventDb,
 {
     stream: EventFetcher<T>,
-    listeners: Vec<Box<dyn Fn(&LogEntity) -> () + Send>>,
+    listeners: Vec<Box<dyn Fn(&Log) -> () + Send>>,
     _eloop: transports::EventLoopHandle,
 }
 
@@ -171,7 +171,7 @@ where
         }
     }
 
-    pub fn subscribe(&mut self, listener: Box<dyn Fn(&LogEntity) -> () + Send>) {
+    pub fn subscribe(&mut self, listener: Box<dyn Fn(&Log) -> () + Send>) {
         self.listeners.push(listener);
     }
 }
