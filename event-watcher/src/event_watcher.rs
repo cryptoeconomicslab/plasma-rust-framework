@@ -1,11 +1,11 @@
 use super::event_db::EventDb;
-use ethabi::{Event, Topic, TopicFilter};
-use ethereum_types::Address;
+use ethabi::{decode, Error, ErrorKind, Event, EventParam, ParamType, Token, Topic, TopicFilter};
+use ethereum_types::{Address, H256};
 use futures::{Async, Future, Poll, Stream};
 use std::marker::Send;
 use std::time::Duration;
 use tokio::timer::Interval;
-use web3::types::{BlockNumber, FilterBuilder, Log};
+use web3::types::{BlockNumber, FilterBuilder, Log as RawLog};
 use web3::{transports, Web3};
 
 pub struct EventFetcher<T>
@@ -33,7 +33,7 @@ where
         }
     }
 
-    fn filter_logs(&self, event: &Event, logs: Vec<Log>) -> Vec<Log> {
+    fn filter_logs(&self, event: &Event, logs: Vec<RawLog>) -> Vec<RawLog> {
         if let Some(last_logged_block) = self.db.get_last_logged_block(event.signature()) {
             logs.iter()
                 .filter(|&log| {
@@ -49,6 +49,55 @@ where
             logs.clone()
         }
     }
+
+    fn decode_params(&self, event: &Event, log: &RawLog) -> Result<Vec<DecodedParam>, Error> {
+        let event_params = &event.inputs;
+        if event_params.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let result = decode(
+            &event_params
+                .iter()
+                .map(|event_param| event_param.kind.clone())
+                .collect::<Vec<ParamType>>(),
+            &log.data.0,
+        );
+
+        match result {
+            Ok(mut tokens) => {
+                // In order to `pop` in order from the first element, reverse the tokens.
+                tokens.reverse();
+                event_params
+                    .iter()
+                    .map(|ep| -> Result<DecodedParam, Error> {
+                        if let Some(token) = tokens.pop() {
+                            Ok(DecodedParam {
+                                event_param: ep.clone(),
+                                token,
+                            })
+                        } else {
+                            Err(ErrorKind::InvalidData.into())
+                        }
+                    })
+                    .collect()
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Log {
+    pub log: RawLog,
+    pub event_signature: H256,
+    pub params: Vec<DecodedParam>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DecodedParam {
+    pub event_param: EventParam,
+    pub token: Token,
 }
 
 impl<T> Stream for EventFetcher<T>
@@ -60,7 +109,7 @@ where
 
     fn poll(&mut self) -> Poll<Option<Vec<Log>>, ()> {
         try_ready!(self.interval.poll().map_err(|_| ()));
-        let mut all_logs: Vec<web3::types::Log> = vec![];
+        let mut all_logs: Vec<Log> = vec![];
 
         for event in self.abi.iter() {
             let sig = event.signature();
@@ -81,14 +130,35 @@ where
 
             match self.web3.eth().logs(filter).wait().map_err(|e| e) {
                 Ok(v) => {
-                    let newer_logs = self.filter_logs(event, v);
-                    if let Some(last_log) = newer_logs.last() {
-                        if let Some(block_num) = last_log.block_number {
-                            self.db.set_last_logged_block(sig, block_num.low_u64());
-                        };
-                    };
+                    let decoded: Result<Vec<Log>, Error> = self
+                        .filter_logs(event, v)
+                        .iter()
+                        .map(|raw_log| -> Result<Log, Error> {
+                            match self.decode_params(event, raw_log) {
+                                Ok(decoded_params) => Ok(Log {
+                                    log: raw_log.clone(),
+                                    event_signature: event.signature(),
+                                    params: decoded_params,
+                                }),
+                                Err(e) => Err(e),
+                            }
+                        })
+                        .collect();
 
-                    all_logs.extend_from_slice(&newer_logs);
+                    match decoded {
+                        Ok(logs) => {
+                            if let Some(last_log) = logs.last() {
+                                if let Some(block_num) = last_log.log.block_number {
+                                    self.db.set_last_logged_block(sig, block_num.low_u64());
+                                };
+                            };
+
+                            all_logs.extend_from_slice(&logs);
+                        }
+                        Err(e) => {
+                            println!("{}", e);
+                        }
+                    }
                 }
                 Err(e) => {
                     println!("{}", e);
@@ -146,7 +216,7 @@ where
 
             for log in logs.iter() {
                 for listener in self.listeners.iter() {
-                    listener(log);
+                    listener(&log);
                 }
             }
         }

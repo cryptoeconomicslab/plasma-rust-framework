@@ -32,7 +32,16 @@ fn main() {
     let mut watcher = EventWatcher::new("http://localhost:9545", address, abi, db);
 
     watcher.subscribe(Box::new(|log| {
-        println!("{:?}", log);
+        println!("event > {:?}", log.event_signature);
+        // event > 0x90890809c654f11d6e72a28fa60149770a0d11ec6c92319d6ceb2bb0a4ea1a15
+
+        let decoded_param = log.params.first().unwrap();
+        println!(
+            "param > {:?}: {:?}",
+            decoded_param.event_param.name,
+            decoded_param.token.clone().to_uint().unwrap()
+        );
+        // param > "value": 22469980537774239738630940880827529904616858526135975343779764542717423171395
     }));
 
     tokio::run(future::lazy(|| {
