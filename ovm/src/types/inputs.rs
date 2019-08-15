@@ -80,7 +80,7 @@ impl OrDeciderInput {
     }
 }
 
-#[derive(Clone, Debug, AbiEncodable)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct NotDeciderInput {
     property: Property,
     witness: Witness,
@@ -98,18 +98,21 @@ impl NotDeciderInput {
     }
 }
 
-#[derive(Clone, Debug)]
+#[allow(unused_attributes)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct ForAllSuchThatInput {
     quantifier: Quantifier,
     // PropertyFactory and WitnessFactory isn't serializable. Clients don't send these to smart contract directly
-    property_factory: PropertyFactory,
+    #[ignore]
+    property_factory: Option<PropertyFactory>,
+    #[ignore]
     witness_factory: Option<WitnessFactory>,
 }
 
 impl ForAllSuchThatInput {
     pub fn new(
         quantifier: Quantifier,
-        property_factory: PropertyFactory,
+        property_factory: Option<PropertyFactory>,
         witness_factory: Option<WitnessFactory>,
     ) -> Self {
         ForAllSuchThatInput {
@@ -121,7 +124,7 @@ impl ForAllSuchThatInput {
     pub fn get_quantifier(&self) -> &Quantifier {
         &self.quantifier
     }
-    pub fn get_property_factory(&self) -> &PropertyFactory {
+    pub fn get_property_factory(&self) -> &Option<PropertyFactory> {
         &self.property_factory
     }
     pub fn get_witness_factory(&self) -> &Option<WitnessFactory> {
@@ -129,7 +132,7 @@ impl ForAllSuchThatInput {
     }
 }
 
-#[derive(Clone, Debug, AbiEncodable)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct PreimageExistsInput {
     hash: H256,
 }
@@ -143,7 +146,7 @@ impl PreimageExistsInput {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct SignedByInput {
     message: Bytes,
     public_key: Address,
@@ -167,7 +170,7 @@ impl SignedByInput {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct IncludedInIntervalTreeAtBlockInput {
     block_number: Integer,
     coin_range: Range,
@@ -188,7 +191,7 @@ impl IncludedInIntervalTreeAtBlockInput {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct HasLowerNonceInput {
     message: Message,
     nonce: Integer,
@@ -206,7 +209,7 @@ impl HasLowerNonceInput {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct ChannelUpdateSignatureExistsDeciderInput {
     pub channel_id: Bytes,
     pub nonce: Integer,
@@ -221,4 +224,30 @@ impl ChannelUpdateSignatureExistsDeciderInput {
             particilant,
         }
     }
+}
+
+pub type IntegerRangeQuantifierInput = Range;
+pub type BlockRangeQuantifierInput = IncludedInIntervalTreeAtBlockInput;
+
+#[cfg(test)]
+mod tests {
+
+    use super::ChannelUpdateSignatureExistsDeciderInput;
+    use crate::types::Integer;
+    use bytes::Bytes;
+    use ethereum_types::Address;
+    use plasma_core::data_structure::abi::{Decodable, Encodable};
+
+    #[test]
+    fn test_channel_update_signature_exists_decider_input() {
+        let input = ChannelUpdateSignatureExistsDeciderInput::new(
+            Bytes::from(&b"parameters"[..]),
+            Integer(10),
+            Address::zero(),
+        );
+        let encoded = input.to_abi();
+        let decoded = ChannelUpdateSignatureExistsDeciderInput::from_abi(&encoded).unwrap();
+        assert_eq!(decoded.channel_id, input.channel_id);
+    }
+
 }

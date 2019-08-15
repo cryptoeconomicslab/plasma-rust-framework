@@ -111,14 +111,14 @@ where
     }
     pub fn get_all_quantified(&self, quantifier: &Quantifier) -> QuantifierResult {
         match quantifier {
-            Quantifier::IntegerRangeQuantifier(start, end) => {
-                IntegerRangeQuantifier::get_all_quantified(*start, *end)
+            Quantifier::IntegerRangeQuantifier(input) => {
+                IntegerRangeQuantifier::get_all_quantified(*input)
             }
             Quantifier::NonnegativeIntegerLessThanQuantifier(upper_bound) => {
                 NonnegativeIntegerLessThanQuantifier::get_all_quantified(*upper_bound)
             }
-            Quantifier::BlockRangeQuantifier(block_number, range) => {
-                BlockRangeQuantifier::get_all_quantified(self, *block_number, *range)
+            Quantifier::BlockRangeQuantifier(input) => {
+                BlockRangeQuantifier::get_all_quantified(self, input)
             }
             Quantifier::SignedByQuantifier(signer) => {
                 SignedByQuantifier::get_all_quantified(self, *signer)

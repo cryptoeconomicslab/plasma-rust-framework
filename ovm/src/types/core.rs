@@ -1,20 +1,20 @@
 use super::inputs::{
-    AndDeciderInput, ChannelUpdateSignatureExistsDeciderInput, ForAllSuchThatInput,
-    HasLowerNonceInput, IncludedInIntervalTreeAtBlockInput, NotDeciderInput, OrDeciderInput,
-    PreimageExistsInput, SignedByInput,
+    AndDeciderInput, BlockRangeQuantifierInput, ChannelUpdateSignatureExistsDeciderInput,
+    ForAllSuchThatInput, HasLowerNonceInput, IncludedInIntervalTreeAtBlockInput,
+    IntegerRangeQuantifierInput, NotDeciderInput, OrDeciderInput, PreimageExistsInput,
+    SignedByInput,
 };
 use super::witness::Witness;
 use crate::db::Message;
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 use ethabi::{ParamType, Token};
 use ethereum_types::Address;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
 };
-use plasma_core::data_structure::Range;
 use plasma_db::traits::kvs::KeyValueStore;
 use std::sync::Arc;
 
@@ -39,12 +39,10 @@ impl From<Integer> for Bytes {
     }
 }
 
-impl Encodable for Integer {
-    fn to_abi(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple())
-    }
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![Token::Uint(self.0.into())]
+impl From<Bytes> for Integer {
+    fn from(bytes: Bytes) -> Self {
+        let mut buf = std::io::Cursor::new(bytes.to_vec());
+        Integer(buf.get_u64_le())
     }
 }
 
@@ -83,13 +81,13 @@ pub enum Property {
 #[derive(Clone, Debug)]
 pub enum Quantifier {
     // start to end
-    IntegerRangeQuantifier(Integer, Integer),
+    IntegerRangeQuantifier(IntegerRangeQuantifierInput),
     // 0 to upperBound
     NonnegativeIntegerLessThanQuantifier(Integer),
     // signer
     SignedByQuantifier(Address),
     // blocknumber and range
-    BlockRangeQuantifier(Integer, Range),
+    BlockRangeQuantifier(BlockRangeQuantifierInput),
 }
 
 impl Property {
@@ -145,32 +143,72 @@ impl Decodable for Property {
     }
 }
 
+impl Quantifier {
+    pub fn get_id(&self) -> u64 {
+        match self {
+            Quantifier::IntegerRangeQuantifier(_) => 0,
+            Quantifier::NonnegativeIntegerLessThanQuantifier(_) => 1,
+            Quantifier::SignedByQuantifier(_) => 2,
+            Quantifier::BlockRangeQuantifier(_) => 3,
+        }
+    }
+    pub fn to_bytes(&self) -> Vec<u8> {
+        match self {
+            Quantifier::IntegerRangeQuantifier(input) => input.to_abi(),
+            Quantifier::NonnegativeIntegerLessThanQuantifier(input) => Bytes::from(*input).to_vec(),
+            Quantifier::SignedByQuantifier(input) => input.as_bytes().to_vec(),
+            Quantifier::BlockRangeQuantifier(input) => input.to_abi(),
+        }
+    }
+    fn from_bytes(id: u64, data: &[u8]) -> Result<Self, PlasmaCoreError> {
+        if id == 0 {
+            IntegerRangeQuantifierInput::from_abi(data).map(Quantifier::IntegerRangeQuantifier)
+        } else if id == 1 {
+            Ok(Quantifier::NonnegativeIntegerLessThanQuantifier(
+                Integer::from(Bytes::from(data)),
+            ))
+        } else if id == 2 {
+            Ok(Quantifier::SignedByQuantifier(Address::from_slice(data)))
+        } else if id == 3 {
+            BlockRangeQuantifierInput::from_abi(data).map(Quantifier::BlockRangeQuantifier)
+        } else {
+            panic!("unknown decider")
+        }
+    }
+}
+
+impl Encodable for Quantifier {
+    fn to_tuple(&self) -> Vec<Token> {
+        vec![
+            Token::Uint(self.get_id().into()),
+            Token::Bytes(self.to_bytes()),
+        ]
+    }
+}
+
+impl Decodable for Quantifier {
+    type Ok = Quantifier;
+    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
+        let id = tuple[0].clone().to_uint();
+        let input_data = tuple[1].clone().to_bytes();
+        if let (Some(id), Some(input_data)) = (id, input_data) {
+            Ok(Quantifier::from_bytes(id.as_u64(), &input_data).unwrap())
+        } else {
+            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
+        }
+    }
+    fn from_abi(data: &[u8]) -> Result<Self, PlasmaCoreError> {
+        let decoded = ethabi::decode(&[ParamType::Uint(256), ParamType::Bytes], data)
+            .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
+        Self::from_tuple(&decoded)
+    }
+}
+
 impl From<Property> for Token {
     fn from(property: Property) -> Token {
         Token::Tuple(property.to_tuple())
     }
 }
-
-/*
-We don't define decoder for Property now
-impl Decodable for Property {
-    type Ok = Property;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
-        let decider = tuple[0].clone().to_address();
-        let input = tuple[1].clone().to_bytes();
-        if let (Some(decider), Some(input)) = (decider, input) {
-            Ok(Property::new(decider, Bytes::from(input)))
-        } else {
-            Err(Error::from(ErrorKind::AbiDecode))
-        }
-    }
-    fn from_abi(data: &[u8]) -> Result<Self, Error> {
-        let decoded = ethabi::decode(&[ParamType::Address, ParamType::Bytes], data)
-            .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
-    }
-}
-*/
 
 /// Implication proof element has the property which is decided by Decider
 #[derive(Clone, Debug)]

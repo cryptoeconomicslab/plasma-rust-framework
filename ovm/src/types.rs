@@ -9,8 +9,9 @@ pub use self::core::{
 };
 pub use self::decision_value::DecisionValue;
 pub use self::inputs::{
-    AndDeciderInput, ChannelUpdateSignatureExistsDeciderInput, ForAllSuchThatInput,
-    HasLowerNonceInput, IncludedInIntervalTreeAtBlockInput, NotDeciderInput, OrDeciderInput,
-    PreimageExistsInput, SignedByInput,
+    AndDeciderInput, BlockRangeQuantifierInput, ChannelUpdateSignatureExistsDeciderInput,
+    ForAllSuchThatInput, HasLowerNonceInput, IncludedInIntervalTreeAtBlockInput,
+    IntegerRangeQuantifierInput, NotDeciderInput, OrDeciderInput, PreimageExistsInput,
+    SignedByInput,
 };
 pub use self::witness::{PlasmaDataBlock, Witness};
