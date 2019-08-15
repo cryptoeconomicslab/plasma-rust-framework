@@ -2,7 +2,12 @@ use super::core::{Integer, Property, PropertyFactory, Quantifier, WitnessFactory
 use super::witness::Witness;
 use crate::db::Message;
 use bytes::Bytes;
+use ethabi::{ParamType, Token};
 use ethereum_types::{Address, H256};
+use plasma_core::data_structure::abi::{Decodable, Encodable};
+use plasma_core::data_structure::error::{
+    Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
+};
 use plasma_core::data_structure::Range;
 
 #[derive(Clone, Debug)]
@@ -38,6 +43,52 @@ impl AndDeciderInput {
     }
     pub fn get_right_witness(&self) -> &Witness {
         &self.right_witness
+    }
+}
+
+impl Encodable for AndDeciderInput {
+    fn to_tuple(&self) -> Vec<Token> {
+        vec![
+            Token::Tuple(self.get_left().to_tuple()),
+            Token::Tuple(self.get_left_witness().to_tuple()),
+            Token::Tuple(self.get_right().to_tuple()),
+            Token::Tuple(self.get_right_witness().to_tuple()),
+        ]
+    }
+}
+
+impl Decodable for AndDeciderInput {
+    type Ok = AndDeciderInput;
+    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
+        let left = tuple[0].clone().to_bytes();
+        let left_witness = tuple[1].clone().to_bytes();
+        let right = tuple[2].clone().to_bytes();
+        let right_witness = tuple[3].clone().to_bytes();
+        if let (Some(left), Some(left_witness), Some(right), Some(right_witness)) =
+            (left, left_witness, right, right_witness)
+        {
+            Ok(AndDeciderInput::new(
+                Property::from_abi(&left).unwrap(),
+                Witness::from_abi(&left_witness).unwrap(),
+                Property::from_abi(&right).unwrap(),
+                Witness::from_abi(&right_witness).unwrap(),
+            ))
+        } else {
+            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
+        }
+    }
+    fn from_abi(data: &[u8]) -> Result<Self, PlasmaCoreError> {
+        let decoded = ethabi::decode(
+            &[
+                ParamType::Bytes,
+                ParamType::Bytes,
+                ParamType::Bytes,
+                ParamType::Bytes,
+            ],
+            data,
+        )
+        .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
+        Self::from_tuple(&decoded)
     }
 }
 

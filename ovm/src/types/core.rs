@@ -89,65 +89,26 @@ impl Property {
             _ => Address::zero(),
         }
     }
-    pub fn to_abi_part(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple_part())
-    }
-    pub fn to_tuple_part(&self) -> Vec<Token> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         match self {
-            Property::AndDecider(input) => vec![
-                Token::Tuple(input.get_left().to_tuple()),
-                Token::Tuple(input.get_left_witness().to_tuple()),
-                Token::Tuple(input.get_right().to_tuple()),
-                Token::Tuple(input.get_right_witness().to_tuple()),
-            ],
-            _ => vec![Token::Address(self.get_decider_id())],
+            Property::AndDecider(input) => input.to_abi(),
+            _ => panic!("unknown decider"),
         }
     }
-    fn from_tuple_part(_decider_id: Address, tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
-        let left = tuple[0].clone().to_bytes();
-        let left_witness = tuple[1].clone().to_bytes();
-        let right = tuple[2].clone().to_bytes();
-        let right_witness = tuple[3].clone().to_bytes();
-        if let (Some(left), Some(left_witness), Some(right), Some(right_witness)) =
-            (left, left_witness, right, right_witness)
-        {
-            Ok(Property::AndDecider(Box::new(AndDeciderInput::new(
-                Property::from_abi(&left).unwrap(),
-                Witness::from_abi(&left_witness).unwrap(),
-                Property::from_abi(&right).unwrap(),
-                Witness::from_abi(&right_witness).unwrap(),
-            ))))
-        } else {
-            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
-        }
-    }
-    fn from_abi_part(decider_id: Address, data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        let decoded = ethabi::decode(&Self::get_param_types(decider_id), data)
-            .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
-        Self::from_tuple_part(decider_id, &decoded)
-    }
-    fn get_param_types(decider_id: Address) -> Vec<ParamType> {
+    fn from_bytes(decider_id: Address, data: &[u8]) -> Result<Self, PlasmaCoreError> {
         if decider_id == Address::zero() {
-            vec![
-                ParamType::Bytes,
-                ParamType::Bytes,
-                ParamType::Bytes,
-                ParamType::Bytes,
-            ]
+            AndDeciderInput::from_abi(data).map(|input| Property::AndDecider(Box::new(input)))
         } else {
-            vec![ParamType::Bytes, ParamType::Bytes]
+            panic!("unknown decider")
         }
     }
 }
 
 impl Encodable for Property {
-    fn to_abi(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple())
-    }
     fn to_tuple(&self) -> Vec<Token> {
         vec![
             Token::Address(self.get_decider_id()),
-            Token::Bytes(self.to_abi_part()),
+            Token::Bytes(self.to_bytes()),
         ]
     }
 }
@@ -158,7 +119,7 @@ impl Decodable for Property {
         let decider_id = tuple[0].clone().to_address();
         let input_data = tuple[1].clone().to_bytes();
         if let (Some(decider_id), Some(input_data)) = (decider_id, input_data) {
-            Ok(Property::from_abi_part(decider_id, &input_data).unwrap())
+            Ok(Property::from_bytes(decider_id, &input_data).unwrap())
         } else {
             Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
         }
