@@ -1,21 +1,26 @@
 use super::inputs::{
     AndDeciderInput, ChannelUpdateSignatureExistsDeciderInput, ForAllSuchThatInput,
-    HasLowerNonceInput, NotDeciderInput, OrDeciderInput, PreimageExistsInput, SignedByInput,
+    HasLowerNonceInput, IncludedInIntervalTreeAtBlockInput, NotDeciderInput, OrDeciderInput,
+    PreimageExistsInput, SignedByInput,
 };
+use super::witness::Witness;
 use crate::db::Message;
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
 use bytes::{BufMut, Bytes, BytesMut};
-use ethabi::Token;
+use ethabi::{ParamType, Token};
 use ethereum_types::Address;
-use plasma_core::data_structure::abi::Encodable;
+use plasma_core::data_structure::abi::{Decodable, Encodable};
+use plasma_core::data_structure::error::{
+    Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
+};
+use plasma_core::data_structure::Range;
 use plasma_db::traits::kvs::KeyValueStore;
 use std::sync::Arc;
 
 pub type DeciderId = Address;
 pub type QuantifierId = Address;
 pub trait Input {}
-pub trait Witness {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd)]
 pub struct Integer(pub u64);
@@ -43,6 +48,16 @@ impl Encodable for Integer {
     }
 }
 
+lazy_static! {
+    static ref DECIDER_LIST: Vec<Address> = {
+        let mut list = vec![];
+        for _ in 0..10 {
+            list.push(Address::random())
+        }
+        list
+    };
+}
+
 /// The property which will be decided by Decider
 #[derive(Clone, Debug)]
 pub enum Property {
@@ -62,6 +77,7 @@ pub enum Property {
     HasLowerNonceDecider(HasLowerNonceInput),
     // channelId, nonce, participant
     ChannelUpdateSignatureExistsDecider(ChannelUpdateSignatureExistsDeciderInput),
+    IncludedInIntervalTreeAtBlockDecider(IncludedInIntervalTreeAtBlockInput),
 }
 
 #[derive(Clone, Debug)]
@@ -72,34 +88,56 @@ pub enum Quantifier {
     NonnegativeIntegerLessThanQuantifier(Integer),
     // signer
     SignedByQuantifier(Address),
-    // blocknumber, start and end
-    IncludedCoinRangeQuantifier(Integer, Integer, Integer),
+    // blocknumber and range
+    BlockRangeQuantifier(Integer, Range),
 }
 
 impl Property {
     pub fn get_decider_id(&self) -> DeciderId {
         match self {
-            Property::AndDecider(_) => Address::zero(),
+            Property::AndDecider(_) => DECIDER_LIST[0],
             _ => Address::zero(),
+        }
+    }
+    pub fn to_bytes(&self) -> Vec<u8> {
+        match self {
+            Property::AndDecider(input) => input.to_abi(),
+            _ => panic!("unknown decider"),
+        }
+    }
+    fn from_bytes(decider_id: Address, data: &[u8]) -> Result<Self, PlasmaCoreError> {
+        if decider_id == DECIDER_LIST[0] {
+            AndDeciderInput::from_abi(data).map(|input| Property::AndDecider(Box::new(input)))
+        } else {
+            panic!("unknown decider")
         }
     }
 }
 
 impl Encodable for Property {
-    fn to_abi(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple())
-    }
     fn to_tuple(&self) -> Vec<Token> {
-        match self {
-            Property::AndDecider(input) => vec![
-                Token::Address(self.get_decider_id()),
-                Token::Tuple(input.get_left().to_tuple()),
-                Token::Bytes(input.get_left_witness().to_vec()),
-                Token::Tuple(input.get_right().to_tuple()),
-                Token::Bytes(input.get_right_witness().to_vec()),
-            ],
-            _ => vec![Token::Address(self.get_decider_id())],
+        vec![
+            Token::Address(self.get_decider_id()),
+            Token::Bytes(self.to_bytes()),
+        ]
+    }
+}
+
+impl Decodable for Property {
+    type Ok = Property;
+    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
+        let decider_id = tuple[0].clone().to_address();
+        let input_data = tuple[1].clone().to_bytes();
+        if let (Some(decider_id), Some(input_data)) = (decider_id, input_data) {
+            Ok(Property::from_bytes(decider_id, &input_data).unwrap())
+        } else {
+            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
         }
+    }
+    fn from_abi(data: &[u8]) -> Result<Self, PlasmaCoreError> {
+        let decoded = ethabi::decode(&[ParamType::Address, ParamType::Bytes], data)
+            .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
+        Self::from_tuple(&decoded)
     }
 }
 
@@ -134,11 +172,11 @@ impl Decodable for Property {
 #[derive(Clone, Debug)]
 pub struct ImplicationProofElement {
     implication: Property,
-    implication_witness: Option<Bytes>,
+    implication_witness: Option<Witness>,
 }
 
 impl ImplicationProofElement {
-    pub fn new(implication: Property, implication_witness: Option<Bytes>) -> Self {
+    pub fn new(implication: Property, implication_witness: Option<Witness>) -> Self {
         ImplicationProofElement {
             implication,
             implication_witness,
@@ -151,7 +189,7 @@ impl From<ImplicationProofElement> for Token {
         Token::Tuple(vec![
             element.implication.into(),
             Token::Bytes(match element.implication_witness {
-                Some(v) => v.to_vec(),
+                Some(v) => v.to_abi(),
                 None => vec![],
             }),
         ])
@@ -199,13 +237,13 @@ impl std::fmt::Debug for PropertyFactory {
 }
 
 #[derive(Clone)]
-pub struct WitnessFactory(Arc<dyn Fn(QuantifierResultItem) -> Bytes>);
+pub struct WitnessFactory(Arc<dyn Fn(QuantifierResultItem) -> Witness>);
 
 impl WitnessFactory {
-    pub fn new(handler: Box<dyn Fn(QuantifierResultItem) -> Bytes>) -> Self {
+    pub fn new(handler: Box<dyn Fn(QuantifierResultItem) -> Witness>) -> Self {
         WitnessFactory(Arc::new(handler))
     }
-    pub fn call(&self, item: QuantifierResultItem) -> Bytes {
+    pub fn call(&self, item: QuantifierResultItem) -> Witness {
         self.0(item)
     }
 }
@@ -221,7 +259,7 @@ pub trait Decider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &Self::Input,
-        witness: Option<Bytes>,
+        witness: Option<Witness>,
     ) -> Result<Decision, Error>;
     fn check_decision<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,

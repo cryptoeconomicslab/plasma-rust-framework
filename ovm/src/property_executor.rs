@@ -5,11 +5,11 @@ use crate::deciders::{
 };
 use crate::error::Error;
 use crate::quantifiers::{
-    IntegerRangeQuantifier, NonnegativeIntegerLessThanQuantifier, SignedByQuantifier,
+    BlockRangeQuantifier, IntegerRangeQuantifier, NonnegativeIntegerLessThanQuantifier,
+    SignedByQuantifier,
 };
 use crate::types::Decider;
-use crate::types::{Decision, Property, Quantifier, QuantifierResult};
-use bytes::Bytes;
+use crate::types::{Decision, Property, Quantifier, QuantifierResult, Witness};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
@@ -19,8 +19,9 @@ pub trait DecideMixin<KVS: KeyValueStore> {
     fn decide(
         &self,
         decider: &PropertyExecutor<KVS>,
-        witness: Option<Bytes>,
+        witness: Option<Witness>,
     ) -> Result<Decision, Error>;
+    fn check_decision(&self, decider: &PropertyExecutor<KVS>) -> Result<Decision, Error>;
 }
 
 impl<KVS> DecideMixin<KVS> for Property
@@ -30,9 +31,12 @@ where
     fn decide(
         &self,
         decider: &PropertyExecutor<KVS>,
-        witness: Option<Bytes>,
+        witness: Option<Witness>,
     ) -> Result<Decision, Error> {
         decider.decide(self, witness)
+    }
+    fn check_decision(&self, decider: &PropertyExecutor<KVS>) -> Result<Decision, Error> {
+        decider.check_decision(self)
     }
 }
 
@@ -69,7 +73,7 @@ where
     pub fn get_range_db(&self) -> &RangeDbImpl<KVS> {
         &self.range_db
     }
-    pub fn decide(&self, property: &Property, witness: Option<Bytes>) -> Result<Decision, Error> {
+    pub fn decide(&self, property: &Property, witness: Option<Witness>) -> Result<Decision, Error> {
         match property {
             Property::AndDecider(input) => AndDecider::decide(self, input, witness),
             Property::NotDecider(input) => NotDecider::decide(self, input, witness),
@@ -87,6 +91,24 @@ where
             _ => panic!("not implemented!!"),
         }
     }
+    pub fn check_decision(&self, property: &Property) -> Result<Decision, Error> {
+        match property {
+            Property::AndDecider(input) => AndDecider::check_decision(self, input),
+            Property::NotDecider(input) => NotDecider::check_decision(self, input),
+            Property::PreimageExistsDecider(input) => {
+                PreimageExistsDecider::check_decision(self, input)
+            }
+            Property::ForAllSuchThatDecider(input) => {
+                ForAllSuchThatDecider::check_decision(self, input)
+            }
+            Property::OrDecider(input) => OrDecider::check_decision(self, input),
+            Property::SignedByDecider(input) => SignedByDecider::check_decision(self, input),
+            Property::HasLowerNonceDecider(input) => {
+                HasLowerNonceDecider::check_decision(self, input)
+            }
+            _ => panic!("not implemented!!"),
+        }
+    }
     pub fn get_all_quantified(&self, quantifier: &Quantifier) -> QuantifierResult {
         match quantifier {
             Quantifier::IntegerRangeQuantifier(start, end) => {
@@ -95,10 +117,12 @@ where
             Quantifier::NonnegativeIntegerLessThanQuantifier(upper_bound) => {
                 NonnegativeIntegerLessThanQuantifier::get_all_quantified(*upper_bound)
             }
+            Quantifier::BlockRangeQuantifier(block_number, range) => {
+                BlockRangeQuantifier::get_all_quantified(self, *block_number, *range)
+            }
             Quantifier::SignedByQuantifier(signer) => {
                 SignedByQuantifier::get_all_quantified(self, *signer)
             }
-            _ => panic!("not implemented!!"),
         }
     }
 }

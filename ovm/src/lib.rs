@@ -1,8 +1,12 @@
+#[macro_use]
+extern crate lazy_static;
+
 pub mod db;
 pub mod deciders;
 pub mod error;
 pub mod property_executor;
 pub mod quantifiers;
+pub mod statements;
 pub mod types;
 
 pub use self::property_executor::DecideMixin;
@@ -13,14 +17,16 @@ mod tests {
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::deciders::SignVerifier;
     use crate::property_executor::PropertyExecutor;
+    use crate::statements::create_plasma_property;
     use crate::types::{
         AndDeciderInput, Decision, ForAllSuchThatInput, HasLowerNonceInput, Integer,
         PreimageExistsInput, Property, PropertyFactory, Quantifier, QuantifierResultItem,
-        SignedByInput, WitnessFactory,
+        SignedByInput, Witness, WitnessFactory,
     };
     use bytes::Bytes;
     use ethereum_types::Address;
     use ethsign::SecretKey;
+    use plasma_core::data_structure::Range;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     ///
@@ -45,7 +51,7 @@ mod tests {
             })),
             Some(WitnessFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
-                    number.into()
+                    Witness::Bytes(number.into())
                 } else {
                     panic!("invalid type in PropertyFactory");
                 }
@@ -71,7 +77,7 @@ mod tests {
                 }
             })),
             Some(WitnessFactory::new(Box::new(|_item| {
-                Bytes::from(&b"aaa"[..])
+                Witness::Bytes(Bytes::from(&b"aaa"[..]))
             }))),
         )));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
@@ -101,7 +107,7 @@ mod tests {
             })),
             Some(WitnessFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
-                    number.into()
+                    Witness::Bytes(number.into())
                 } else {
                     panic!("invalid type in PropertyFactory");
                 }
@@ -143,13 +149,25 @@ mod tests {
             Property::SignedByDecider(SignedByInput::new(Bytes::from("state_update"), bob));
         let property = Property::AndDecider(Box::new(AndDeciderInput::new(
             left_property,
-            Bytes::from(""),
+            Witness::Bytes("".into()),
             right_property,
-            signature,
+            Witness::Bytes(signature),
         )));
 
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided: Decision = decider.decide(&property, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
+    }
+
+    /// plasma
+    #[test]
+    fn test_fail_to_decide_plasma_checkpoint() {
+        let block_number = Integer(10);
+        let range = Range::new(0, 100);
+        let checkpoint_property = create_plasma_property(block_number, range);
+        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let result = decider.decide(&checkpoint_property, None);
+        // faid to decide because no local decision
+        assert!(result.is_err());
     }
 }

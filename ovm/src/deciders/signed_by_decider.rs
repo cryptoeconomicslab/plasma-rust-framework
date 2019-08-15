@@ -1,14 +1,12 @@
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, Property, SignedByInput};
+use crate::types::{
+    Decider, Decision, DecisionValue, ImplicationProofElement, Property, SignedByInput, Witness,
+};
 use bytes::Bytes;
-use ethabi::{ParamType, Token};
 use ethereum_types::{Address, H256};
 use ethsign::{SecretKey, Signature};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
-use plasma_core::data_structure::error::{
-    Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
-};
 use plasma_db::traits::kvs::{BaseDbKey, KeyValueStore};
 use tiny_keccak::Keccak;
 
@@ -54,53 +52,6 @@ impl Verifier {
     }
 }
 
-pub struct SignedByDecisionValue {
-    decision: bool,
-    witness: Bytes,
-}
-
-impl SignedByDecisionValue {
-    pub fn new(decision: bool, witness: Bytes) -> Self {
-        SignedByDecisionValue { decision, witness }
-    }
-    pub fn get_decision(&self) -> bool {
-        self.decision
-    }
-    pub fn get_witness(&self) -> &Bytes {
-        &self.witness
-    }
-}
-
-impl Encodable for SignedByDecisionValue {
-    fn to_abi(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple())
-    }
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![
-            Token::Bool(self.decision),
-            Token::Bytes(self.witness.to_vec()),
-        ]
-    }
-}
-
-impl Decodable for SignedByDecisionValue {
-    type Ok = SignedByDecisionValue;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
-        let decision = tuple[0].clone().to_bool();
-        let signature = tuple[1].clone().to_bytes();
-        if let (Some(decision), Some(signature)) = (decision, signature) {
-            Ok(SignedByDecisionValue::new(decision, signature.into()))
-        } else {
-            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
-        }
-    }
-    fn from_abi(data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        let decoded = ethabi::decode(&[ParamType::Bool, ParamType::Bytes], data)
-            .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
-    }
-}
-
 pub struct SignedByDecider {}
 
 impl Default for SignedByDecider {
@@ -114,32 +65,33 @@ impl Decider for SignedByDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &SignedByInput,
-        witness_bytes: Option<Bytes>,
+        witness: Option<Witness>,
     ) -> Result<Decision, Error> {
-        let signature = witness_bytes.unwrap();
+        if let Some(Witness::Bytes(signature)) = witness {
+            if Verifier::recover(&signature, input.get_message()) != input.get_public_key() {
+                return Err(Error::from(ErrorKind::InvalidPreimage));
+            }
+            let decision_key = input.hash();
+            let decision_value = DecisionValue::new(true, Witness::Bytes(signature.clone()));
+            decider
+                .get_db()
+                .bucket(&BaseDbKey::from(&b"signed_by_decider"[..]))
+                .put(
+                    &BaseDbKey::from(decision_key.to_vec().as_slice()),
+                    &decision_value.to_abi(),
+                )
+                .map_err::<Error, _>(Into::into)?;
 
-        if Verifier::recover(&signature, input.get_message()) != input.get_public_key() {
-            return Err(Error::from(ErrorKind::InvalidPreimage));
+            Ok(Decision::new(
+                true,
+                vec![ImplicationProofElement::new(
+                    Property::SignedByDecider(input.clone()),
+                    Some(decision_value.get_witness().clone()),
+                )],
+            ))
+        } else {
+            panic!("invalid witness");
         }
-
-        let decision_key = input.hash();
-        let decision_value = SignedByDecisionValue::new(true, signature.clone());
-        decider
-            .get_db()
-            .bucket(&BaseDbKey::from(&b"signed_by_decider"[..]))
-            .put(
-                &BaseDbKey::from(decision_key.to_vec().as_slice()),
-                &decision_value.to_abi(),
-            )
-            .map_err::<Error, _>(Into::into)?;
-
-        Ok(Decision::new(
-            true,
-            vec![ImplicationProofElement::new(
-                Property::SignedByDecider(input.clone()),
-                Some(decision_value.get_witness().clone()),
-            )],
-        ))
     }
     fn check_decision<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
@@ -152,7 +104,7 @@ impl Decider for SignedByDecider {
             .get(&BaseDbKey::from(decision_key.to_vec().as_slice()))
             .map_err::<Error, _>(Into::into)?;
         if let Some(decision_value_bytes) = result {
-            let decision_value = SignedByDecisionValue::from_abi(&decision_value_bytes).unwrap();
+            let decision_value = DecisionValue::from_abi(&decision_value_bytes).unwrap();
             return Ok(Decision::new(
                 decision_value.get_decision(),
                 vec![ImplicationProofElement::new(
@@ -170,7 +122,7 @@ impl Decider for SignedByDecider {
 mod tests {
     use super::{SignedByDecider, Verifier};
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decider, Decision, Property, SignedByInput};
+    use crate::types::{Decider, Decision, Property, SignedByInput, Witness};
     use bytes::Bytes;
     use ethsign::SecretKey;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
@@ -186,7 +138,9 @@ mod tests {
         let input = SignedByInput::new(message, secret_key.public().address().into());
         let property = Property::SignedByDecider(input.clone());
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
-        let decided: Decision = decider.decide(&property, Some(signature)).unwrap();
+        let decided: Decision = decider
+            .decide(&property, Some(Witness::Bytes(signature)))
+            .unwrap();
         assert_eq!(decided.get_outcome(), true);
         let status = SignedByDecider::check_decision(&decider, &input).unwrap();
         assert_eq!(status.get_outcome(), true);

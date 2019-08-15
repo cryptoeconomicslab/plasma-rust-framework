@@ -1,8 +1,7 @@
 use crate::error::Error;
+use crate::property_executor::DecideMixin;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, OrDeciderInput};
-use crate::DecideMixin;
-use bytes::Bytes;
+use crate::types::{Decider, Decision, OrDeciderInput, Witness};
 use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct OrDecider {}
@@ -24,7 +23,7 @@ impl Decider for OrDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &OrDeciderInput,
-        _witness: Option<Bytes>,
+        _witness: Option<Witness>,
     ) -> Result<Decision, Error> {
         let left_decision = input
             .get_left()
@@ -62,7 +61,7 @@ mod tests {
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
-        Decider, Decision, NotDeciderInput, OrDeciderInput, PreimageExistsInput, Property,
+        Decider, Decision, NotDeciderInput, OrDeciderInput, PreimageExistsInput, Property, Witness,
     };
     use bytes::Bytes;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
@@ -72,16 +71,16 @@ mod tests {
         let left = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
             Verifier::static_hash(&Bytes::from("left")),
         )));
-        let left_witness = Bytes::from("left");
+        let left_witness = Witness::Bytes(Bytes::from("left"));
         let right = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
             Verifier::static_hash(&Bytes::from("right")),
         )));
-        let right_witness = Bytes::from("right");
+        let right_witness = Witness::Bytes(Bytes::from("right"));
         let input = OrDeciderInput::new(
             left,
             left_witness,
             Property::NotDecider(Box::new(NotDeciderInput::new(right, right_witness))),
-            Bytes::from("not"),
+            Witness::Bytes(Bytes::from("not")),
         );
         let or_decider = Property::OrDecider(Box::new(input.clone()));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
