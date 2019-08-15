@@ -95,14 +95,26 @@ impl Property {
         match self {
             Property::AndDecider(_) => DECIDER_LIST[0],
             Property::OrDecider(_) => DECIDER_LIST[1],
-            _ => Address::zero(),
+            Property::ForAllSuchThatDecider(_) => DECIDER_LIST[2],
+            Property::NotDecider(_) => DECIDER_LIST[3],
+            Property::PreimageExistsDecider(_) => DECIDER_LIST[4],
+            Property::SignedByDecider(_) => DECIDER_LIST[5],
+            Property::HasLowerNonceDecider(_) => DECIDER_LIST[6],
+            Property::ChannelUpdateSignatureExistsDecider(_) => DECIDER_LIST[7],
+            Property::IncludedInIntervalTreeAtBlockDecider(_) => DECIDER_LIST[8],
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             Property::AndDecider(input) => input.to_abi(),
             Property::OrDecider(input) => input.to_abi(),
-            _ => panic!("unknown decider"),
+            Property::ForAllSuchThatDecider(input) => input.to_abi(),
+            Property::NotDecider(input) => input.to_abi(),
+            Property::PreimageExistsDecider(input) => input.to_abi(),
+            Property::SignedByDecider(input) => input.to_abi(),
+            Property::HasLowerNonceDecider(input) => input.to_abi(),
+            Property::ChannelUpdateSignatureExistsDecider(input) => input.to_abi(),
+            Property::IncludedInIntervalTreeAtBlockDecider(input) => input.to_abi(),
         }
     }
     fn from_bytes(decider_id: Address, data: &[u8]) -> Result<Self, PlasmaCoreError> {
@@ -110,6 +122,24 @@ impl Property {
             AndDeciderInput::from_abi(data).map(|input| Property::AndDecider(Box::new(input)))
         } else if decider_id == DECIDER_LIST[1] {
             OrDeciderInput::from_abi(data).map(|input| Property::OrDecider(Box::new(input)))
+        } else if decider_id == DECIDER_LIST[2] {
+            ForAllSuchThatInput::from_abi(data)
+                .map(|input| Property::ForAllSuchThatDecider(Box::new(input)))
+        } else if decider_id == DECIDER_LIST[3] {
+            NotDeciderInput::from_abi(data).map(|input| Property::NotDecider(Box::new(input)))
+        } else if decider_id == DECIDER_LIST[4] {
+            PreimageExistsInput::from_abi(data)
+                .map(|input| Property::PreimageExistsDecider(Box::new(input)))
+        } else if decider_id == DECIDER_LIST[5] {
+            SignedByInput::from_abi(data).map(Property::SignedByDecider)
+        } else if decider_id == DECIDER_LIST[6] {
+            HasLowerNonceInput::from_abi(data).map(Property::HasLowerNonceDecider)
+        } else if decider_id == DECIDER_LIST[7] {
+            ChannelUpdateSignatureExistsDeciderInput::from_abi(data)
+                .map(Property::ChannelUpdateSignatureExistsDecider)
+        } else if decider_id == DECIDER_LIST[8] {
+            IncludedInIntervalTreeAtBlockInput::from_abi(data)
+                .map(Property::IncludedInIntervalTreeAtBlockDecider)
         } else {
             panic!("unknown decider")
         }

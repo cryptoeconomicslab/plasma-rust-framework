@@ -232,11 +232,12 @@ pub type BlockRangeQuantifierInput = IncludedInIntervalTreeAtBlockInput;
 #[cfg(test)]
 mod tests {
 
-    use super::ChannelUpdateSignatureExistsDeciderInput;
+    use super::{ChannelUpdateSignatureExistsDeciderInput, IncludedInIntervalTreeAtBlockInput};
     use crate::types::Integer;
     use bytes::Bytes;
     use ethereum_types::Address;
     use plasma_core::data_structure::abi::{Decodable, Encodable};
+    use plasma_core::data_structure::Range;
 
     #[test]
     fn test_channel_update_signature_exists_decider_input() {
@@ -248,6 +249,17 @@ mod tests {
         let encoded = input.to_abi();
         let decoded = ChannelUpdateSignatureExistsDeciderInput::from_abi(&encoded).unwrap();
         assert_eq!(decoded.channel_id, input.channel_id);
+    }
+
+    #[test]
+    fn test_included_in_interval_tree_at_block_input() {
+        let input = IncludedInIntervalTreeAtBlockInput::new(Integer(10), Range::new(500, 700));
+        let encoded = input.to_abi();
+        let decoded = IncludedInIntervalTreeAtBlockInput::from_abi(&encoded).unwrap();
+        assert_eq!(
+            decoded.get_coin_range().get_start(),
+            input.get_coin_range().get_start()
+        );
     }
 
 }
