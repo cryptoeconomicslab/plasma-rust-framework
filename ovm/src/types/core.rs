@@ -48,6 +48,16 @@ impl Encodable for Integer {
     }
 }
 
+lazy_static! {
+    static ref DECIDER_LIST: Vec<Address> = {
+        let mut list = vec![];
+        for _ in 0..10 {
+            list.push(Address::random())
+        }
+        list
+    };
+}
+
 /// The property which will be decided by Decider
 #[derive(Clone, Debug)]
 pub enum Property {
@@ -85,7 +95,7 @@ pub enum Quantifier {
 impl Property {
     pub fn get_decider_id(&self) -> DeciderId {
         match self {
-            Property::AndDecider(_) => Address::zero(),
+            Property::AndDecider(_) => DECIDER_LIST[0],
             _ => Address::zero(),
         }
     }
@@ -96,7 +106,7 @@ impl Property {
         }
     }
     fn from_bytes(decider_id: Address, data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        if decider_id == Address::zero() {
+        if decider_id == DECIDER_LIST[0] {
             AndDeciderInput::from_abi(data).map(|input| Property::AndDecider(Box::new(input)))
         } else {
             panic!("unknown decider")

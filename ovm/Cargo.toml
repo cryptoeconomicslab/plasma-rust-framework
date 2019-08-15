@@ -10,6 +10,7 @@ ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple
 ethereum-types = "^0.5.2"
 failure = "0.1.5"
 hex = "0.3.1"
+lazy_static = "1.3.0"
 tiny-keccak = "1.4.2"
 plasma-core = { path = "../core" }
 plasma-db = { path = "../db" }
