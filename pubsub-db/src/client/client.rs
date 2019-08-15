@@ -1,4 +1,4 @@
-use ws::{connect, Sender, Handler, Handshake, CloseCode, Result, Message };
+use ws::{connect, CloseCode, Handler, Handshake, Message, Result, Sender};
 
 pub struct Client {
     out: Sender,
@@ -14,8 +14,7 @@ impl Handler for Client {
     }
 }
 
-
 pub fn call(url: &str) {
     let url: &str = &format!("ws://{}", url);
-    connect(url, |out| Client { out } ).unwrap()
+    connect(url, |out| Client { out }).unwrap()
 }
