@@ -1,13 +1,13 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Message<T> {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Message {
     pub to: String,
-    pub message: T,
+    pub message: Vec<u8>,
 }
 
-impl<T> Message<T> {
-    pub fn new(to: String, message: T) -> Self {
+impl Message {
+    pub fn new(to: String, message: Vec<u8>) -> Self {
         Message { to, message }
     }
 }

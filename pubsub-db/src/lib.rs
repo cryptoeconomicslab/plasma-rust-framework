@@ -1,3 +1,4 @@
+extern crate bincode;
 extern crate plasma_db;
 extern crate serde;
 extern crate ws;
