@@ -9,6 +9,8 @@ pub mod quantifiers;
 pub mod statements;
 pub mod types;
 
+extern crate abi_derive;
+
 pub use self::property_executor::DecideMixin;
 
 #[cfg(test)]

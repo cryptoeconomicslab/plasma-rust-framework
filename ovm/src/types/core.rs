@@ -96,18 +96,22 @@ impl Property {
     pub fn get_decider_id(&self) -> DeciderId {
         match self {
             Property::AndDecider(_) => DECIDER_LIST[0],
+            Property::OrDecider(_) => DECIDER_LIST[1],
             _ => Address::zero(),
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             Property::AndDecider(input) => input.to_abi(),
+            Property::OrDecider(input) => input.to_abi(),
             _ => panic!("unknown decider"),
         }
     }
     fn from_bytes(decider_id: Address, data: &[u8]) -> Result<Self, PlasmaCoreError> {
         if decider_id == DECIDER_LIST[0] {
             AndDeciderInput::from_abi(data).map(|input| Property::AndDecider(Box::new(input)))
+        } else if decider_id == DECIDER_LIST[1] {
+            OrDeciderInput::from_abi(data).map(|input| Property::OrDecider(Box::new(input)))
         } else {
             panic!("unknown decider")
         }
