@@ -1,11 +1,10 @@
 [package]
-name = "pubsub-db"
+name = "pubsub-messaging"
 version = "0.1.0"
 authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"
 
 [dependencies]
-plasma-db = { path = "../db" }
 ws = "*"
 serde = { version = "1.0", features = ["derive"] }
 bincode = "*"
