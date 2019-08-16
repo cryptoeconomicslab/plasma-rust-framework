@@ -58,6 +58,7 @@ impl Decider for AndDecider {
 #[cfg(test)]
 mod tests {
     use super::AndDecider;
+    use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
@@ -68,17 +69,20 @@ mod tests {
 
     #[test]
     fn test_decide() {
-        let left = Property::PreimageExistsDecider(PreimageExistsInput::new(
-            Verifier::static_hash(&Bytes::from("left")),
-        ));
-        let left_witness = Witness::Bytes("left".into());
-        let right = Property::PreimageExistsDecider(PreimageExistsInput::new(
-            Verifier::static_hash(&Bytes::from("right")),
-        ));
-        let right_witness = Witness::Bytes("right".into());
-        let input = AndDeciderInput::new(left, left_witness, right, right_witness);
+        let left_preimage = Bytes::from("left");
+        let left_hash = Verifier::static_hash(&left_preimage);
+        let left_witness = Witness::Bytes(left_preimage);
+        let right_preimage = Bytes::from("right");
+        let right_hash = Verifier::static_hash(&right_preimage);
+        let right_witness = Witness::Bytes(right_preimage);
+        let left = Property::PreimageExistsDecider(PreimageExistsInput::new(left_hash));
+        let right = Property::PreimageExistsDecider(PreimageExistsInput::new(right_hash));
+        let input = AndDeciderInput::new(left, left_witness.clone(), right, right_witness.clone());
         let and_decider = Property::AndDecider(Box::new(input.clone()));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let db = HashPreimageDb::new(decider.get_db());
+        assert!(db.store_witness(left_hash, &left_witness).is_ok());
+        assert!(db.store_witness(right_hash, &right_witness).is_ok());
         let decided: Decision = decider.decide(&and_decider, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
         let status = AndDecider::check_decision(&decider, &input).unwrap();

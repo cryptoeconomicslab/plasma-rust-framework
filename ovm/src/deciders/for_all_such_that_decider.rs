@@ -99,11 +99,13 @@ impl Decider for ForAllSuchThatDecider {
 #[cfg(test)]
 mod tests {
     use super::ForAllSuchThatDecider;
+    use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
-        Decider, Decision, ForAllSuchThatInput, IntegerRangeQuantifierInput, PreimageExistsInput,
-        Property, PropertyFactory, Quantifier, QuantifierResultItem, Witness, WitnessFactory,
+        Decider, Decision, ForAllSuchThatInput, Integer, IntegerRangeQuantifierInput,
+        PreimageExistsInput, Property, PropertyFactory, Quantifier, QuantifierResultItem, Witness,
+        WitnessFactory,
     };
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
@@ -129,6 +131,16 @@ mod tests {
             }))),
         );
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let db = HashPreimageDb::new(decider.get_db());
+        for i in 5..20 {
+            let integer = Integer(i);
+            assert!(db
+                .store_witness(
+                    Verifier::static_hash(&integer.into()),
+                    &Witness::Bytes(integer.into())
+                )
+                .is_ok());
+        }
         let decided: Decision = ForAllSuchThatDecider::decide(&decider, &input, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }

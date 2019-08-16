@@ -16,6 +16,7 @@ pub use self::property_executor::DecideMixin;
 #[cfg(test)]
 mod tests {
 
+    use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::deciders::SignVerifier;
     use crate::property_executor::PropertyExecutor;
@@ -60,12 +61,23 @@ mod tests {
             }))),
         )));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let db = HashPreimageDb::new(decider.get_db());
+        for i in 0..10 {
+            let integer = Integer(i);
+            assert!(db
+                .store_witness(
+                    Verifier::static_hash(&integer.into()),
+                    &Witness::Bytes(integer.into())
+                )
+                .is_ok());
+        }
         let decided: Decision = decider.decide(&property, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
 
     /// Test to fail
     #[test]
+    #[should_panic]
     fn test_fail_to_decide_range_and_preimage() {
         let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
             Quantifier::IntegerRangeQuantifier(IntegerRangeQuantifierInput::new(0, 10)),
@@ -116,6 +128,16 @@ mod tests {
             }))),
         )));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let db = HashPreimageDb::new(decider.get_db());
+        for i in 0..10 {
+            let integer = Integer(i);
+            assert!(db
+                .store_witness(
+                    Verifier::static_hash(&integer.into()),
+                    &Witness::Bytes(integer.into())
+                )
+                .is_ok());
+        }
         let decided: Decision = decider.decide(&property, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
