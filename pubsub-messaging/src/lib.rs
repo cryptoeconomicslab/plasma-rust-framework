@@ -8,4 +8,3 @@ pub mod server;
 
 pub use client::client::call;
 pub use message::Message;
-pub use server::server::start_server;
