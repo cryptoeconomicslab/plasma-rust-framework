@@ -57,7 +57,7 @@ lazy_static! {
 }
 
 /// The property which will be decided by Decider
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Property {
     // left, left_witness, right, right_witness
     AndDecider(Box<AndDeciderInput>),
@@ -66,7 +66,7 @@ pub enum Property {
     // quantifier, quantifier_parameters, property_factory, witness_factory?
     ForAllSuchThatDecider(Box<ForAllSuchThatInput>),
     // hash
-    PreimageExistsDecider(Box<PreimageExistsInput>),
+    PreimageExistsDecider(PreimageExistsInput),
     // message, public_key
     SignedByDecider(SignedByInput),
     // left, right
@@ -78,7 +78,7 @@ pub enum Property {
     IncludedInIntervalTreeAtBlockDecider(IncludedInIntervalTreeAtBlockInput),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Quantifier {
     // start to end
     IntegerRangeQuantifier(IntegerRangeQuantifierInput),
@@ -128,8 +128,7 @@ impl Property {
         } else if decider_id == DECIDER_LIST[3] {
             NotDeciderInput::from_abi(data).map(|input| Property::NotDecider(Box::new(input)))
         } else if decider_id == DECIDER_LIST[4] {
-            PreimageExistsInput::from_abi(data)
-                .map(|input| Property::PreimageExistsDecider(Box::new(input)))
+            PreimageExistsInput::from_abi(data).map(Property::PreimageExistsDecider)
         } else if decider_id == DECIDER_LIST[5] {
             SignedByInput::from_abi(data).map(Property::SignedByDecider)
         } else if decider_id == DECIDER_LIST[6] {
@@ -166,10 +165,8 @@ impl Decodable for Property {
             Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
         }
     }
-    fn from_abi(data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        let decoded = ethabi::decode(&[ParamType::Address, ParamType::Bytes], data)
-            .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
+    fn get_param_types() -> Vec<ParamType> {
+        vec![ParamType::Address, ParamType::Bytes]
     }
 }
 
@@ -227,10 +224,8 @@ impl Decodable for Quantifier {
             Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
         }
     }
-    fn from_abi(data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        let decoded = ethabi::decode(&[ParamType::Uint(256), ParamType::Bytes], data)
-            .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
+    fn get_param_types() -> Vec<ethabi::ParamType> {
+        vec![ethabi::ParamType::Uint(256), ethabi::ParamType::Bytes]
     }
 }
 
@@ -365,4 +360,22 @@ impl QuantifierResult {
     pub fn get_all_results_quantified(&self) -> bool {
         self.all_results_quantified
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::Property;
+    use crate::types::PreimageExistsInput;
+    use ethereum_types::H256;
+    use plasma_core::data_structure::abi::{Decodable, Encodable};
+
+    #[test]
+    fn test_encode_and_decode_property() {
+        let property = Property::PreimageExistsDecider(PreimageExistsInput::new(H256::zero()));
+        let encoded = property.to_abi();
+        let decoded = Property::from_abi(&encoded).unwrap();
+        assert_eq!(decoded, property);
+    }
+
 }

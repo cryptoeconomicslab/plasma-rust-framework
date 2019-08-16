@@ -68,13 +68,13 @@ mod tests {
 
     #[test]
     fn test_decide() {
-        let left = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+        let left = Property::PreimageExistsDecider(PreimageExistsInput::new(
             Verifier::static_hash(&Bytes::from("left")),
-        )));
+        ));
         let left_witness = Witness::Bytes(Bytes::from("left"));
-        let right = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+        let right = Property::PreimageExistsDecider(PreimageExistsInput::new(
             Verifier::static_hash(&Bytes::from("right")),
-        )));
+        ));
         let right_witness = Witness::Bytes(Bytes::from("right"));
         let input = OrDeciderInput::new(
             left,

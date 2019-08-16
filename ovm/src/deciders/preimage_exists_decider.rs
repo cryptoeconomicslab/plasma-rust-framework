@@ -119,7 +119,7 @@ impl Decider for PreimageExistsDecider {
             return Ok(Decision::new(
                 decision_value.get_decision(),
                 vec![ImplicationProofElement::new(
-                    Property::PreimageExistsDecider(Box::new(input.clone())),
+                    Property::PreimageExistsDecider(input.clone()),
                     Some(decision_value.get_witness().clone()),
                 )],
             ));
@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn test_decide() {
         let input = PreimageExistsInput::new(Verifier::static_hash(&Bytes::from("left")));
-        let property = Property::PreimageExistsDecider(Box::new(input.clone()));
+        let property = Property::PreimageExistsDecider(input.clone());
         let witness = Witness::Bytes(Bytes::from("left"));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let decided: Decision = decider.decide(&property, Some(witness)).unwrap();

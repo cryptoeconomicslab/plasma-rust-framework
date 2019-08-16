@@ -8,7 +8,7 @@ use plasma_core::data_structure::error::{
 };
 use plasma_db::traits::kvs::KeyValueStore;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Message {
     pub channel_id: Bytes,
     sender: Address,

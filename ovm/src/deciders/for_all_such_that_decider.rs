@@ -113,9 +113,9 @@ mod tests {
             Quantifier::IntegerRangeQuantifier(IntegerRangeQuantifierInput::new(5, 20)),
             Some(PropertyFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
-                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+                    Property::PreimageExistsDecider(PreimageExistsInput::new(
                         Verifier::static_hash(&number.into()),
-                    )))
+                    ))
                 } else {
                     panic!("invalid type of item");
                 }

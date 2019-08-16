@@ -8,7 +8,7 @@ use ethereum_types::{Address, H256};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::Range;
 
-#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+#[derive(Clone, Debug, PartialEq, AbiDecodable, AbiEncodable)]
 pub struct AndDeciderInput {
     left: Property,
     left_witness: Witness,
@@ -44,7 +44,7 @@ impl AndDeciderInput {
     }
 }
 
-#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+#[derive(Clone, Debug, PartialEq, AbiDecodable, AbiEncodable)]
 pub struct OrDeciderInput {
     left: Property,
     left_witness: Witness,
@@ -80,7 +80,7 @@ impl OrDeciderInput {
     }
 }
 
-#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+#[derive(Clone, Debug, PartialEq, AbiDecodable, AbiEncodable)]
 pub struct NotDeciderInput {
     property: Property,
     witness: Witness,
@@ -132,7 +132,13 @@ impl ForAllSuchThatInput {
     }
 }
 
-#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+impl PartialEq for ForAllSuchThatInput {
+    fn eq(&self, other: &Self) -> bool {
+        self.quantifier == other.quantifier
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
 pub struct PreimageExistsInput {
     hash: H256,
 }
@@ -146,7 +152,7 @@ impl PreimageExistsInput {
     }
 }
 
-#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+#[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
 pub struct SignedByInput {
     message: Bytes,
     public_key: Address,
@@ -170,7 +176,7 @@ impl SignedByInput {
     }
 }
 
-#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+#[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
 pub struct IncludedInIntervalTreeAtBlockInput {
     block_number: Integer,
     coin_range: Range,
@@ -191,7 +197,7 @@ impl IncludedInIntervalTreeAtBlockInput {
     }
 }
 
-#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+#[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
 pub struct HasLowerNonceInput {
     message: Message,
     nonce: Integer,
@@ -209,7 +215,7 @@ impl HasLowerNonceInput {
     }
 }
 
-#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+#[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
 pub struct ChannelUpdateSignatureExistsDeciderInput {
     pub channel_id: Bytes,
     pub nonce: Integer,

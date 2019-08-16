@@ -8,7 +8,7 @@ use plasma_core::data_structure::error::{
 };
 use plasma_core::data_structure::Range;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PlasmaDataBlock {
     updated_range: Range,
     property: Property,
@@ -62,7 +62,7 @@ impl Decodable for PlasmaDataBlock {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Witness {
     Bytes(Bytes),
     // inclusion proof and plasma data block

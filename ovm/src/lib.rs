@@ -44,9 +44,9 @@ mod tests {
             Quantifier::IntegerRangeQuantifier(IntegerRangeQuantifierInput::new(0, 10)),
             Some(PropertyFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
-                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+                    Property::PreimageExistsDecider(PreimageExistsInput::new(
                         Verifier::static_hash(&number.into()),
-                    )))
+                    ))
                 } else {
                     panic!("invalid type in PropertyFactory");
                 }
@@ -71,9 +71,9 @@ mod tests {
             Quantifier::IntegerRangeQuantifier(IntegerRangeQuantifierInput::new(0, 10)),
             Some(PropertyFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
-                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+                    Property::PreimageExistsDecider(PreimageExistsInput::new(
                         Verifier::static_hash(&number.into()),
-                    )))
+                    ))
                 } else {
                     panic!("invalid type in PropertyFactory");
                 }
@@ -100,9 +100,9 @@ mod tests {
             Quantifier::NonnegativeIntegerLessThanQuantifier(Integer(10)),
             Some(PropertyFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
-                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+                    Property::PreimageExistsDecider(PreimageExistsInput::new(
                         Verifier::static_hash(&number.into()),
-                    )))
+                    ))
                 } else {
                     panic!("invalid type in PropertyFactory");
                 }

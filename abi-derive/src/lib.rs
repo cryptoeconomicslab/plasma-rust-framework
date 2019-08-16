@@ -55,10 +55,6 @@ fn impl_encodable_macro(ast: &syn::DeriveInput) -> TokenStream {
                         return quote! {
                             Token::FixedBytes(self.#ident.as_bytes().to_vec())
                         };
-                    } else if type_name == "Property" {
-                        return quote! {
-                            Token::Bytes(self.#ident.to_abi())
-                        };
                     } else {
                         return quote! {
                             Token::Tuple(self.#ident.to_tuple())
@@ -92,7 +88,7 @@ fn impl_decodable_macro(ast: &syn::DeriveInput) -> TokenStream {
             .map(|f| {
                 if let syn::Type::Path(path) = &f.ty {
                     let type_name = &path.path.segments.first().unwrap().value().ident;
-                    if type_name == "Bytes" || type_name == "Property" {
+                    if type_name == "Bytes" {
                         return quote! {
                             ethabi::ParamType::Bytes
                         };
@@ -102,7 +98,7 @@ fn impl_decodable_macro(ast: &syn::DeriveInput) -> TokenStream {
                         };
                     } else if type_name == "H256" {
                         return quote! {
-                            ethabi::ParamType::FixedBytes(256)
+                            ethabi::ParamType::FixedBytes(32)
                         };
                     } else if type_name == "Address" {
                         return quote! {
@@ -137,15 +133,11 @@ fn impl_decodable_macro(ast: &syn::DeriveInput) -> TokenStream {
                     };
                 } else if type_name == "H256" {
                     return quote! {
-                        let #ident: H256 = H256::from_slice(&tuple[#index].clone().to_bytes().unwrap().to_vec());
+                        let #ident: H256 = H256::from_slice(&tuple[#index].clone().to_fixed_bytes().unwrap().to_vec());
                     };
                 } else if type_name == "Address" {
                     return quote! {
                         let #ident: Address = tuple[#index].clone().to_address().unwrap();
-                    };
-                } else if type_name == "Property" {
-                    return quote! {
-                        let #ident: #type_name = #type_name::from_abi(&tuple[#index].clone().to_bytes().unwrap()).unwrap();
                     };
                 } else {
                     return quote! {
