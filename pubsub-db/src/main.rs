@@ -1,16 +1,10 @@
-use bincode;
-use plasma_db::impls::kvs::CoreDbMemoryImpl;
-use plasma_db::traits::db::DatabaseTrait;
-use pubsub_db::db::MessageDb;
 use pubsub_db::message::Message;
 use pubsub_db::{call, start_server};
 use std::thread;
 
 fn main() {
-    let memory_db = CoreDbMemoryImpl::open("server");
-    let db = MessageDb::new(memory_db);
     let server_thread = thread::spawn(move || {
-        start_server("127.0.0.1:8080", db);
+        start_server("127.0.0.1:8080");
     });
 
     let client_thread = thread::spawn(|| {
