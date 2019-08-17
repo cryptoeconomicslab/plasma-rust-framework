@@ -13,6 +13,7 @@ name = "plasma-chamber"
 
 [workspace]
 members = [
+	"abi-derive",
 	"android",
 	"client",
 	"contract-wrapper",

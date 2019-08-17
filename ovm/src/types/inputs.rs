@@ -1,6 +1,7 @@
 use super::core::{Integer, Property, PropertyFactory, Quantifier, WitnessFactory};
 use super::witness::Witness;
 use crate::db::Message;
+use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::{Address, H256};
@@ -215,7 +216,7 @@ impl SignedByInput {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct IncludedInIntervalTreeAtBlockInput {
     block_number: Integer,
     coin_range: Range,
@@ -269,4 +270,25 @@ impl ChannelUpdateSignatureExistsDeciderInput {
             particilant,
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::IncludedInIntervalTreeAtBlockInput;
+    use crate::types::Integer;
+    use plasma_core::data_structure::abi::{Decodable, Encodable};
+    use plasma_core::data_structure::Range;
+
+    #[test]
+    fn test_included_in_interval_tree_at_block_input() {
+        let input = IncludedInIntervalTreeAtBlockInput::new(Integer(10), Range::new(500, 700));
+        let encoded = input.to_abi();
+        let decoded = IncludedInIntervalTreeAtBlockInput::from_abi(&encoded).unwrap();
+        assert_eq!(
+            decoded.get_coin_range().get_start(),
+            input.get_coin_range().get_start()
+        );
+    }
+
 }
