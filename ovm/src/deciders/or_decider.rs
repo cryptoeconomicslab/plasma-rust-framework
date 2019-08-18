@@ -58,6 +58,7 @@ impl Decider for OrDecider {
 #[cfg(test)]
 mod tests {
     use super::OrDecider;
+    use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
@@ -68,6 +69,8 @@ mod tests {
 
     #[test]
     fn test_decide() {
+        let left_hash = Verifier::static_hash(&Bytes::from("left"));
+        let right_hash = Verifier::static_hash(&Bytes::from("right"));
         let left = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
             Verifier::static_hash(&Bytes::from("left")),
         )));
@@ -78,12 +81,15 @@ mod tests {
         let right_witness = Witness::Bytes(Bytes::from("right"));
         let input = OrDeciderInput::new(
             left,
-            left_witness,
-            Property::NotDecider(Box::new(NotDeciderInput::new(right, right_witness))),
+            left_witness.clone(),
+            Property::NotDecider(Box::new(NotDeciderInput::new(right, right_witness.clone()))),
             Witness::Bytes(Bytes::from("not")),
         );
         let or_decider = Property::OrDecider(Box::new(input.clone()));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let db = HashPreimageDb::new(decider.get_db());
+        assert!(db.store_witness(left_hash, &left_witness).is_ok());
+        assert!(db.store_witness(right_hash, &right_witness).is_ok());
         let decided: Decision = decider.decide(&or_decider, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
         let status = OrDecider::check_decision(&decider, &input).unwrap();
