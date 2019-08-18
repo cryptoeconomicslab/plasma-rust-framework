@@ -20,8 +20,8 @@ mod tests {
     use crate::statements::create_plasma_property;
     use crate::types::{
         AndDeciderInput, Decision, ForAllSuchThatInput, HasLowerNonceInput, Integer,
-        PreimageExistsInput, Property, PropertyFactory, Quantifier, QuantifierResultItem,
-        SignedByInput, Witness, WitnessFactory,
+        IntegerRangeQuantifierInput, PreimageExistsInput, Property, PropertyFactory, Quantifier,
+        QuantifierResultItem, SignedByInput, Witness, WitnessFactory,
     };
     use bytes::Bytes;
     use ethereum_types::Address;
@@ -39,8 +39,8 @@ mod tests {
     #[test]
     fn test_decide_range_and_preimage() {
         let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-            Quantifier::IntegerRangeQuantifier(Integer(0), Integer(10)),
-            PropertyFactory::new(Box::new(|item| {
+            Quantifier::IntegerRangeQuantifier(IntegerRangeQuantifierInput::new(0, 10)),
+            Some(PropertyFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
                     Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
                         Verifier::static_hash(&number.into()),
@@ -48,7 +48,7 @@ mod tests {
                 } else {
                     panic!("invalid type in PropertyFactory");
                 }
-            })),
+            }))),
             Some(WitnessFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
                     Witness::Bytes(number.into())
@@ -66,8 +66,8 @@ mod tests {
     #[test]
     fn test_fail_to_decide_range_and_preimage() {
         let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-            Quantifier::IntegerRangeQuantifier(Integer(0), Integer(10)),
-            PropertyFactory::new(Box::new(|item| {
+            Quantifier::IntegerRangeQuantifier(IntegerRangeQuantifierInput::new(0, 10)),
+            Some(PropertyFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
                     Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
                         Verifier::static_hash(&number.into()),
@@ -75,7 +75,7 @@ mod tests {
                 } else {
                     panic!("invalid type in PropertyFactory");
                 }
-            })),
+            }))),
             Some(WitnessFactory::new(Box::new(|_item| {
                 Witness::Bytes(Bytes::from(&b"aaa"[..]))
             }))),
@@ -96,7 +96,7 @@ mod tests {
     fn test_decide_less_than_and_preimage() {
         let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
             Quantifier::NonnegativeIntegerLessThanQuantifier(Integer(10)),
-            PropertyFactory::new(Box::new(|item| {
+            Some(PropertyFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
                     Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
                         Verifier::static_hash(&number.into()),
@@ -104,7 +104,7 @@ mod tests {
                 } else {
                     panic!("invalid type in PropertyFactory");
                 }
-            })),
+            }))),
             Some(WitnessFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
                     Witness::Bytes(number.into())
@@ -136,13 +136,13 @@ mod tests {
         let _nonce = Integer(10);
         let left_property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
             Quantifier::SignedByQuantifier(alice),
-            PropertyFactory::new(Box::new(|item| {
+            Some(PropertyFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Message(message) = item {
                     Property::HasLowerNonceDecider(HasLowerNonceInput::new(message, Integer(11)))
                 } else {
                     panic!("invalid type in PropertyFactory");
                 }
-            })),
+            }))),
             None,
         )));
         let right_property =

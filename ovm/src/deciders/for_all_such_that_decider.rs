@@ -56,7 +56,11 @@ impl Decider for ForAllSuchThatDecider {
         let mut false_decision: Decision = Decision::new(false, vec![]);
         let mut true_decisions: Vec<Decision> = vec![];
         for res in quantifier_result.get_results() {
-            let prop: Property = input.get_property_factory().call(res.clone());
+            let prop: Property = input
+                .get_property_factory()
+                .clone()
+                .unwrap()
+                .call(res.clone());
             let witness: Option<Witness> = input
                 .get_witness_factory()
                 .clone()
@@ -98,16 +102,16 @@ mod tests {
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
-        Decider, Decision, ForAllSuchThatInput, Integer, PreimageExistsInput, Property,
-        PropertyFactory, Quantifier, QuantifierResultItem, Witness, WitnessFactory,
+        Decider, Decision, ForAllSuchThatInput, IntegerRangeQuantifierInput, PreimageExistsInput,
+        Property, PropertyFactory, Quantifier, QuantifierResultItem, Witness, WitnessFactory,
     };
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     #[test]
     fn test_decide() {
         let input = ForAllSuchThatInput::new(
-            Quantifier::IntegerRangeQuantifier(Integer(5), Integer(20)),
-            PropertyFactory::new(Box::new(|item| {
+            Quantifier::IntegerRangeQuantifier(IntegerRangeQuantifierInput::new(5, 20)),
+            Some(PropertyFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
                     Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
                         Verifier::static_hash(&number.into()),
@@ -115,7 +119,7 @@ mod tests {
                 } else {
                     panic!("invalid type of item");
                 }
-            })),
+            }))),
             Some(WitnessFactory::new(Box::new(|item| {
                 if let QuantifierResultItem::Integer(number) = item {
                     Witness::Bytes(number.into())

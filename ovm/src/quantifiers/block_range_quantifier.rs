@@ -1,10 +1,10 @@
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
-    DecisionValue, Integer, Property, QuantifierResult, QuantifierResultItem, Witness,
+    BlockRangeQuantifierInput, DecisionValue, Property, QuantifierResult, QuantifierResultItem,
+    Witness,
 };
 use bytes::Bytes;
 use plasma_core::data_structure::abi::Decodable;
-use plasma_core::data_structure::Range;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::traits::rangestore::RangeStore;
 
@@ -19,12 +19,13 @@ impl Default for BlockRangeQuantifier {
 impl BlockRangeQuantifier {
     pub fn get_all_quantified<KVS>(
         decider: &PropertyExecutor<KVS>,
-        block_number: Integer,
-        range: Range,
+        input: &BlockRangeQuantifierInput,
     ) -> QuantifierResult
     where
         KVS: KeyValueStore,
     {
+        let block_number = input.get_block_number();
+        let range = input.get_coin_range();
         let result = decider
             .get_range_db()
             .bucket(&Bytes::from("range_at_block"))
