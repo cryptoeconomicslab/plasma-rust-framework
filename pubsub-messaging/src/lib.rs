@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate failure;
 extern crate bincode;
 extern crate serde;
 extern crate ws;

@@ -8,3 +8,4 @@ edition = "2018"
 ws = "*"
 serde = { version = "1.0", features = ["derive"] }
 bincode = "*"
+failure = "*"

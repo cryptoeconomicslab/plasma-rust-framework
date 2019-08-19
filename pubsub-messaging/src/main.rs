@@ -1,3 +1,4 @@
+use bincode::serialize;
 use pubsub_messaging::{spawn_server, Handler, Message, Sender, WsMessage};
 use std::{thread, time};
 
@@ -6,8 +7,7 @@ struct Handle();
 
 impl Handler for Handle {
     fn handle_message(&self, msg: Message, sender: Sender) {
-        println!("{:?}", msg);
-        let msg = WsMessage::Text("Hello, Alice".to_string());
+        let msg = WsMessage::Binary(serialize(&msg).unwrap());
         let _ = sender.broadcast(msg);
     }
 }

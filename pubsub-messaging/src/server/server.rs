@@ -1,11 +1,12 @@
-use super::message::Message;
-use super::Handler;
+use super::{Error, Handler, Result};
+use bincode::deserialize;
 use std::marker::{Send, Sync};
 use std::sync::mpsc::channel;
-use std::thread::{ spawn, JoinHandle };
-use ws::{Handler as WsHandler, Message as WsMessage, Result as WsResult, Sender, WebSocket};
-
-// TODO: implement Custom Error
+use std::thread::{spawn, JoinHandle};
+use ws::{
+    Error as WsError, Handler as WsHandler, Message as WsMessage, Result as WsResult, Sender,
+    WebSocket,
+};
 
 #[derive(Clone)]
 struct Server<T: Handler> {
@@ -17,11 +18,19 @@ impl<T> WsHandler for Server<T>
 where
     T: Handler,
 {
-    fn on_message(&mut self, _msg: WsMessage) -> WsResult<()> {
-        // TODO: convert WsMessage to Message
-        let msg = Message::new("Alice".to_string(), b"hey, this is Bob".to_vec());
-        self.handler.handle_message(msg, self.ws.clone());
-        Ok(())
+    fn on_message(&mut self, msg: WsMessage) -> WsResult<()> {
+        let res = match msg {
+            WsMessage::Text(text) => deserialize(text.as_bytes()),
+            WsMessage::Binary(bytes) => deserialize(&bytes),
+        };
+
+        match res {
+            Ok(message) => {
+                self.handler.handle_message(message, self.ws.clone());
+                Ok(())
+            }
+            Err(e) => Err(WsError::from(e)),
+        }
     }
 }
 
@@ -46,7 +55,7 @@ where
 pub fn spawn_server<T: Handler + Clone + Send + Sync + 'static>(
     host: String,
     handler: T,
-) -> Result<(Sender, JoinHandle<()>), ()> {
+) -> Result<(Sender, JoinHandle<()>)> {
     let (tx, rx) = channel();
     let ws = WebSocket::new(move |out: Sender| Server {
         handler: handler.clone(),
@@ -64,6 +73,6 @@ pub fn spawn_server<T: Handler + Clone + Send + Sync + 'static>(
     if let Ok(sender) = rx.recv() {
         Ok((sender, t))
     } else {
-        Err(())
+        Err(Error::Thread)
     }
 }
