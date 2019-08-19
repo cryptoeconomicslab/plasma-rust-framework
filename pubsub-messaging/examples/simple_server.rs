@@ -1,32 +1,19 @@
-use pubsub_messaging::server::{ Server, Handler };
-use pubsub_messaging::{ Message, Sender };
+use pubsub_messaging::message::Message;
+use pubsub_messaging::server::{run_server, Handler, Server};
+use ws::{Message as WsMessage, Sender};
 
+#[derive(Clone)]
 struct Handle();
 
 impl Handler for Handle {
     fn handle_message(&self, msg: Message, sender: Sender) {
         println!("{:?}", msg);
-        db.clone()
-            .bucket(msg.to)
-            .put(msg.id, msg.payload);
-
+        let msg = WsMessage::Text("Hello, Alice".to_string());
         sender.broadcast(msg);
     }
 }
 
-
 fn main() {
-    let db = SomeDB();
     let handler = Handle();
-    let mut server = Server::new("127.0.0.1:8080", handler);
-
-    // broadcast to connected clients
-    server.broadcast();
-
-    // spawn and run server
-    server.spawn();
-
-    // shutdown server
-    server.close();
+    run_server("127.0.0.1:8080", handler);
 }
-

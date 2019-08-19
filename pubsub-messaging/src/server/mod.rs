@@ -1,6 +1,6 @@
-pub mod server;
 pub mod handler;
+pub mod server;
 
-use handler::Handler;
-use server::Server;
 use super::message;
+pub use handler::Handler;
+pub use server::{run_server, Server};
