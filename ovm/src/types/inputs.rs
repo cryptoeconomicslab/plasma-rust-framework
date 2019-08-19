@@ -6,12 +6,9 @@ use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::{Address, H256};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
-use plasma_core::data_structure::error::{
-    Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
-};
 use plasma_core::data_structure::Range;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct AndDeciderInput {
     left: Property,
     left_witness: Witness,
@@ -47,53 +44,7 @@ impl AndDeciderInput {
     }
 }
 
-impl Encodable for AndDeciderInput {
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![
-            Token::Tuple(self.get_left().to_tuple()),
-            Token::Tuple(self.get_left_witness().to_tuple()),
-            Token::Tuple(self.get_right().to_tuple()),
-            Token::Tuple(self.get_right_witness().to_tuple()),
-        ]
-    }
-}
-
-impl Decodable for AndDeciderInput {
-    type Ok = AndDeciderInput;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
-        let left = tuple[0].clone().to_bytes();
-        let left_witness = tuple[1].clone().to_bytes();
-        let right = tuple[2].clone().to_bytes();
-        let right_witness = tuple[3].clone().to_bytes();
-        if let (Some(left), Some(left_witness), Some(right), Some(right_witness)) =
-            (left, left_witness, right, right_witness)
-        {
-            Ok(AndDeciderInput::new(
-                Property::from_abi(&left).unwrap(),
-                Witness::from_abi(&left_witness).unwrap(),
-                Property::from_abi(&right).unwrap(),
-                Witness::from_abi(&right_witness).unwrap(),
-            ))
-        } else {
-            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
-        }
-    }
-    fn from_abi(data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        let decoded = ethabi::decode(
-            &[
-                ParamType::Bytes,
-                ParamType::Bytes,
-                ParamType::Bytes,
-                ParamType::Bytes,
-            ],
-            data,
-        )
-        .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
-    }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct OrDeciderInput {
     left: Property,
     left_witness: Witness,
@@ -129,7 +80,7 @@ impl OrDeciderInput {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct NotDeciderInput {
     property: Property,
     witness: Witness,
@@ -147,18 +98,21 @@ impl NotDeciderInput {
     }
 }
 
-#[derive(Clone, Debug)]
+#[allow(unused_attributes)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct ForAllSuchThatInput {
     quantifier: Quantifier,
     // PropertyFactory and WitnessFactory isn't serializable. Clients don't send these to smart contract directly
-    property_factory: PropertyFactory,
+    #[ignore]
+    property_factory: Option<PropertyFactory>,
+    #[ignore]
     witness_factory: Option<WitnessFactory>,
 }
 
 impl ForAllSuchThatInput {
     pub fn new(
         quantifier: Quantifier,
-        property_factory: PropertyFactory,
+        property_factory: Option<PropertyFactory>,
         witness_factory: Option<WitnessFactory>,
     ) -> Self {
         ForAllSuchThatInput {
@@ -170,7 +124,7 @@ impl ForAllSuchThatInput {
     pub fn get_quantifier(&self) -> &Quantifier {
         &self.quantifier
     }
-    pub fn get_property_factory(&self) -> &PropertyFactory {
+    pub fn get_property_factory(&self) -> &Option<PropertyFactory> {
         &self.property_factory
     }
     pub fn get_witness_factory(&self) -> &Option<WitnessFactory> {
@@ -178,7 +132,7 @@ impl ForAllSuchThatInput {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
 pub struct PreimageExistsInput {
     hash: H256,
 }
@@ -192,7 +146,7 @@ impl PreimageExistsInput {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct SignedByInput {
     message: Bytes,
     public_key: Address,
@@ -216,7 +170,7 @@ impl SignedByInput {
     }
 }
 
-#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+#[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
 pub struct IncludedInIntervalTreeAtBlockInput {
     block_number: Integer,
     coin_range: Range,
@@ -237,7 +191,7 @@ impl IncludedInIntervalTreeAtBlockInput {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct HasLowerNonceInput {
     message: Message,
     nonce: Integer,
@@ -255,7 +209,7 @@ impl HasLowerNonceInput {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct ChannelUpdateSignatureExistsDeciderInput {
     pub channel_id: Bytes,
     pub nonce: Integer,
@@ -272,13 +226,31 @@ impl ChannelUpdateSignatureExistsDeciderInput {
     }
 }
 
+pub type IntegerRangeQuantifierInput = Range;
+pub type BlockRangeQuantifierInput = IncludedInIntervalTreeAtBlockInput;
+
 #[cfg(test)]
 mod tests {
 
+    use super::ChannelUpdateSignatureExistsDeciderInput;
     use super::IncludedInIntervalTreeAtBlockInput;
     use crate::types::Integer;
+    use bytes::Bytes;
+    use ethereum_types::Address;
     use plasma_core::data_structure::abi::{Decodable, Encodable};
     use plasma_core::data_structure::Range;
+
+    #[test]
+    fn test_channel_update_signature_exists_decider_input() {
+        let input = ChannelUpdateSignatureExistsDeciderInput::new(
+            Bytes::from(&b"parameters"[..]),
+            Integer(10),
+            Address::zero(),
+        );
+        let encoded = input.to_abi();
+        let decoded = ChannelUpdateSignatureExistsDeciderInput::from_abi(&encoded).unwrap();
+        assert_eq!(decoded.channel_id, input.channel_id);
+    }
 
     #[test]
     fn test_included_in_interval_tree_at_block_input() {
