@@ -1,6 +1,5 @@
-use pubsub_messaging::message::Message;
-use pubsub_messaging::server::{run_server, Handler};
-use ws::{Message as WsMessage, Sender};
+use pubsub_messaging::{spawn_server, Handler, Message, Sender, WsMessage};
+use std::{thread, time};
 
 #[derive(Clone)]
 struct Handle();
@@ -15,5 +14,13 @@ impl Handler for Handle {
 
 fn main() {
     let handler = Handle();
-    run_server("127.0.0.1:8080", handler);
+    if let Ok((server, handle)) = spawn_server("127.0.0.1:8080".to_string(), handler) {
+        println!("server listening on port 8080!");
+
+        let t = time::Duration::from_millis(5000);
+        thread::sleep(t);
+        let msg = WsMessage::Text("Broadcast from server.".to_string());
+        let _ = server.send(msg);
+        let _ = handle.join();
+    }
 }

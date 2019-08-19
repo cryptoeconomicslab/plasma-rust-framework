@@ -8,3 +8,5 @@ pub mod server;
 
 pub use client::client::call;
 pub use message::Message;
+pub use server::{spawn_server, Handler};
+pub use ws::{Message as WsMessage, Sender};
