@@ -42,6 +42,8 @@ where
     }
 }
 
+/// Client struct
+/// abstract Sender struct of ws-rs.
 pub struct Client {
     pub sender: Sender,
     pub handle: JoinHandle<()>,
@@ -55,8 +57,13 @@ impl Client {
     }
 }
 
+/// create connection to given host returning Client.
+///
+/// ```
+/// let client = connect("127.0.0.1:8080", handle);
+/// ```
 pub fn connect<T: Handler + Clone + Send + Sync + 'static>(
-    host: String,
+    host: &'static str,
     handler: T,
 ) -> Result<Client> {
     let (tx, rx) = channel();

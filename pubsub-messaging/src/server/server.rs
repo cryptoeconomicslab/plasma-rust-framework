@@ -69,7 +69,7 @@ impl Server {
 /// }
 /// ```
 pub fn spawn_server<T: Handler + Clone + Send + Sync + 'static>(
-    host: String,
+    host: &'static str,
     handler: T,
 ) -> Result<Server> {
     let (tx, rx) = channel();
@@ -83,7 +83,7 @@ pub fn spawn_server<T: Handler + Clone + Send + Sync + 'static>(
         // TODO: handle result
         let _ = tx.send(ws.broadcaster());
         // TODO: handle result
-        let _ = ws.listen(&host.clone());
+        let _ = ws.listen(host);
     });
 
     if let Ok(sender) = rx.recv() {
