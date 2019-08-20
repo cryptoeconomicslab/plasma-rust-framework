@@ -5,8 +5,8 @@ use std::sync::mpsc::channel;
 use std::sync::mpsc::Sender as ThreadOut;
 use std::thread::{spawn, JoinHandle};
 use ws::{
-    connect as ws_connect, Error as WsError, Handler as WsHandler, Handshake, Message as WsMessage,
-    Result as WsResult, Sender,
+    connect as ws_connect, CloseCode, Error as WsError, Handler as WsHandler, Handshake,
+    Message as WsMessage, Result as WsResult, Sender,
 };
 
 struct Inner<T: Handler> {
@@ -24,6 +24,10 @@ where
         let _ = self.tx.send(self.ws.clone());
         self.handler.handle_open(self.ws.clone());
         Ok(())
+    }
+
+    fn on_close(&mut self, _code: CloseCode, _reason: &str) {
+        self.handler.handle_close();
     }
 
     fn on_message(&mut self, msg: WsMessage) -> WsResult<()> {

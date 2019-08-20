@@ -4,8 +4,8 @@ use std::marker::{Send, Sync};
 use std::sync::mpsc::channel;
 use std::thread::{spawn, JoinHandle};
 use ws::{
-    Error as WsError, Handler as WsHandler, Message as WsMessage, Result as WsResult, Sender,
-    WebSocket,
+    CloseCode, Error as WsError, Handler as WsHandler, Handshake, Message as WsMessage,
+    Result as WsResult, Sender, WebSocket,
 };
 
 #[derive(Clone)]
@@ -18,6 +18,15 @@ impl<T> WsHandler for Inner<T>
 where
     T: Handler,
 {
+    fn on_open(&mut self, _: Handshake) -> WsResult<()> {
+        self.handler.handle_open(self.ws.clone());
+        Ok(())
+    }
+
+    fn on_close(&mut self, _code: CloseCode, _reason: &str) {
+        self.handler.handle_close();
+    }
+
     fn on_message(&mut self, msg: WsMessage) -> WsResult<()> {
         let res = match msg {
             WsMessage::Text(text) => deserialize(text.as_bytes()),
