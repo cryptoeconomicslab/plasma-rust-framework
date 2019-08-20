@@ -9,13 +9,13 @@ use ws::{
     Message as WsMessage, Result as WsResult, Sender,
 };
 
-pub struct Client<T: Handler> {
+struct Inner<T: Handler> {
     handler: T,
     ws: Sender,
     tx: ThreadOut<Sender>,
 }
 
-impl<T> WsHandler for Client<T>
+impl<T> WsHandler for Inner<T>
 where
     T: Handler,
 {
@@ -42,12 +42,12 @@ where
     }
 }
 
-pub struct ClientWrapper {
+pub struct Client {
     pub sender: Sender,
     pub handle: JoinHandle<()>,
 }
 
-impl ClientWrapper {
+impl Client{
     pub fn send(&mut self, msg: Message) {
         let ws_msg = WsMessage::Binary(serialize(&msg).unwrap());
         // TODO: error handling
@@ -58,11 +58,11 @@ impl ClientWrapper {
 pub fn connect<T: Handler + Clone + Send + Sync + 'static>(
     host: String,
     handler: T,
-) -> Result<ClientWrapper> {
+) -> Result<Client> {
     let (tx, rx) = channel();
     let t = spawn(move || {
         let url: &str = &format!("ws://{}", host);
-        ws_connect(url, |out| Client {
+        ws_connect(url, |out| Inner {
             handler: handler.clone(),
             ws: out,
             tx: tx.clone(),
@@ -71,7 +71,7 @@ pub fn connect<T: Handler + Clone + Send + Sync + 'static>(
     });
 
     if let Ok(sender) = rx.recv() {
-        Ok(ClientWrapper { sender, handle: t })
+        Ok(Client { sender, handle: t })
     } else {
         Err(Error::Thread)
     }
