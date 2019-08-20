@@ -22,7 +22,7 @@ members = [
 	"operator",
 	"ovm",
 	"predicate-plugins",
-  "pubsub-messaging",
+	"pubsub-messaging",
 	"event-watcher",
 	"merkle-interval-tree",
 	"wasm"
