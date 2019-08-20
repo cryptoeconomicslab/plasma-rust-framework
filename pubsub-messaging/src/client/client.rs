@@ -1,12 +1,12 @@
-use super::{Error, Handler, Result, Message};
+use super::{Error, Handler, Message, Result};
 use bincode::{deserialize, serialize};
 use std::marker::{Send, Sync};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Sender as ThreadOut;
 use std::thread::{spawn, JoinHandle};
 use ws::{
-    connect as ws_connect, Error as WsError, Handler as WsHandler, Handshake,
-    Message as WsMessage, Result as WsResult, Sender,
+    connect as ws_connect, Error as WsError, Handler as WsHandler, Handshake, Message as WsMessage,
+    Result as WsResult, Sender,
 };
 
 struct Inner<T: Handler> {
@@ -47,7 +47,7 @@ pub struct Client {
     pub handle: JoinHandle<()>,
 }
 
-impl Client{
+impl Client {
     pub fn send(&mut self, msg: Message) {
         let ws_msg = WsMessage::Binary(serialize(&msg).unwrap());
         // TODO: error handling

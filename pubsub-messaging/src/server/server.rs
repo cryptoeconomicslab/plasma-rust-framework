@@ -1,5 +1,5 @@
-use super::{Error, Handler, Result};
-use bincode::deserialize;
+use super::{Error, Handler, Message, Result};
+use bincode::{deserialize, serialize};
 use std::marker::{Send, Sync};
 use std::sync::mpsc::channel;
 use std::thread::{spawn, JoinHandle};
@@ -9,17 +9,16 @@ use ws::{
 };
 
 #[derive(Clone)]
-struct Server<T: Handler> {
+struct Inner<T: Handler> {
     handler: T,
     ws: Sender,
 }
 
-impl<T> WsHandler for Server<T>
+impl<T> WsHandler for Inner<T>
 where
     T: Handler,
 {
     fn on_message(&mut self, msg: WsMessage) -> WsResult<()> {
-        println!("SERVER on_message: {:?}", msg);
         let res = match msg {
             WsMessage::Text(text) => deserialize(text.as_bytes()),
             WsMessage::Binary(bytes) => deserialize(&bytes),
@@ -32,6 +31,19 @@ where
             }
             Err(e) => Err(WsError::from(e)),
         }
+    }
+}
+
+pub struct Server {
+    pub sender: Sender,
+    pub handle: JoinHandle<()>,
+}
+
+impl Server {
+    pub fn send(&self, msg: Message) {
+        let ws_msg = WsMessage::Binary(serialize(&msg).unwrap());
+        // TODO: error handling
+        let _ = self.sender.send(ws_msg);
     }
 }
 
@@ -56,9 +68,9 @@ where
 pub fn spawn_server<T: Handler + Clone + Send + Sync + 'static>(
     host: String,
     handler: T,
-) -> Result<(Sender, JoinHandle<()>)> {
+) -> Result<Server> {
     let (tx, rx) = channel();
-    let ws = WebSocket::new(move |out: Sender| Server {
+    let ws = WebSocket::new(move |out: Sender| Inner {
         handler: handler.clone(),
         ws: out,
     })
@@ -72,7 +84,7 @@ pub fn spawn_server<T: Handler + Clone + Send + Sync + 'static>(
     });
 
     if let Ok(sender) = rx.recv() {
-        Ok((sender, t))
+        Ok(Server { sender, handle: t })
     } else {
         Err(Error::Thread)
     }
