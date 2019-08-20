@@ -1,4 +1,4 @@
-use byteorder::{LittleEndian, WriteBytesExt};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 pub use num_traits::{
     Bounded, CheckedAdd, CheckedDiv, CheckedMul, CheckedShl, CheckedShr, CheckedSub, One,
     Saturating, Zero,
@@ -20,10 +20,22 @@ impl LittleEndianEncodable for u64 {
     }
 }
 
+pub trait LittleEndianDecoder {
+    fn decode_as_le(encoded: &[u8]) -> Self;
+}
+
+impl LittleEndianDecoder for u64 {
+    fn decode_as_le(encoded: &[u8]) -> u64 {
+        let mut reader = std::io::Cursor::new(encoded);
+        reader.read_u64::<LittleEndian>().unwrap()
+    }
+}
+
 pub trait Index:
     Zero
     + One
     + LittleEndianEncodable
+    + LittleEndianDecoder
     + Add<Self, Output = Self>
     + AddAssign<Self>
     + Sub<Self, Output = Self>
@@ -56,6 +68,7 @@ impl<
         T: Zero
             + One
             + LittleEndianEncodable
+            + LittleEndianDecoder
             + Add<Self, Output = Self>
             + AddAssign<Self>
             + Sub<Self, Output = Self>

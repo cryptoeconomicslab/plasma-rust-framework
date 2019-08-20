@@ -2,9 +2,9 @@ use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
     Decider, Decision, ForAllSuchThatInput, ImplicationProofElement, Property, QuantifierResult,
+    Witness,
 };
 use crate::DecideMixin;
-use bytes::Bytes;
 use plasma_db::traits::kvs::KeyValueStore;
 
 /// ForAllSuchThatDecider decides for all quantified results by PropertyFactory and WitnessFactory
@@ -47,7 +47,7 @@ impl Decider for ForAllSuchThatDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &ForAllSuchThatInput,
-        _witness: Option<&Bytes>,
+        _witness: Option<Witness>,
     ) -> Result<Decision, Error> {
         let quantifier_result: QuantifierResult =
             decider.get_all_quantified(input.get_quantifier());
@@ -56,13 +56,19 @@ impl Decider for ForAllSuchThatDecider {
         let mut false_decision: Decision = Decision::new(false, vec![]);
         let mut true_decisions: Vec<Decision> = vec![];
         for res in quantifier_result.get_results() {
-            let prop: Property = input.get_property_factory().call(res.clone());
-            let witness: Bytes = input.get_witness_factory().call(res.clone());
+            let prop: Property = input
+                .get_property_factory()
+                .clone()
+                .unwrap()
+                .call(res.clone());
+            let witness: Option<Witness> = input
+                .get_witness_factory()
+                .clone()
+                .map(|wf| wf.call(res.clone()));
             let _no_cache = false;
             let decision_result = prop.decide(
-                decider,
-                Some(&witness),
-                //no_cache,
+                decider, witness,
+                // no_cache,
             );
             if let Ok(decision) = decision_result {
                 if !decision.get_outcome() {
@@ -93,26 +99,47 @@ impl Decider for ForAllSuchThatDecider {
 #[cfg(test)]
 mod tests {
     use super::ForAllSuchThatDecider;
+    use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
-        Decider, Decision, ForAllSuchThatInput, Integer, PreimageExistsInput, Property,
-        PropertyFactory, Quantifier, WitnessFactory,
+        Decider, Decision, ForAllSuchThatInput, IntegerRangeQuantifierInput, PreimageExistsInput,
+        Property, PropertyFactory, Quantifier, QuantifierResultItem, Witness, WitnessFactory,
     };
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     #[test]
     fn test_decide() {
         let input = ForAllSuchThatInput::new(
-            Quantifier::IntegerRangeQuantifier(Integer(5), Integer(20)),
-            PropertyFactory::new(Box::new(|bytes| {
-                Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-                    Verifier::static_hash(&bytes),
-                )))
-            })),
-            WitnessFactory::new(Box::new(|bytes| bytes.clone())),
+            Quantifier::IntegerRangeQuantifier(IntegerRangeQuantifierInput::new(5, 20)),
+            Some(PropertyFactory::new(Box::new(|item| {
+                if let QuantifierResultItem::Integer(number) = item {
+                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+                        Verifier::static_hash(&number.into()),
+                    )))
+                } else {
+                    panic!("invalid type of item");
+                }
+            }))),
+            Some(WitnessFactory::new(Box::new(|item| {
+                if let QuantifierResultItem::Integer(number) = item {
+                    Witness::Bytes(number.into())
+                } else {
+                    panic!("invalid type of item");
+                }
+            }))),
         );
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let db = HashPreimageDb::new(decider.get_db());
+        for i in 5..20 {
+            let integer = Integer(i);
+            assert!(db
+                .store_witness(
+                    Verifier::static_hash(&integer.into()),
+                    &Witness::Bytes(integer.into())
+                )
+                .is_ok());
+        }
         let decided: Decision = ForAllSuchThatDecider::decide(&decider, &input, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }

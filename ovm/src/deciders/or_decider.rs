@@ -1,28 +1,28 @@
 use crate::error::Error;
+use crate::property_executor::DecideMixin;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{AndDeciderInput, Decider, Decision, Witness};
-use crate::DecideMixin;
+use crate::types::{Decider, Decision, OrDeciderInput, Witness};
 use plasma_db::traits::kvs::KeyValueStore;
 
-pub struct AndDecider {}
+pub struct OrDecider {}
 
-impl AndDecider {
+impl OrDecider {
     pub fn new() -> Self {
-        AndDecider {}
+        OrDecider {}
     }
 }
 
-impl Default for AndDecider {
+impl Default for OrDecider {
     fn default() -> Self {
-        AndDecider {}
+        OrDecider {}
     }
 }
 
-impl Decider for AndDecider {
-    type Input = AndDeciderInput;
+impl Decider for OrDecider {
+    type Input = OrDeciderInput;
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
-        input: &AndDeciderInput,
+        input: &OrDeciderInput,
         _witness: Option<Witness>,
     ) -> Result<Decision, Error> {
         let left_decision = input
@@ -31,14 +31,14 @@ impl Decider for AndDecider {
         let right_decision = input
             .get_right()
             .decide(decider, Some(input.get_right_witness().clone()))?;
-        if !left_decision.get_outcome() {
+        if left_decision.get_outcome() {
             return Ok(left_decision);
         }
-        if !right_decision.get_outcome() {
+        if right_decision.get_outcome() {
             return Ok(right_decision);
         }
         Ok(Decision::new(
-            true,
+            false,
             [
                 &left_decision.get_implication_proof()[..],
                 &right_decision.get_implication_proof()[..],
@@ -49,7 +49,7 @@ impl Decider for AndDecider {
 
     fn check_decision<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
-        input: &AndDeciderInput,
+        input: &OrDeciderInput,
     ) -> Result<Decision, Error> {
         Self::decide(decider, input, None)
     }
@@ -57,35 +57,42 @@ impl Decider for AndDecider {
 
 #[cfg(test)]
 mod tests {
-    use super::AndDecider;
+    use super::OrDecider;
     use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
-        AndDeciderInput, Decider, Decision, PreimageExistsInput, Property, Witness,
+        Decider, Decision, NotDeciderInput, OrDeciderInput, PreimageExistsInput, Property, Witness,
     };
     use bytes::Bytes;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     #[test]
     fn test_decide() {
-        let left_preimage = Bytes::from("left");
-        let left_hash = Verifier::static_hash(&left_preimage);
-        let left_witness = Witness::Bytes(left_preimage);
-        let right_preimage = Bytes::from("right");
-        let right_hash = Verifier::static_hash(&right_preimage);
-        let right_witness = Witness::Bytes(right_preimage);
-        let left = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(left_hash)));
-        let right = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(right_hash)));
-        let input = AndDeciderInput::new(left, left_witness.clone(), right, right_witness.clone());
-        let and_decider = Property::AndDecider(Box::new(input.clone()));
+        let left_hash = Verifier::static_hash(&Bytes::from("left"));
+        let right_hash = Verifier::static_hash(&Bytes::from("right"));
+        let left = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+            Verifier::static_hash(&Bytes::from("left")),
+        )));
+        let left_witness = Witness::Bytes(Bytes::from("left"));
+        let right = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+            Verifier::static_hash(&Bytes::from("right")),
+        )));
+        let right_witness = Witness::Bytes(Bytes::from("right"));
+        let input = OrDeciderInput::new(
+            left,
+            left_witness.clone(),
+            Property::NotDecider(Box::new(NotDeciderInput::new(right, right_witness.clone()))),
+            Witness::Bytes(Bytes::from("not")),
+        );
+        let or_decider = Property::OrDecider(Box::new(input.clone()));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         assert!(db.store_witness(left_hash, &left_witness).is_ok());
         assert!(db.store_witness(right_hash, &right_witness).is_ok());
-        let decided: Decision = decider.decide(&and_decider, None).unwrap();
+        let decided: Decision = decider.decide(&or_decider, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
-        let status = AndDecider::check_decision(&decider, &input).unwrap();
+        let status = OrDecider::check_decision(&decider, &input).unwrap();
         assert_eq!(status.get_outcome(), true);
     }
 

@@ -1,8 +1,9 @@
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, NotDeciderInput, Property};
+use crate::types::{
+    Decider, Decision, ImplicationProofElement, NotDeciderInput, Property, Witness,
+};
 use crate::DecideMixin;
-use bytes::Bytes;
 use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct NotDecider {}
@@ -24,11 +25,11 @@ impl Decider for NotDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &NotDeciderInput,
-        _witness: Option<&Bytes>,
+        _witness: Option<Witness>,
     ) -> Result<Decision, Error> {
         let decision = input
             .get_property()
-            .decide(decider, Some(input.get_witness()))?;
+            .decide(decider, Some(input.get_witness().clone()))?;
 
         Ok(Decision::new(
             !decision.get_outcome(),

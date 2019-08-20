@@ -2,7 +2,7 @@ use super::abi::{Decodable, Encodable};
 use super::error::{Error, ErrorKind};
 use ethabi::Token;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Range {
     start: u64,
     end: u64,
@@ -18,12 +18,18 @@ impl Range {
     pub fn get_end(&self) -> u64 {
         self.end
     }
+    pub fn get_overlapping_range(&self, b: &Range) -> Range {
+        if self.start < b.start && b.start <= self.end {
+            Range::new(b.start, self.end)
+        } else if b.start < self.start && self.start <= b.end {
+            Range::new(self.start, b.end)
+        } else {
+            Range::new(0, 0)
+        }
+    }
 }
 
 impl Encodable for Range {
-    fn to_abi(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple())
-    }
     fn to_tuple(&self) -> Vec<Token> {
         vec![Token::Uint(self.start.into()), Token::Uint(self.end.into())]
     }
@@ -40,12 +46,7 @@ impl Decodable for Range {
             Err(Error::from(ErrorKind::AbiDecode))
         }
     }
-    fn from_abi(data: &[u8]) -> Result<Self, Error> {
-        let decoded: Vec<Token> = ethabi::decode(
-            &[ethabi::ParamType::Uint(8), ethabi::ParamType::Uint(8)],
-            data,
-        )
-        .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
+    fn get_param_types() -> Vec<ethabi::ParamType> {
+        vec![ethabi::ParamType::Uint(64), ethabi::ParamType::Uint(64)]
     }
 }
