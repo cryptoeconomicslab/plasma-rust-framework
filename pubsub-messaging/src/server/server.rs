@@ -34,13 +34,16 @@ where
     }
 }
 
+/// Server struct
+/// abstract Sender struct of ws-rs.
 pub struct Server {
     pub sender: Sender,
     pub handle: JoinHandle<()>,
 }
 
 impl Server {
-    pub fn send(&self, msg: Message) {
+    /// Broad message to all connections
+    pub fn broadcast(&self, msg: Message) {
         let ws_msg = WsMessage::Binary(serialize(&msg).unwrap());
         // TODO: error handling
         let _ = self.sender.send(ws_msg);
