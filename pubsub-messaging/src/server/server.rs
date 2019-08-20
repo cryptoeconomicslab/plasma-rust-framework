@@ -19,6 +19,7 @@ where
     T: Handler,
 {
     fn on_message(&mut self, msg: WsMessage) -> WsResult<()> {
+        println!("SERVER on_message: {:?}", msg);
         let res = match msg {
             WsMessage::Text(text) => deserialize(text.as_bytes()),
             WsMessage::Binary(bytes) => deserialize(&bytes),
