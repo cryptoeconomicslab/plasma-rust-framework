@@ -1,5 +1,5 @@
 pub mod handler;
-pub mod server;
+pub mod server_impl;
 
 use super::{error, message};
 use error::*;
