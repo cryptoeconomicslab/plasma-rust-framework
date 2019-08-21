@@ -103,8 +103,9 @@ mod tests {
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
-        Decider, Decision, ForAllSuchThatInput, IntegerRangeQuantifierInput, PreimageExistsInput,
-        Property, PropertyFactory, Quantifier, QuantifierResultItem, Witness, WitnessFactory,
+        Decider, Decision, ForAllSuchThatInput, Integer, IntegerRangeQuantifierInput,
+        PreimageExistsInput, Property, PropertyFactory, Quantifier, QuantifierResultItem, Witness,
+        WitnessFactory,
     };
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
