@@ -1,0 +1,11 @@
+[package]
+name = "pubsub-messaging"
+version = "0.1.0"
+authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
+edition = "2018"
+
+[dependencies]
+ws = "*"
+serde = { version = "1.0", features = ["derive"] }
+bincode = "*"
+failure = "*"
