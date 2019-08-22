@@ -5,30 +5,20 @@ authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"
 
 [lib]
-path = "plasma-chamber/lib.rs"
+path = "clients/src/lib.rs"
 
-[[bin]]
-path = "plasma-chamber/main.rs"
-name = "plasma-chamber"
 
 [workspace]
 members = [
 	"abi-derive",
-	"android",
-	"client",
 	"contract-wrapper",
 	"core",
 	"db",
-	"operator",
 	"ovm",
-	"predicate-plugins",
 	"pubsub-messaging",
 	"event-watcher",
-	"merkle-interval-tree",
-	"wasm"
+	"merkle-interval-tree"
 ]
 
 [dependencies]
-
 clippy = {version = "*", optional = true}
-plasma-operator = { path = "./operator" }
