@@ -5,7 +5,7 @@ pub mod witness;
 
 pub use self::core::{
     Decider, Decision, ImplicationProofElement, Integer, Property, PropertyFactory, Quantifier,
-    QuantifierResult, QuantifierResultItem, WitnessFactory,
+    QuantifierResult, QuantifierResultItem,
 };
 pub use self::decision_value::DecisionValue;
 pub use self::inputs::{

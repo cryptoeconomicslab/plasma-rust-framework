@@ -14,7 +14,6 @@ pub fn create_plasma_property(specified_block_number: Integer, range: Range) -> 
                 panic!("invalid type in PropertyFactory");
             }
         }))),
-        None,
     )))
 }
 
@@ -28,6 +27,5 @@ pub fn create_coin_range_property(block_number: Integer, range: Range) -> Proper
                 panic!("invalid type in PropertyFactory");
             }
         }))),
-        None,
     )))
 }

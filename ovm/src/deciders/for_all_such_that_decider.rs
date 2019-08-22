@@ -2,7 +2,6 @@ use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
     Decider, Decision, ForAllSuchThatInput, ImplicationProofElement, Property, QuantifierResult,
-    Witness,
 };
 use crate::DecideMixin;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -47,7 +46,6 @@ impl Decider for ForAllSuchThatDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &ForAllSuchThatInput,
-        _witness: Option<Witness>,
     ) -> Result<Decision, Error> {
         let quantifier_result: QuantifierResult =
             decider.get_all_quantified(input.get_quantifier());
@@ -61,13 +59,9 @@ impl Decider for ForAllSuchThatDecider {
                 .clone()
                 .unwrap()
                 .call(res.clone());
-            let witness: Option<Witness> = input
-                .get_witness_factory()
-                .clone()
-                .map(|wf| wf.call(res.clone()));
             let _no_cache = false;
             let decision_result = prop.decide(
-                decider, witness,
+                decider,
                 // no_cache,
             );
             if let Ok(decision) = decision_result {
@@ -88,12 +82,6 @@ impl Decider for ForAllSuchThatDecider {
             any_undecided || !quantifier_result.get_all_results_quantified(),
         )
     }
-    fn check_decision<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &ForAllSuchThatInput,
-    ) -> Result<Decision, Error> {
-        Self::decide(decider, input, None)
-    }
 }
 
 #[cfg(test)]
@@ -105,7 +93,6 @@ mod tests {
     use crate::types::{
         Decider, Decision, ForAllSuchThatInput, Integer, IntegerRangeQuantifierInput,
         PreimageExistsInput, Property, PropertyFactory, Quantifier, QuantifierResultItem, Witness,
-        WitnessFactory,
     };
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
@@ -122,13 +109,6 @@ mod tests {
                     panic!("invalid type of item");
                 }
             }))),
-            Some(WitnessFactory::new(Box::new(|item| {
-                if let QuantifierResultItem::Integer(number) = item {
-                    Witness::Bytes(number.into())
-                } else {
-                    panic!("invalid type of item");
-                }
-            }))),
         );
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
@@ -141,7 +121,7 @@ mod tests {
                 )
                 .is_ok());
         }
-        let decided: Decision = ForAllSuchThatDecider::decide(&decider, &input, None).unwrap();
+        let decided: Decision = ForAllSuchThatDecider::decide(&decider, &input).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
 

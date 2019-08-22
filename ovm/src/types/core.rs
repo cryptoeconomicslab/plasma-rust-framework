@@ -304,32 +304,9 @@ impl std::fmt::Debug for PropertyFactory {
     }
 }
 
-#[derive(Clone)]
-pub struct WitnessFactory(Arc<dyn Fn(QuantifierResultItem) -> Witness>);
-
-impl WitnessFactory {
-    pub fn new(handler: Box<dyn Fn(QuantifierResultItem) -> Witness>) -> Self {
-        WitnessFactory(Arc::new(handler))
-    }
-    pub fn call(&self, item: QuantifierResultItem) -> Witness {
-        self.0(item)
-    }
-}
-
-impl std::fmt::Debug for WitnessFactory {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "WitnessFactory")
-    }
-}
-
 pub trait Decider {
     type Input;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &Self::Input,
-        witness: Option<Witness>,
-    ) -> Result<Decision, Error>;
-    fn check_decision<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &Self::Input,
     ) -> Result<Decision, Error>;
