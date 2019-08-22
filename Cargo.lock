@@ -209,6 +209,10 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "clients"
+version = "0.1.0"
+
+[[package]]
 name = "clippy"
 version = "0.0.302"
 source = "registry+https://github.com/rust-lang/crates.io-index"

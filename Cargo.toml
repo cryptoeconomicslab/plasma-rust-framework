@@ -13,6 +13,7 @@ members = [
 	"abi-derive",
 	"contract-wrapper",
 	"core",
+	"clients",
 	"db",
 	"ovm",
 	"pubsub-messaging",
