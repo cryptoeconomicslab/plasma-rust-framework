@@ -8,13 +8,14 @@ pub mod property_executor;
 pub mod quantifiers;
 pub mod statements;
 pub mod types;
+pub mod utils;
 
 pub use self::property_executor::DecideMixin;
 
 #[cfg(test)]
 mod tests {
 
-    use crate::db::HashPreimageDb;
+    use crate::db::{HashPreimageDb, SignedByDb};
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::deciders::SignVerifier;
     use crate::property_executor::PropertyExecutor;
@@ -149,8 +150,10 @@ mod tests {
         let secret_key_bob = SecretKey::from_raw(&raw_key_bob).unwrap();
         let message = Bytes::from("state_update");
         let signature = SignVerifier::sign(&secret_key_bob, &message);
+        let witness = Witness::Bytes(signature);
         let alice: Address = secret_key_alice.public().address().into();
         let bob: Address = secret_key_bob.public().address().into();
+        let sign_input = SignedByInput::new(Bytes::from("state_update"), bob);
         let _nonce = Integer(10);
         let left_property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
             Quantifier::SignedByQuantifier(alice),
@@ -163,16 +166,17 @@ mod tests {
             }))),
             None,
         )));
-        let right_property =
-            Property::SignedByDecider(SignedByInput::new(Bytes::from("state_update"), bob));
+        let right_property = Property::SignedByDecider(sign_input.clone());
         let property = Property::AndDecider(Box::new(AndDeciderInput::new(
             left_property,
             Witness::Bytes("".into()),
             right_property,
-            Witness::Bytes(signature),
+            witness.clone(),
         )));
 
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let db = SignedByDb::new(decider.get_db());
+        assert!(db.store_witness(&sign_input, &witness).is_ok());
         let decided: Decision = decider.decide(&property, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }

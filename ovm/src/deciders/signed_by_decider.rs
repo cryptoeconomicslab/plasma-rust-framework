@@ -1,3 +1,4 @@
+use crate::db::SignedByDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
@@ -6,7 +7,7 @@ use crate::types::{
 use bytes::Bytes;
 use ethereum_types::{Address, H256};
 use ethsign::{SecretKey, Signature};
-use plasma_core::data_structure::abi::{Decodable, Encodable};
+use plasma_core::data_structure::abi::Decodable;
 use plasma_db::traits::kvs::{BaseDbKey, KeyValueStore};
 use tiny_keccak::Keccak;
 
@@ -65,28 +66,20 @@ impl Decider for SignedByDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &SignedByInput,
-        witness: Option<Witness>,
+        _witness: Option<Witness>,
     ) -> Result<Decision, Error> {
-        if let Some(Witness::Bytes(signature)) = witness {
+        let db: SignedByDb<T> = SignedByDb::new(decider.get_db());
+        let witness = db.get_witness(input)?;
+        if let Witness::Bytes(signature) = witness {
             if Verifier::recover(&signature, input.get_message()) != input.get_public_key() {
                 return Err(Error::from(ErrorKind::InvalidPreimage));
             }
-            let decision_key = input.hash();
-            let decision_value = DecisionValue::new(true, Witness::Bytes(signature.clone()));
-            decider
-                .get_db()
-                .bucket(&BaseDbKey::from(&b"signed_by_decider"[..]))
-                .put(
-                    &BaseDbKey::from(decision_key.to_vec().as_slice()),
-                    &decision_value.to_abi(),
-                )
-                .map_err::<Error, _>(Into::into)?;
 
             Ok(Decision::new(
                 true,
                 vec![ImplicationProofElement::new(
                     Property::SignedByDecider(input.clone()),
-                    Some(decision_value.get_witness().clone()),
+                    Some(Witness::Bytes(signature)),
                 )],
             ))
         } else {
@@ -120,9 +113,10 @@ impl Decider for SignedByDecider {
 
 #[cfg(test)]
 mod tests {
-    use super::{SignedByDecider, Verifier};
+    use super::Verifier;
+    use crate::db::SignedByDb;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decider, Decision, Property, SignedByInput, Witness};
+    use crate::types::{Decision, Property, SignedByInput, Witness};
     use bytes::Bytes;
     use ethsign::SecretKey;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
@@ -135,15 +129,14 @@ mod tests {
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let message = Bytes::from("message");
         let signature = Verifier::sign(&secret_key, &message);
+        let witness = Witness::Bytes(signature);
         let input = SignedByInput::new(message, secret_key.public().address().into());
         let property = Property::SignedByDecider(input.clone());
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
-        let decided: Decision = decider
-            .decide(&property, Some(Witness::Bytes(signature)))
-            .unwrap();
+        let db = SignedByDb::new(decider.get_db());
+        assert!(db.store_witness(&input, &witness).is_ok());
+        let decided: Decision = decider.decide(&property, Some(witness)).unwrap();
         assert_eq!(decided.get_outcome(), true);
-        let status = SignedByDecider::check_decision(&decider, &input).unwrap();
-        assert_eq!(status.get_outcome(), true);
     }
 
 }
