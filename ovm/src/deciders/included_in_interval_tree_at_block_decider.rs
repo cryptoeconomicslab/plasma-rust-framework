@@ -1,3 +1,4 @@
+use crate::db::RangeAtBlockDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
@@ -25,10 +26,11 @@ impl Decider for IncludedInIntervalTreeAtBlock {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &IncludedInIntervalTreeAtBlockInput,
-        witness: Option<Witness>,
+        _witness: Option<Witness>,
     ) -> Result<Decision, Error> {
-        if let Some(Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, data_block)) =
-            witness.clone()
+        let db: RangeAtBlockDb<T> = RangeAtBlockDb::new(decider.get_range_db());
+        let witness = db.get_witness(input)?;
+        if let Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, data_block) = witness.clone()
         {
             let leaf = MerkleIntervalNode::Leaf {
                 end: input.get_coin_range().get_start(),
@@ -44,40 +46,24 @@ impl Decider for IncludedInIntervalTreeAtBlock {
             let inclusion_bounds: Range =
                 Range::new(implicit_bounds.get_start(), implicit_bounds.get_end());
             // Insert inclusion decision
-            let relevant_inclusion: Range = input
+            let _relevant_inclusion: Range = input
                 .get_coin_range()
                 .get_overlapping_range(&data_block.get_updated_range());
-            let inclusion_decision_value = DecisionValue::new(true, witness.clone().unwrap());
-            decider
-                .get_range_db()
-                .bucket(&Bytes::from("range_at_block"))
-                .bucket(&input.get_block_number().into())
-                .put(
-                    relevant_inclusion.get_start(),
-                    relevant_inclusion.get_end(),
-                    &inclusion_decision_value.to_abi(),
-                )
-                .map_err::<Error, _>(Into::into)?;
             if input.get_coin_range().get_end() == data_block.get_updated_range().get_end() {
                 return Err(Error::from(ErrorKind::CannotDecide));
             }
             // Insert exclusion decision
-            let relevant_exclusion = Range::new(
+            let _relevant_exclusion = Range::new(
                 data_block.get_updated_range().get_end(),
                 inclusion_bounds.get_end(),
             );
-            let exclusion_decision_value = DecisionValue::new(true, witness.clone().unwrap());
-            decider
-                .get_range_db()
-                .bucket(&Bytes::from("range_at_block"))
-                .bucket(&input.get_block_number().into())
-                .put(
-                    relevant_exclusion.get_start(),
-                    relevant_exclusion.get_end(),
-                    &exclusion_decision_value.to_abi(),
-                )
-                .map_err::<Error, _>(Into::into)?;
-            Ok(Decision::new(true, vec![]))
+            Ok(Decision::new(
+                true,
+                vec![ImplicationProofElement::new(
+                    Property::IncludedInIntervalTreeAtBlockDecider(input.clone()),
+                    Some(witness.clone()),
+                )],
+            ))
         } else {
             panic!("invalid witness")
         }
