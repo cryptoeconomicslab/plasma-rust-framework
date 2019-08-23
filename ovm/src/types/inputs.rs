@@ -1,4 +1,5 @@
 use super::core::{Integer, Property, PropertyFactory, Quantifier};
+use super::witness::PlasmaDataBlock;
 use crate::db::Message;
 use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
@@ -119,24 +120,24 @@ impl SignedByInput {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
-pub struct IncludedInIntervalTreeAtBlockInput {
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+pub struct IncludedAtBlockInput {
     block_number: Integer,
-    coin_range: Range,
+    plasma_data_block: PlasmaDataBlock,
 }
 
-impl IncludedInIntervalTreeAtBlockInput {
-    pub fn new(block_number: Integer, coin_range: Range) -> Self {
+impl IncludedAtBlockInput {
+    pub fn new(block_number: Integer, plasma_data_block: PlasmaDataBlock) -> Self {
         Self {
             block_number,
-            coin_range,
+            plasma_data_block,
         }
     }
     pub fn get_block_number(&self) -> Integer {
         self.block_number
     }
-    pub fn get_coin_range(&self) -> Range {
-        self.coin_range
+    pub fn get_plasma_data_block(&self) -> &PlasmaDataBlock {
+        &self.plasma_data_block
     }
 }
 
@@ -176,16 +177,36 @@ impl ChannelUpdateSignatureExistsDeciderInput {
 }
 
 pub type IntegerRangeQuantifierInput = Range;
-pub type BlockRangeQuantifierInput = IncludedInIntervalTreeAtBlockInput;
+
+#[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
+pub struct BlockRangeQuantifierInput {
+    block_number: Integer,
+    coin_range: Range,
+}
+
+impl BlockRangeQuantifierInput {
+    pub fn new(block_number: Integer, coin_range: Range) -> Self {
+        Self {
+            block_number,
+            coin_range,
+        }
+    }
+    pub fn get_block_number(&self) -> Integer {
+        self.block_number
+    }
+    pub fn get_coin_range(&self) -> Range {
+        self.coin_range
+    }
+}
 
 #[cfg(test)]
 mod tests {
 
     use super::ChannelUpdateSignatureExistsDeciderInput;
-    use super::IncludedInIntervalTreeAtBlockInput;
-    use crate::types::Integer;
+    use super::IncludedAtBlockInput;
+    use crate::types::{Integer, PlasmaDataBlock, PreimageExistsInput, Property};
     use bytes::Bytes;
-    use ethereum_types::Address;
+    use ethereum_types::{Address, H256};
     use plasma_core::data_structure::abi::{Decodable, Encodable};
     use plasma_core::data_structure::Range;
 
@@ -203,12 +224,16 @@ mod tests {
 
     #[test]
     fn test_included_in_interval_tree_at_block_input() {
-        let input = IncludedInIntervalTreeAtBlockInput::new(Integer(10), Range::new(500, 700));
-        let encoded = input.to_abi();
-        let decoded = IncludedInIntervalTreeAtBlockInput::from_abi(&encoded).unwrap();
-        assert_eq!(
-            decoded.get_coin_range().get_start(),
-            input.get_coin_range().get_start()
+        let plasma_data_block: PlasmaDataBlock = PlasmaDataBlock::new(
+            Integer(0),
+            Range::new(500, 700),
+            true,
+            Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(H256::zero()))),
+            Bytes::from(&b"root"[..]),
         );
+        let input = IncludedAtBlockInput::new(Integer(10), plasma_data_block);
+        let encoded = input.to_abi();
+        let decoded = IncludedAtBlockInput::from_abi(&encoded).unwrap();
+        assert_eq!(decoded.get_block_number(), input.get_block_number());
     }
 }

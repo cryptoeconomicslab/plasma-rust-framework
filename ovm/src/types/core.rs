@@ -1,10 +1,9 @@
 use super::inputs::{
     AndDeciderInput, BlockRangeQuantifierInput, ChannelUpdateSignatureExistsDeciderInput,
-    ForAllSuchThatInput, HasLowerNonceInput, IncludedInIntervalTreeAtBlockInput,
-    IntegerRangeQuantifierInput, NotDeciderInput, OrDeciderInput, PreimageExistsInput,
-    SignedByInput,
+    ForAllSuchThatInput, HasLowerNonceInput, IncludedAtBlockInput, IntegerRangeQuantifierInput,
+    NotDeciderInput, OrDeciderInput, PreimageExistsInput, SignedByInput,
 };
-use super::witness::Witness;
+use super::witness::{PlasmaDataBlock, Witness};
 use crate::db::Message;
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
@@ -75,7 +74,8 @@ pub enum Property {
     HasLowerNonceDecider(HasLowerNonceInput),
     // channelId, nonce, participant
     ChannelUpdateSignatureExistsDecider(ChannelUpdateSignatureExistsDeciderInput),
-    IncludedInIntervalTreeAtBlockDecider(IncludedInIntervalTreeAtBlockInput),
+    IncludedAtBlockDecider(Box<IncludedAtBlockInput>),
+    ExcludedAtBlockDecider(Box<IncludedAtBlockInput>),
 }
 
 #[derive(Clone, Debug)]
@@ -101,7 +101,8 @@ impl Property {
             Property::SignedByDecider(_) => DECIDER_LIST[5],
             Property::HasLowerNonceDecider(_) => DECIDER_LIST[6],
             Property::ChannelUpdateSignatureExistsDecider(_) => DECIDER_LIST[7],
-            Property::IncludedInIntervalTreeAtBlockDecider(_) => DECIDER_LIST[8],
+            Property::IncludedAtBlockDecider(_) => DECIDER_LIST[8],
+            Property::ExcludedAtBlockDecider(_) => DECIDER_LIST[9],
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -114,7 +115,8 @@ impl Property {
             Property::SignedByDecider(input) => input.to_abi(),
             Property::HasLowerNonceDecider(input) => input.to_abi(),
             Property::ChannelUpdateSignatureExistsDecider(input) => input.to_abi(),
-            Property::IncludedInIntervalTreeAtBlockDecider(input) => input.to_abi(),
+            Property::IncludedAtBlockDecider(input) => input.to_abi(),
+            Property::ExcludedAtBlockDecider(input) => input.to_abi(),
         }
     }
     fn from_bytes(decider_id: Address, data: &[u8]) -> Result<Self, PlasmaCoreError> {
@@ -138,8 +140,11 @@ impl Property {
             ChannelUpdateSignatureExistsDeciderInput::from_abi(data)
                 .map(Property::ChannelUpdateSignatureExistsDecider)
         } else if decider_id == DECIDER_LIST[8] {
-            IncludedInIntervalTreeAtBlockInput::from_abi(data)
-                .map(Property::IncludedInIntervalTreeAtBlockDecider)
+            IncludedAtBlockInput::from_abi(data)
+                .map(|input| Property::IncludedAtBlockDecider(Box::new(input)))
+        } else if decider_id == DECIDER_LIST[9] {
+            IncludedAtBlockInput::from_abi(data)
+                .map(|input| Property::ExcludedAtBlockDecider(Box::new(input)))
         } else {
             panic!("unknown decider")
         }
@@ -312,12 +317,14 @@ pub trait Decider {
     ) -> Result<Decision, Error>;
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 pub enum QuantifierResultItem {
     Integer(Integer),
     Bytes(Bytes),
     Message(Message),
     Property(Property),
+    PlasmaDataBlock(PlasmaDataBlock),
 }
 
 pub struct QuantifierResult {

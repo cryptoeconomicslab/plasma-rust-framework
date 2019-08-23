@@ -1,4 +1,4 @@
-use crate::error::Error;
+use crate::error::{Error, ErrorKind};
 use crate::property_executor::DecideMixin;
 use crate::property_executor::PropertyExecutor;
 use crate::types::{Decider, Decision, OrDeciderInput};
@@ -24,19 +24,26 @@ impl Decider for OrDecider {
         decider: &PropertyExecutor<T>,
         input: &OrDeciderInput,
     ) -> Result<Decision, Error> {
-        let left_decision = input.get_left().decide(decider)?;
-        let right_decision = input.get_right().decide(decider)?;
-        if left_decision.get_outcome() {
-            return Ok(left_decision);
+        let left_decision = input.get_left().decide(decider);
+        let right_decision = input.get_right().decide(decider);
+        if let Ok(left_decision) = &left_decision {
+            if left_decision.get_outcome() {
+                return Ok(left_decision.clone());
+            }
         }
-        if right_decision.get_outcome() {
-            return Ok(right_decision);
+        if let Ok(right_decision) = &right_decision {
+            if right_decision.get_outcome() {
+                return Ok(right_decision.clone());
+            }
+        }
+        if left_decision.is_err() || right_decision.is_err() {
+            return Err(Error::from(ErrorKind::CannotDecide));
         }
         Ok(Decision::new(
             false,
             [
-                &left_decision.get_implication_proof()[..],
-                &right_decision.get_implication_proof()[..],
+                &left_decision.unwrap().clone().get_implication_proof()[..],
+                &right_decision.unwrap().clone().get_implication_proof()[..],
             ]
             .concat(),
         ))
