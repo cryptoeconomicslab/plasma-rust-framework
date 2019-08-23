@@ -30,7 +30,6 @@ impl ForAllSuchThatDecider {
                 justification.extend(decision.get_implication_proof().clone())
             }
         }
-
         Ok(Decision::new(!false_decision.get_outcome(), justification))
     }
 }
@@ -64,6 +63,7 @@ impl Decider for ForAllSuchThatDecider {
                 decider,
                 // no_cache,
             );
+
             if let Ok(decision) = decision_result {
                 if !decision.get_outcome() {
                     false_decision = decision;
