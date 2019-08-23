@@ -1,4 +1,4 @@
-use super::core::Property;
+use super::core::{Integer, Property};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::U256;
@@ -10,26 +10,53 @@ use plasma_core::data_structure::Range;
 
 #[derive(Clone, Debug)]
 pub struct PlasmaDataBlock {
+    index: Integer,
     updated_range: Range,
+    is_included: bool,
     property: Property,
+    root: Bytes,
 }
 
 impl PlasmaDataBlock {
+    pub fn new(
+        index: Integer,
+        updated_range: Range,
+        is_included: bool,
+        property: Property,
+        root: Bytes,
+    ) -> Self {
+        Self {
+            index,
+            updated_range,
+            is_included,
+            property,
+            root,
+        }
+    }
+    pub fn get_index(&self) -> usize {
+        self.index.0 as usize
+    }
     pub fn get_updated_range(&self) -> Range {
         self.updated_range
+    }
+    pub fn get_is_included(&self) -> bool {
+        self.is_included
     }
     pub fn get_property(&self) -> &Property {
         &self.property
     }
+    pub fn get_root(&self) -> &Bytes {
+        &self.root
+    }
 }
 
 impl Encodable for PlasmaDataBlock {
-    fn to_abi(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple())
-    }
     fn to_tuple(&self) -> Vec<Token> {
         vec![
             Token::Tuple(self.updated_range.to_tuple()),
+            Token::Uint(self.index.0.into()),
+            Token::Bytes(self.root.to_vec()),
+            Token::Bool(self.is_included),
             Token::Tuple(self.property.to_tuple()),
         ]
     }
@@ -39,29 +66,36 @@ impl Decodable for PlasmaDataBlock {
     type Ok = PlasmaDataBlock;
     fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
         let updated_range = tuple[0].clone().to_tuple();
-        let property = tuple[1].clone().to_bytes();
-        if let (Some(updated_range), Some(property)) = (updated_range, property) {
+        let index = tuple[1].clone().to_uint();
+        let root = tuple[2].clone().to_bytes();
+        let is_included = tuple[3].clone().to_bool();
+        let property = tuple[4].clone().to_tuple();
+        if let (Some(updated_range), Some(index), Some(is_included), Some(property), Some(root)) =
+            (updated_range, index, is_included, property, root)
+        {
             Ok(PlasmaDataBlock {
                 updated_range: Range::from_tuple(&updated_range).unwrap(),
-                property: Property::from_abi(&property).unwrap(),
+                index: Integer(index.as_u64()),
+                is_included,
+                property: Property::from_tuple(&property).unwrap(),
+                root: Bytes::from(root),
             })
         } else {
             Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
         }
     }
-    fn from_abi(data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        let decoded = ethabi::decode(
-            &[
-                ParamType::Tuple(vec![ParamType::Uint(64), ParamType::Uint(64)]),
-                ParamType::Bytes,
-            ],
-            data,
-        )
-        .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
+    fn get_param_types() -> Vec<ParamType> {
+        vec![
+            ParamType::Tuple(Range::get_param_types()),
+            ParamType::Uint(64),
+            ParamType::Bytes,
+            ParamType::Bool,
+            ParamType::Tuple(Property::get_param_types()),
+        ]
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 pub enum Witness {
     Bytes(Bytes),
@@ -78,7 +112,7 @@ impl Witness {
             Witness::Bytes(bytes) => vec![Token::Bytes(bytes.to_vec())],
             Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, plasma_data_block) => vec![
                 Token::Bytes(inclusion_proof.to_vec()),
-                Token::Bytes(plasma_data_block.to_abi()),
+                Token::Tuple(plasma_data_block.to_tuple()),
             ],
         }
     }
@@ -88,26 +122,30 @@ impl Witness {
             if let Some(bytes) = bytes {
                 Ok(Witness::Bytes(Bytes::from(bytes)))
             } else {
+                println!("decodeing witness error");
                 Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
             }
         } else {
             let inclusion_proof = tuple[0].clone().to_bytes();
-            let plasma_data_block = tuple[1].clone().to_bytes();
+            let plasma_data_block = tuple[1].clone().to_tuple();
             if let (Some(inclusion_proof), Some(plasma_data_block)) =
                 (inclusion_proof, plasma_data_block)
             {
                 Ok(Witness::IncludedInIntervalTreeAtBlock(
                     Bytes::from(inclusion_proof),
-                    PlasmaDataBlock::from_abi(&plasma_data_block).unwrap(),
+                    PlasmaDataBlock::from_tuple(&plasma_data_block).unwrap(),
                 ))
             } else {
+                println!("decodeing witness error 1");
                 Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
             }
         }
     }
     fn from_abi_part(id: U256, data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        let decoded = ethabi::decode(&Self::get_param_types(id.as_u64()), data)
-            .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
+        let decoded = ethabi::decode(&Self::get_param_types(id.as_u64()), data).map_err(|_e| {
+            println!("decodeing witness error 2");
+            PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode)
+        })?;
         Self::from_tuple_part(id.as_u64(), &decoded)
     }
     pub fn get_number(&self) -> U256 {
@@ -120,7 +158,10 @@ impl Witness {
         if id == 0 {
             vec![ParamType::Bytes]
         } else {
-            vec![ParamType::Bytes, ParamType::Bytes]
+            vec![
+                ParamType::Bytes,
+                ParamType::Tuple(PlasmaDataBlock::get_param_types()),
+            ]
         }
     }
 }
@@ -145,12 +186,11 @@ impl Decodable for Witness {
         if let (Some(witness_id), Some(witness_data)) = (witness_id, witness_data) {
             Ok(Witness::from_abi_part(witness_id, &witness_data).unwrap())
         } else {
+            println!("decodeing witness error");
             Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
         }
     }
-    fn from_abi(data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        let decoded = ethabi::decode(&[ParamType::Uint(256), ParamType::Bytes], data)
-            .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
+    fn get_param_types() -> Vec<ParamType> {
+        vec![ParamType::Uint(256), ParamType::Bytes]
     }
 }

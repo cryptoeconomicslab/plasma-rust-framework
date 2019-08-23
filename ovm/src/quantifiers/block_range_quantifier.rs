@@ -1,7 +1,6 @@
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
-    BlockRangeQuantifierInput, DecisionValue, Property, QuantifierResult, QuantifierResultItem,
-    Witness,
+    BlockRangeQuantifierInput, PlasmaDataBlock, QuantifierResult, QuantifierResultItem, Witness,
 };
 use bytes::Bytes;
 use plasma_core::data_structure::abi::Decodable;
@@ -36,23 +35,21 @@ impl BlockRangeQuantifier {
             .iter()
             .fold(0, |acc, r| acc + r.get_end() - r.get_start());
         let full_range_included: bool = sum == (range.get_end() - range.get_start());
-        let properties: Vec<Property> = result
+        let plasma_data_blocks: Vec<PlasmaDataBlock> = result
             .iter()
-            .map(|r| DecisionValue::from_abi(r.get_value()).unwrap())
-            .map(|d| {
-                if let Witness::IncludedInIntervalTreeAtBlock(_, plasma_data_block) =
-                    d.get_witness()
-                {
-                    plasma_data_block.get_property().clone()
+            .map(|r| Witness::from_abi(r.get_value()).unwrap())
+            .map(|w| {
+                if let Witness::IncludedInIntervalTreeAtBlock(_, plasma_data_block) = w {
+                    plasma_data_block.clone()
                 } else {
                     panic!("invalid witness")
                 }
             })
             .collect();
         QuantifierResult::new(
-            properties
+            plasma_data_blocks
                 .iter()
-                .map(|p| QuantifierResultItem::Property(p.clone()))
+                .map(|p| QuantifierResultItem::PlasmaDataBlock(p.clone()))
                 .collect(),
             full_range_included,
         )
