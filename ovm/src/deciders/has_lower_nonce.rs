@@ -1,6 +1,8 @@
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, HasLowerNonceInput, ImplicationProofElement, Property};
+use crate::types::{
+    Decider, Decision, HasLowerNonceInput, ImplicationProofElement, Property, QuantifierResultItem,
+};
 use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct HasLowerNonceDecider {}
@@ -20,19 +22,26 @@ impl Default for HasLowerNonceDecider {
 impl Decider for HasLowerNonceDecider {
     type Input = HasLowerNonceInput;
     fn decide<T: KeyValueStore>(
-        _decider: &PropertyExecutor<T>,
+        decider: &mut PropertyExecutor<T>,
         input: &HasLowerNonceInput,
     ) -> Result<Decision, Error> {
-        if input.get_message().nonce < input.get_nonce() {
-            Ok(Decision::new(
-                true,
-                vec![ImplicationProofElement::new(
-                    Property::HasLowerNonceDecider(input.clone()),
-                    None,
-                )],
-            ))
+        if let (QuantifierResultItem::Message(message), QuantifierResultItem::Integer(nonce)) = (
+            decider.replace(input.get_message()),
+            decider.replace(input.get_nonce()),
+        ) {
+            if message.nonce < *nonce {
+                Ok(Decision::new(
+                    true,
+                    vec![ImplicationProofElement::new(
+                        Property::HasLowerNonceDecider(input.clone()),
+                        None,
+                    )],
+                ))
+            } else {
+                Ok(Decision::new(false, vec![]))
+            }
         } else {
-            Ok(Decision::new(false, vec![]))
+            panic!("invalid input");
         }
     }
 }

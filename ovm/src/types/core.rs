@@ -7,13 +7,15 @@ use super::witness::{PlasmaDataBlock, Witness};
 use crate::db::Message;
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
+use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use ethabi::{ParamType, Token};
-use ethereum_types::Address;
+use ethereum_types::{Address, H256};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
 };
+use plasma_core::data_structure::Range;
 use plasma_db::traits::kvs::KeyValueStore;
 use std::sync::Arc;
 
@@ -82,9 +84,9 @@ pub enum Quantifier {
     // start to end
     IntegerRangeQuantifier(IntegerRangeQuantifierInput),
     // 0 to upperBound
-    NonnegativeIntegerLessThanQuantifier(Integer),
+    NonnegativeIntegerLessThanQuantifier(Placeholder),
     // signer
-    SignedByQuantifier(Address),
+    SignedByQuantifier(Placeholder),
     // blocknumber and range
     BlockRangeQuantifier(BlockRangeQuantifierInput),
 }
@@ -188,8 +190,8 @@ impl Quantifier {
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             Quantifier::IntegerRangeQuantifier(input) => input.to_abi(),
-            Quantifier::NonnegativeIntegerLessThanQuantifier(input) => Bytes::from(*input).to_vec(),
-            Quantifier::SignedByQuantifier(input) => input.as_bytes().to_vec(),
+            Quantifier::NonnegativeIntegerLessThanQuantifier(input) => input.to_abi(),
+            Quantifier::SignedByQuantifier(input) => input.to_abi(),
             Quantifier::BlockRangeQuantifier(input) => input.to_abi(),
         }
     }
@@ -197,11 +199,9 @@ impl Quantifier {
         if id == 0 {
             IntegerRangeQuantifierInput::from_abi(data).map(Quantifier::IntegerRangeQuantifier)
         } else if id == 1 {
-            Ok(Quantifier::NonnegativeIntegerLessThanQuantifier(
-                Integer::from(Bytes::from(data)),
-            ))
+            Placeholder::from_abi(data).map(Quantifier::NonnegativeIntegerLessThanQuantifier)
         } else if id == 2 {
-            Ok(Quantifier::SignedByQuantifier(Address::from_slice(data)))
+            Placeholder::from_abi(data).map(Quantifier::SignedByQuantifier)
         } else if id == 3 {
             BlockRangeQuantifierInput::from_abi(data).map(Quantifier::BlockRangeQuantifier)
         } else {
@@ -285,6 +285,74 @@ impl Decision {
     }
 }
 
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct Placeholder(Bytes);
+impl Placeholder {
+    pub fn new(placeholder: &str) -> Self {
+        Self(Bytes::from(placeholder))
+    }
+}
+
+impl Encodable for Placeholder {
+    fn to_tuple(&self) -> Vec<Token> {
+        vec![Token::Bytes(self.0.to_vec())]
+    }
+}
+
+impl Decodable for Placeholder {
+    type Ok = Placeholder;
+    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
+        let bytes = tuple[0].clone().to_bytes();
+        if let Some(bytes) = bytes {
+            Ok(Placeholder(Bytes::from(bytes)))
+        } else {
+            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
+        }
+    }
+    fn get_param_types() -> Vec<ethabi::ParamType> {
+        vec![ethabi::ParamType::Bytes]
+    }
+}
+
+/*
+pub enum InputType<T> {
+    Placeholder(str),
+    Constant(T),
+}
+
+impl<T:Encodable> Encodable for InputType<T> {
+    fn to_tuple(&self) -> Vec<Token> {
+        match self {
+            Placeholder(placeholder) => {
+
+            }
+            Constant(constant) => {
+                vec![
+                    Token::Address(self.get_decider_id()),
+                    Token::Tuple(constant.to_tuple()),
+                ]
+            }
+        }
+    }
+}
+
+impl<T:Decodable> Decodable for InputType<T> {
+    type Ok = Property;
+    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
+        let decider_id = tuple[0].clone().to_address();
+        let input_data = tuple[1].clone().to_bytes();
+        if let (Some(decider_id), Some(input_data)) = (decider_id, input_data) {
+            Ok(Property::from_bytes(decider_id, &input_data).unwrap())
+        } else {
+            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
+        }
+    }
+    fn get_param_types() -> Vec<ParamType> {
+        vec![ParamType::Address, ParamType::Bytes]
+    }
+}
+*/
+
 #[derive(Clone)]
 pub struct PropertyFactory(Arc<dyn Fn(QuantifierResultItem) -> Property>);
 
@@ -306,7 +374,7 @@ impl std::fmt::Debug for PropertyFactory {
 pub trait Decider {
     type Input;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
+        decider: &mut PropertyExecutor<T>,
         input: &Self::Input,
     ) -> Result<Decision, Error>;
 }
@@ -314,11 +382,14 @@ pub trait Decider {
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 pub enum QuantifierResultItem {
+    Address(Address),
     Integer(Integer),
     Bytes(Bytes),
     Message(Message),
     Property(Property),
     PlasmaDataBlock(PlasmaDataBlock),
+    Range(Range),
+    H256(H256),
 }
 
 pub struct QuantifierResult {
@@ -345,18 +416,21 @@ impl QuantifierResult {
 mod tests {
 
     use super::Property;
-    use crate::types::PreimageExistsInput;
-    use ethereum_types::H256;
+    use crate::types::{Placeholder, PreimageExistsInput};
     use plasma_core::data_structure::abi::{Decodable, Encodable};
 
     #[test]
     fn test_encode_and_decode_property() {
-        let property =
-            Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(H256::zero())));
+        let property = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+            Placeholder::new("hash"),
+        )));
         let encoded = property.to_abi();
         let decoded = Property::from_abi(&encoded).unwrap();
         if let Property::PreimageExistsDecider(input) = decoded {
-            assert_eq!(input, Box::new(PreimageExistsInput::new(H256::zero())));
+            assert_eq!(
+                input,
+                Box::new(PreimageExistsInput::new(Placeholder::new("hash")))
+            );
         } else {
             panic!()
         }

@@ -12,6 +12,7 @@ pub mod utils;
 
 pub use self::property_executor::DecideMixin;
 
+/*
 #[cfg(test)]
 mod tests {
 
@@ -157,3 +158,4 @@ mod tests {
         assert!(result.is_err());
     }
 }
+*/

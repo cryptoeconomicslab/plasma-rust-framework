@@ -21,7 +21,7 @@ impl Default for AndDecider {
 impl Decider for AndDecider {
     type Input = AndDeciderInput;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
+        decider: &mut PropertyExecutor<T>,
         input: &AndDeciderInput,
     ) -> Result<Decision, Error> {
         let left_decision = input.get_left().decide(decider)?;
@@ -43,6 +43,7 @@ impl Decider for AndDecider {
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use crate::db::HashPreimageDb;
@@ -72,3 +73,4 @@ mod tests {
         assert_eq!(decided.get_outcome(), true);
     }
 }
+*/

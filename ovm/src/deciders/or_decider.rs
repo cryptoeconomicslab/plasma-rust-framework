@@ -21,7 +21,7 @@ impl Default for OrDecider {
 impl Decider for OrDecider {
     type Input = OrDeciderInput;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
+        decider: &mut PropertyExecutor<T>,
         input: &OrDeciderInput,
     ) -> Result<Decision, Error> {
         let left_decision = input.get_left().decide(decider);
@@ -50,6 +50,7 @@ impl Decider for OrDecider {
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use crate::db::HashPreimageDb;
@@ -86,3 +87,4 @@ mod tests {
         assert_eq!(decided.get_outcome(), true);
     }
 }
+*/

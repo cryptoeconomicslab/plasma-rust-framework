@@ -1,4 +1,8 @@
-use crate::types::{Integer, IntegerRangeQuantifierInput, QuantifierResult, QuantifierResultItem};
+use crate::property_executor::PropertyExecutor;
+use crate::types::{
+    Integer, IntegerRangeQuantifierInput, Placeholder, QuantifierResult, QuantifierResultItem,
+};
+use plasma_db::traits::kvs::KeyValueStore;
 
 fn get_range(start: u64, end: u64) -> Vec<QuantifierResultItem> {
     (start..end)
@@ -16,12 +20,21 @@ impl Default for IntegerRangeQuantifier {
 }
 
 impl IntegerRangeQuantifier {
-    pub fn get_all_quantified(range: IntegerRangeQuantifierInput) -> QuantifierResult {
-        // let integer_range_parameters = IntegerRangeParameters::from_abi(&parameters).unwrap();
-        if range.get_end() < range.get_start() {
-            panic!("invalid start and end");
+    pub fn get_all_quantified<KVS: KeyValueStore>(
+        decider: &PropertyExecutor<KVS>,
+        input: &IntegerRangeQuantifierInput,
+    ) -> QuantifierResult {
+        if let (QuantifierResultItem::Integer(start), QuantifierResultItem::Integer(end)) = (
+            decider.replace(input.get_start()),
+            decider.replace(input.get_end()),
+        ) {
+            if end < start {
+                panic!("invalid start and end");
+            }
+            QuantifierResult::new(get_range(start.0, end.0), true)
+        } else {
+            panic!("invalid input");
         }
-        QuantifierResult::new(get_range(range.get_start(), range.get_end()), true)
     }
 }
 
@@ -35,10 +48,17 @@ impl Default for NonnegativeIntegerLessThanQuantifier {
 }
 
 impl NonnegativeIntegerLessThanQuantifier {
-    pub fn get_all_quantified(upper_bound: Integer) -> QuantifierResult {
-        if upper_bound < Integer(0) {
-            panic!("upper_bound shouldn't negative value.");
+    pub fn get_all_quantified<KVS: KeyValueStore>(
+        decider: &PropertyExecutor<KVS>,
+        placeholder: &Placeholder,
+    ) -> QuantifierResult {
+        if let QuantifierResultItem::Integer(upper_bound) = decider.replace(&placeholder) {
+            if *upper_bound < Integer(0) {
+                panic!("upper_bound shouldn't negative value.");
+            }
+            QuantifierResult::new(get_range(0, upper_bound.0), true)
+        } else {
+            panic!("invalid input")
         }
-        QuantifierResult::new(get_range(0, upper_bound.0), true)
     }
 }

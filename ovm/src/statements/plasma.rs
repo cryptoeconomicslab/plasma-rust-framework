@@ -1,6 +1,6 @@
 use crate::types::{
-    BlockRangeQuantifierInput, ForAllSuchThatInput, IncludedAtBlockInput, Integer, Property,
-    PropertyFactory, Quantifier, QuantifierResultItem,
+    BlockRangeQuantifierInput, ForAllSuchThatInput, IncludedAtBlockInput, Integer, Placeholder,
+    Property, PropertyFactory, Quantifier, QuantifierResultItem,
 };
 use plasma_core::data_structure::Range;
 
@@ -10,30 +10,25 @@ use plasma_core::data_structure::Range;
 ///      Or(b, Included(p), Excluded(b, p))
 pub fn create_plasma_property(specified_block_number: Integer, range: Range) -> Property {
     Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-        Quantifier::NonnegativeIntegerLessThanQuantifier(specified_block_number),
-        Some(PropertyFactory::new(Box::new(move |item| {
-            if let QuantifierResultItem::Integer(block_number) = item {
-                create_coin_range_property(block_number, range)
-            } else {
-                panic!("invalid type in PropertyFactory");
-            }
-        }))),
+        Quantifier::NonnegativeIntegerLessThanQuantifier(Placeholder::new(
+            "specified_block_number",
+        )),
+        Placeholder::new("block"),
+        create_coin_range_property(&Placeholder::new("block"), &Placeholder::new("range")),
     )))
 }
 
-pub fn create_coin_range_property(block_number: Integer, range: Range) -> Property {
+pub fn create_coin_range_property(block_number: &Placeholder, range: &Placeholder) -> Property {
     Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-        Quantifier::BlockRangeQuantifier(BlockRangeQuantifierInput::new(block_number, range)),
-        Some(PropertyFactory::new(Box::new(move |item| {
-            if let QuantifierResultItem::PlasmaDataBlock(plasma_data_block) = item {
-                Property::IncludedAtBlockDecider(Box::new(IncludedAtBlockInput::new(
-                    block_number,
-                    plasma_data_block.clone(),
-                )))
-            } else {
-                panic!("invalid type in PropertyFactory");
-            }
-        }))),
+        Quantifier::BlockRangeQuantifier(BlockRangeQuantifierInput::new(
+            block_number.clone(),
+            range.clone(),
+        )),
+        Placeholder::new("state"),
+        Property::IncludedAtBlockDecider(Box::new(IncludedAtBlockInput::new(
+            block_number.clone(),
+            Placeholder::new("state"),
+        ))),
     )))
 }
 
@@ -44,7 +39,8 @@ mod tests {
     use crate::db::RangeAtBlockDb;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
-        IncludedAtBlockInput, Integer, PlasmaDataBlock, PreimageExistsInput, Property, Witness,
+        IncludedAtBlockInput, Integer, Placeholder, PlasmaDataBlock, PreimageExistsInput, Property,
+        QuantifierResultItem, Witness,
     };
     use bytes::Bytes;
     use ethereum_types::H256;
@@ -67,8 +63,9 @@ mod tests {
         block_number: Integer,
         inclusion: bool,
     ) {
-        let property =
-            Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(H256::zero())));
+        let property = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+            Placeholder::new("hash"),
+        )));
         let mut leaves = vec![];
         for i in 0..100 {
             leaves.push(MerkleIntervalNode::Leaf {
@@ -92,8 +89,9 @@ mod tests {
         );
         let witness =
             Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, plasma_data_block.clone());
-        let input = IncludedAtBlockInput::new(block_number, plasma_data_block.clone());
-        assert!(db.store_witness(&input, &witness).is_ok());
+        assert!(db
+            .store_witness(block_number, &plasma_data_block, &witness)
+            .is_ok());
     }
 
     /// plasma
@@ -102,8 +100,16 @@ mod tests {
         let block_number = Integer(10);
         let range = Range::new(0, 100);
         let checkpoint_property = create_plasma_property(block_number, range);
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
-        store_inclusion_witness(&decider);
+        let mut decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        decider.set_replace(
+            Placeholder::new("specified_block_number"),
+            QuantifierResultItem::Integer(Integer(10)),
+        );
+        decider.set_replace(
+            Placeholder::new("range"),
+            QuantifierResultItem::Range(Range::new(0, 100)),
+        );
+        store_inclusion_witness(&mut decider);
         let result = decider.decide(&checkpoint_property);
         assert!(result.is_ok());
     }

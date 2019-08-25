@@ -43,7 +43,7 @@ impl Default for ForAllSuchThatDecider {
 impl Decider for ForAllSuchThatDecider {
     type Input = ForAllSuchThatInput;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
+        decider: &mut PropertyExecutor<T>,
         input: &ForAllSuchThatInput,
     ) -> Result<Decision, Error> {
         let quantifier_result: QuantifierResult =
@@ -53,12 +53,9 @@ impl Decider for ForAllSuchThatDecider {
         let mut false_decision: Decision = Decision::new(false, vec![]);
         let mut true_decisions: Vec<Decision> = vec![];
         for res in quantifier_result.get_results() {
-            let prop: Property = input
-                .get_property_factory()
-                .clone()
-                .unwrap()
-                .call(res.clone());
+            let prop: Property = input.get_property().clone();
             let _no_cache = false;
+            decider.set_replace(input.get_placeholder().clone(), res.clone());
             let decision_result = prop.decide(
                 decider,
                 // no_cache,
@@ -84,6 +81,7 @@ impl Decider for ForAllSuchThatDecider {
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use super::ForAllSuchThatDecider;
@@ -125,3 +123,4 @@ mod tests {
         assert_eq!(decided.get_outcome(), true);
     }
 }
+*/

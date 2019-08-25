@@ -2,8 +2,7 @@ extern crate serde;
 
 use contract_wrapper::universal_decision_contract_adaptor::UniversalDecisionContractAdaptor;
 use ethabi::Contract as ContractABI;
-use ovm::types::core::Property;
-use ovm::types::inputs::SignedByInput;
+use ovm::types::{Placeholder, Property, SignedByInput};
 use std::fs::File;
 use std::io::BufReader;
 use web3::types::Address;
@@ -21,8 +20,10 @@ fn main() {
 
     let from: Address = "ce397e30544d737195a341291675ec1ecaf19b13".parse().unwrap();
     let input = SignedByInput::new(
-        b"012345678"[..].into(),
-        "1a50faDFab6b21AaaED82bb17A541993304786E7".parse().unwrap(),
+        Placeholder::new("message"),
+        Placeholder::new("public_key"),
+        //        b"012345678"[..].into(),
+        //        "1a50faDFab6b21AaaED82bb17A541993304786E7".parse().unwrap(),
     );
     let property = Property::SignedByDecider(input);
 

@@ -2,7 +2,8 @@ use crate::db::HashPreimageDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
-    Decider, Decision, ImplicationProofElement, PreimageExistsInput, Property, Witness,
+    Decider, Decision, ImplicationProofElement, PreimageExistsInput, Property,
+    QuantifierResultItem, Witness,
 };
 use bytes::Bytes;
 use ethereum_types::H256;
@@ -37,29 +38,30 @@ impl Default for PreimageExistsDecider {
 impl Decider for PreimageExistsDecider {
     type Input = PreimageExistsInput;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
+        decider: &mut PropertyExecutor<T>,
         input: &PreimageExistsInput,
     ) -> Result<Decision, Error> {
-        let key = input.get_hash();
         let db: HashPreimageDb<T> = HashPreimageDb::new(decider.get_db());
-        let witness = db.get_witness(key)?;
-        if let Witness::Bytes(preimage) = witness {
-            if Verifier::hash(&preimage) != input.get_hash() {
-                return Err(Error::from(ErrorKind::InvalidPreimage));
+        if let QuantifierResultItem::H256(hash) = decider.replace(input.get_hash()) {
+            let witness = db.get_witness(*hash)?;
+            if let Witness::Bytes(preimage) = witness {
+                if Verifier::hash(&preimage) != *hash {
+                    return Err(Error::from(ErrorKind::InvalidPreimage));
+                }
+                return Ok(Decision::new(
+                    true,
+                    vec![ImplicationProofElement::new(
+                        Property::PreimageExistsDecider(Box::new(input.clone())),
+                        Some(Witness::Bytes(preimage)),
+                    )],
+                ));
             }
-            Ok(Decision::new(
-                true,
-                vec![ImplicationProofElement::new(
-                    Property::PreimageExistsDecider(Box::new(input.clone())),
-                    Some(Witness::Bytes(preimage)),
-                )],
-            ))
-        } else {
-            panic!("invalid witness")
         }
+        panic!("invalid witness")
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use crate::db::HashPreimageDb;
@@ -83,3 +85,4 @@ mod tests {
         assert_eq!(decided.get_outcome(), true);
     }
 }
+*/

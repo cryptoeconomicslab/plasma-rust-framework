@@ -8,21 +8,24 @@ use crate::quantifiers::{
     SignedByQuantifier,
 };
 use crate::types::Decider;
-use crate::types::{Decision, Property, Quantifier, QuantifierResult};
+use crate::types::{
+    Decision, Placeholder, Property, Quantifier, QuantifierResult, QuantifierResultItem,
+};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
+use std::collections::HashMap;
 
 /// Mixin for adding decide method to Property
 pub trait DecideMixin<KVS: KeyValueStore> {
-    fn decide(&self, decider: &PropertyExecutor<KVS>) -> Result<Decision, Error>;
+    fn decide(&self, decider: &mut PropertyExecutor<KVS>) -> Result<Decision, Error>;
 }
 
 impl<KVS> DecideMixin<KVS> for Property
 where
     KVS: KeyValueStore,
 {
-    fn decide(&self, decider: &PropertyExecutor<KVS>) -> Result<Decision, Error> {
+    fn decide(&self, decider: &mut PropertyExecutor<KVS>) -> Result<Decision, Error> {
         decider.decide(self)
     }
 }
@@ -31,6 +34,7 @@ where
 pub struct PropertyExecutor<KVS: KeyValueStore> {
     db: KVS,
     range_db: RangeDbImpl<KVS>,
+    variables: HashMap<Placeholder, QuantifierResultItem>,
 }
 
 impl<KVS> Default for PropertyExecutor<KVS>
@@ -41,6 +45,7 @@ where
         PropertyExecutor {
             db: KVS::open("kvs"),
             range_db: RangeDbImpl::from(KVS::open("range")),
+            variables: Default::default(),
         }
     }
 }
@@ -55,7 +60,13 @@ where
     pub fn get_range_db(&self) -> &RangeDbImpl<KVS> {
         &self.range_db
     }
-    pub fn decide(&self, property: &Property) -> Result<Decision, Error> {
+    pub fn set_replace(&mut self, placeholder: Placeholder, result: QuantifierResultItem) {
+        self.variables.insert(placeholder, result);
+    }
+    pub fn replace(&self, placeholder: &Placeholder) -> &QuantifierResultItem {
+        self.variables.get(placeholder).unwrap()
+    }
+    pub fn decide(&mut self, property: &Property) -> Result<Decision, Error> {
         match property {
             Property::AndDecider(input) => AndDecider::decide(self, input),
             Property::NotDecider(input) => NotDecider::decide(self, input),
@@ -71,16 +82,16 @@ where
     pub fn get_all_quantified(&self, quantifier: &Quantifier) -> QuantifierResult {
         match quantifier {
             Quantifier::IntegerRangeQuantifier(input) => {
-                IntegerRangeQuantifier::get_all_quantified(*input)
+                IntegerRangeQuantifier::get_all_quantified(self, input)
             }
             Quantifier::NonnegativeIntegerLessThanQuantifier(upper_bound) => {
-                NonnegativeIntegerLessThanQuantifier::get_all_quantified(*upper_bound)
+                NonnegativeIntegerLessThanQuantifier::get_all_quantified(self, upper_bound)
             }
             Quantifier::BlockRangeQuantifier(input) => {
-                BlockRangeQuantifier::get_all_quantified(self, &*input)
+                BlockRangeQuantifier::get_all_quantified(self, input)
             }
             Quantifier::SignedByQuantifier(signer) => {
-                SignedByQuantifier::get_all_quantified(self, *signer)
+                SignedByQuantifier::get_all_quantified(self, signer)
             }
         }
     }

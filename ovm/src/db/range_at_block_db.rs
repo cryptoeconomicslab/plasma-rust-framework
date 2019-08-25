@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::types::{IncludedAtBlockInput, Witness};
+use crate::types::{IncludedAtBlockInput, Integer, PlasmaDataBlock, Witness};
 use bytes::Bytes;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_db::traits::kvs::KeyValueStore;
@@ -16,33 +16,32 @@ impl<'a, KVS: KeyValueStore> RangeAtBlockDb<'a, KVS> {
     }
     pub fn store_witness(
         &self,
-        input: &IncludedAtBlockInput,
+        block_number: Integer,
+        plasma_data_block: &PlasmaDataBlock,
         witness: &Witness,
     ) -> Result<(), Error> {
         self.db
             .bucket(&Bytes::from(&b"range_at_block"[..]))
-            .bucket(&input.get_block_number().into())
+            .bucket(&block_number.into())
             .put(
-                input
-                    .get_plasma_data_block()
-                    .get_updated_range()
-                    .get_start(),
-                input.get_plasma_data_block().get_updated_range().get_end(),
+                plasma_data_block.get_updated_range().get_start(),
+                plasma_data_block.get_updated_range().get_end(),
                 &witness.to_abi(),
             )
             .map_err::<Error, _>(Into::into)
     }
-    pub fn get_witness(&self, input: &IncludedAtBlockInput) -> Result<Witness, Error> {
+    pub fn get_witness(
+        &self,
+        block_number: Integer,
+        plasma_data_block: &PlasmaDataBlock,
+    ) -> Result<Witness, Error> {
         let result = self
             .db
             .bucket(&Bytes::from(&b"range_at_block"[..]))
-            .bucket(&input.get_block_number().into())
+            .bucket(&block_number.into())
             .get(
-                input
-                    .get_plasma_data_block()
-                    .get_updated_range()
-                    .get_start(),
-                input.get_plasma_data_block().get_updated_range().get_end(),
+                plasma_data_block.get_updated_range().get_start(),
+                plasma_data_block.get_updated_range().get_end(),
             )
             .map_err::<Error, _>(Into::into)?;
         if result.len() == 0 {

@@ -1,7 +1,7 @@
 use crate::db::Message;
 use crate::types::{
-    AndDeciderInput, ForAllSuchThatInput, HasLowerNonceInput, Integer, Property, PropertyFactory,
-    Quantifier, QuantifierResultItem, SignedByInput,
+    AndDeciderInput, ForAllSuchThatInput, HasLowerNonceInput, Integer, Placeholder, Property,
+    PropertyFactory, Quantifier, QuantifierResultItem, SignedByInput,
 };
 use bytes::Bytes;
 use ethereum_types::Address;
@@ -14,21 +14,16 @@ pub fn create_state_channel_property(
 ) -> Property {
     let upper_nonce = Integer(latest_message.nonce.0 + 1);
     let left_property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-        Quantifier::SignedByQuantifier(my_address),
-        Some(PropertyFactory::new(Box::new(move |item| {
-            if let QuantifierResultItem::Bytes(message) = item {
-                Property::HasLowerNonceDecider(HasLowerNonceInput::new(
-                    Message::from_abi(&message).unwrap(),
-                    upper_nonce,
-                ))
-            } else {
-                panic!("invalid type in PropertyFactory");
-            }
-        }))),
+        Quantifier::SignedByQuantifier(Placeholder::new("my_address")),
+        Placeholder::new("message"),
+        Property::HasLowerNonceDecider(HasLowerNonceInput::new(
+            Placeholder::new("message"),
+            Placeholder::new("upper_nonce"),
+        )),
     )));
     let right_property = Property::SignedByDecider(SignedByInput::new(
-        Bytes::from(latest_message.to_abi()),
-        counter_party_address,
+        Placeholder::new("last_message"),
+        Placeholder::new("counter_party_address"),
     ));
     Property::AndDecider(Box::new(AndDeciderInput::new(
         left_property,
