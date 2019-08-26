@@ -45,7 +45,7 @@ impl BlockRangeQuantifier {
             let result = decider
                 .get_range_db()
                 .bucket(&Bytes::from("range_at_block"))
-                .bucket(&(*block_number).into())
+                .bucket(&(block_number).into())
                 .get(range.get_start(), range.get_end())
                 .unwrap();
             let sum = result

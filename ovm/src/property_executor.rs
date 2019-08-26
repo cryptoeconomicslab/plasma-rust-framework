@@ -4,13 +4,14 @@ use crate::deciders::{
 };
 use crate::error::Error;
 use crate::quantifiers::{
-    BlockRangeQuantifier, IntegerRangeQuantifier, NonnegativeIntegerLessThanQuantifier,
-    SignedByQuantifier,
+    BlockRangeQuantifier, HashQuantifier, IntegerRangeQuantifier,
+    NonnegativeIntegerLessThanQuantifier, SignedByQuantifier,
 };
 use crate::types::Decider;
 use crate::types::{
-    Decision, Placeholder, Property, Quantifier, QuantifierResult, QuantifierResultItem,
+    Decision, InputType, Property, Quantifier, QuantifierResult, QuantifierResultItem,
 };
+use bytes::Bytes;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
@@ -34,7 +35,7 @@ where
 pub struct PropertyExecutor<KVS: KeyValueStore> {
     db: KVS,
     range_db: RangeDbImpl<KVS>,
-    variables: HashMap<Placeholder, QuantifierResultItem>,
+    variables: HashMap<Bytes, QuantifierResultItem>,
 }
 
 impl<KVS> Default for PropertyExecutor<KVS>
@@ -60,11 +61,18 @@ where
     pub fn get_range_db(&self) -> &RangeDbImpl<KVS> {
         &self.range_db
     }
-    pub fn set_replace(&mut self, placeholder: Placeholder, result: QuantifierResultItem) {
+    pub fn set_replace(&mut self, placeholder: Bytes, result: QuantifierResultItem) {
         self.variables.insert(placeholder, result);
     }
-    pub fn replace(&self, placeholder: &Placeholder) -> &QuantifierResultItem {
-        self.variables.get(placeholder).unwrap()
+    pub fn replace(&self, placeholder: &InputType) -> QuantifierResultItem {
+        match placeholder {
+            InputType::Placeholder(placeholder) => self.variables.get(placeholder).unwrap().clone(),
+            InputType::ConstantAddress(constant) => QuantifierResultItem::Address(*constant),
+            InputType::ConstantBytes(constant) => QuantifierResultItem::Bytes(constant.clone()),
+            InputType::ConstantH256(constant) => QuantifierResultItem::H256(constant.clone()),
+            InputType::ConstantInteger(constant) => QuantifierResultItem::Integer(*constant),
+            InputType::ConstantRange(constant) => QuantifierResultItem::Range(*constant),
+        }
     }
     pub fn decide(&mut self, property: &Property) -> Result<Decision, Error> {
         match property {
@@ -81,6 +89,7 @@ where
     }
     pub fn get_all_quantified(&self, quantifier: &Quantifier) -> QuantifierResult {
         match quantifier {
+            Quantifier::HashQuantifier(input) => HashQuantifier::get_all_quantified(self, input),
             Quantifier::IntegerRangeQuantifier(input) => {
                 IntegerRangeQuantifier::get_all_quantified(self, input)
             }

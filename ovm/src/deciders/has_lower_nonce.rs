@@ -29,7 +29,7 @@ impl Decider for HasLowerNonceDecider {
             decider.replace(input.get_message()),
             decider.replace(input.get_nonce()),
         ) {
-            if message.nonce < *nonce {
+            if message.nonce < nonce {
                 Ok(Decision::new(
                     true,
                     vec![ImplicationProofElement::new(

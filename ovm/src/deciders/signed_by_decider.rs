@@ -72,11 +72,12 @@ impl Decider for SignedByDecider {
             decider.replace(input.get_message()),
             decider.replace(input.get_public_key()),
         ) {
-            let signed_by_message = db.get_witness(*public_key, &message)?;
-            if Verifier::recover(&signed_by_message.signature, &message) != *public_key {
+            let signed_by_message = db.get_witness(public_key, &message)?;
+            if Verifier::recover(&signed_by_message.signature, &signed_by_message.message)
+                != public_key
+            {
                 return Err(Error::from(ErrorKind::InvalidPreimage));
             }
-
             Ok(Decision::new(
                 true,
                 vec![ImplicationProofElement::new(
@@ -90,14 +91,14 @@ impl Decider for SignedByDecider {
     }
 }
 
-/*
 #[cfg(test)]
 mod tests {
     use super::Verifier;
     use crate::db::SignedByDb;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decision, Property, SignedByInput};
+    use crate::types::{Decision, InputType, Property, SignedByInput, Witness};
     use bytes::Bytes;
+    use ethereum_types::Address;
     use ethsign::SecretKey;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
@@ -109,19 +110,16 @@ mod tests {
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let message = Bytes::from("message");
         let signature = Verifier::sign(&secret_key, &message);
-        let input = SignedByInput::new(message.clone(), secret_key.public().address().into());
+        let address: Address = secret_key.public().address().into();
+        let input = SignedByInput::new(
+            InputType::ConstantBytes(message.clone()),
+            InputType::ConstantAddress(address),
+        );
         let property = Property::SignedByDecider(input.clone());
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let mut decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
-        assert!(db
-            .store_witness(
-                secret_key.public().address().into(),
-                message.clone(),
-                signature
-            )
-            .is_ok());
+        assert!(db.store_witness(address, message, signature).is_ok());
         let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
 }
-*/

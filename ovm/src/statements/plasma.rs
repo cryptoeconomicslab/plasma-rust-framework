@@ -1,7 +1,8 @@
 use crate::types::{
-    BlockRangeQuantifierInput, ForAllSuchThatInput, IncludedAtBlockInput, Integer, Placeholder,
-    Property, PropertyFactory, Quantifier, QuantifierResultItem,
+    BlockRangeQuantifierInput, ForAllSuchThatInput, IncludedAtBlockInput, InputType, Integer,
+    Property, Quantifier,
 };
+use bytes::Bytes;
 use plasma_core::data_structure::Range;
 
 /// Creates plasma checkpoint property
@@ -10,24 +11,27 @@ use plasma_core::data_structure::Range;
 ///      Or(b, Included(p), Excluded(b, p))
 pub fn create_plasma_property(specified_block_number: Integer, range: Range) -> Property {
     Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-        Quantifier::NonnegativeIntegerLessThanQuantifier(Placeholder::new(
-            "specified_block_number",
+        Quantifier::NonnegativeIntegerLessThanQuantifier(InputType::ConstantInteger(
+            specified_block_number,
         )),
-        Placeholder::new("block"),
-        create_coin_range_property(&Placeholder::new("block"), &Placeholder::new("range")),
+        Bytes::from("block"),
+        create_coin_range_property(
+            &InputType::placeholder("block"),
+            &InputType::ConstantRange(range),
+        ),
     )))
 }
 
-pub fn create_coin_range_property(block_number: &Placeholder, range: &Placeholder) -> Property {
+pub fn create_coin_range_property(block_number: &InputType, range: &InputType) -> Property {
     Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
         Quantifier::BlockRangeQuantifier(BlockRangeQuantifierInput::new(
             block_number.clone(),
             range.clone(),
         )),
-        Placeholder::new("state"),
+        Bytes::from("state"),
         Property::IncludedAtBlockDecider(Box::new(IncludedAtBlockInput::new(
             block_number.clone(),
-            Placeholder::new("state"),
+            InputType::placeholder("state"),
         ))),
     )))
 }
@@ -39,8 +43,7 @@ mod tests {
     use crate::db::RangeAtBlockDb;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
-        IncludedAtBlockInput, Integer, Placeholder, PlasmaDataBlock, PreimageExistsInput, Property,
-        QuantifierResultItem, Witness,
+        InputType, Integer, PlasmaDataBlock, PreimageExistsInput, Property, Witness,
     };
     use bytes::Bytes;
     use ethereum_types::H256;
@@ -64,7 +67,7 @@ mod tests {
         inclusion: bool,
     ) {
         let property = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-            Placeholder::new("hash"),
+            InputType::placeholder("hash"),
         )));
         let mut leaves = vec![];
         for i in 0..100 {
@@ -101,14 +104,6 @@ mod tests {
         let range = Range::new(0, 100);
         let checkpoint_property = create_plasma_property(block_number, range);
         let mut decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
-        decider.set_replace(
-            Placeholder::new("specified_block_number"),
-            QuantifierResultItem::Integer(Integer(10)),
-        );
-        decider.set_replace(
-            Placeholder::new("range"),
-            QuantifierResultItem::Range(Range::new(0, 100)),
-        );
         store_inclusion_witness(&mut decider);
         let result = decider.decide(&checkpoint_property);
         assert!(result.is_ok());

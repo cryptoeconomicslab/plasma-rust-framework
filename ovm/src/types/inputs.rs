@@ -1,4 +1,4 @@
-use super::core::{Integer, Placeholder, Property, Quantifier};
+use super::core::{InputType, Integer, Property, Quantifier};
 use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
@@ -55,16 +55,15 @@ impl NotDeciderInput {
     }
 }
 
-#[allow(unused_attributes)]
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct ForAllSuchThatInput {
     quantifier: Quantifier,
-    placeholder: Placeholder,
+    placeholder: Bytes,
     property: Property,
 }
 
 impl ForAllSuchThatInput {
-    pub fn new(quantifier: Quantifier, placeholder: Placeholder, property: Property) -> Self {
+    pub fn new(quantifier: Quantifier, placeholder: Bytes, property: Property) -> Self {
         ForAllSuchThatInput {
             quantifier,
             placeholder,
@@ -74,7 +73,7 @@ impl ForAllSuchThatInput {
     pub fn get_quantifier(&self) -> &Quantifier {
         &self.quantifier
     }
-    pub fn get_placeholder(&self) -> &Placeholder {
+    pub fn get_placeholder(&self) -> &Bytes {
         &self.placeholder
     }
 
@@ -85,74 +84,74 @@ impl ForAllSuchThatInput {
 
 #[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
 pub struct PreimageExistsInput {
-    hash: Placeholder,
+    hash: InputType,
 }
 
 impl PreimageExistsInput {
-    pub fn new(hash: Placeholder) -> Self {
+    pub fn new(hash: InputType) -> Self {
         PreimageExistsInput { hash }
     }
-    pub fn get_hash(&self) -> &Placeholder {
+    pub fn get_hash(&self) -> &InputType {
         &self.hash
     }
 }
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct SignedByInput {
-    message: Placeholder,
-    public_key: Placeholder,
+    message: InputType,
+    public_key: InputType,
 }
 
 impl SignedByInput {
-    pub fn new(message: Placeholder, public_key: Placeholder) -> Self {
+    pub fn new(message: InputType, public_key: InputType) -> Self {
         SignedByInput {
             message,
             public_key,
         }
     }
-    pub fn get_message(&self) -> &Placeholder {
+    pub fn get_message(&self) -> &InputType {
         &self.message
     }
-    pub fn get_public_key(&self) -> &Placeholder {
+    pub fn get_public_key(&self) -> &InputType {
         &self.public_key
     }
 }
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct IncludedAtBlockInput {
-    block_number: Placeholder,
-    plasma_data_block: Placeholder,
+    block_number: InputType,
+    plasma_data_block: InputType,
 }
 
 impl IncludedAtBlockInput {
-    pub fn new(block_number: Placeholder, plasma_data_block: Placeholder) -> Self {
+    pub fn new(block_number: InputType, plasma_data_block: InputType) -> Self {
         Self {
             block_number,
             plasma_data_block,
         }
     }
-    pub fn get_block_number(&self) -> &Placeholder {
+    pub fn get_block_number(&self) -> &InputType {
         &self.block_number
     }
-    pub fn get_plasma_data_block(&self) -> &Placeholder {
+    pub fn get_plasma_data_block(&self) -> &InputType {
         &self.plasma_data_block
     }
 }
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct HasLowerNonceInput {
-    message: Placeholder,
-    nonce: Placeholder,
+    message: InputType,
+    nonce: InputType,
 }
 
 impl HasLowerNonceInput {
-    pub fn new(message: Placeholder, nonce: Placeholder) -> Self {
+    pub fn new(message: InputType, nonce: InputType) -> Self {
         HasLowerNonceInput { message, nonce }
     }
-    pub fn get_message(&self) -> &Placeholder {
+    pub fn get_message(&self) -> &InputType {
         &self.message
     }
-    pub fn get_nonce(&self) -> &Placeholder {
+    pub fn get_nonce(&self) -> &InputType {
         &self.nonce
     }
 }
@@ -176,30 +175,30 @@ impl ChannelUpdateSignatureExistsDeciderInput {
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct IntegerRangeQuantifierInput {
-    start: Placeholder,
-    end: Placeholder,
+    start: InputType,
+    end: InputType,
 }
 
 impl IntegerRangeQuantifierInput {
-    pub fn new(start: Placeholder, end: Placeholder) -> Self {
+    pub fn new(start: InputType, end: InputType) -> Self {
         Self { start, end }
     }
-    pub fn get_start(&self) -> &Placeholder {
+    pub fn get_start(&self) -> &InputType {
         &self.start
     }
-    pub fn get_end(&self) -> &Placeholder {
+    pub fn get_end(&self) -> &InputType {
         &self.end
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
 pub struct BlockRangeQuantifierInput {
-    pub block_number: Placeholder,
-    pub coin_range: Placeholder,
+    pub block_number: InputType,
+    pub coin_range: InputType,
 }
 
 impl BlockRangeQuantifierInput {
-    pub fn new(block_number: Placeholder, coin_range: Placeholder) -> Self {
+    pub fn new(block_number: InputType, coin_range: InputType) -> Self {
         Self {
             block_number,
             coin_range,
@@ -238,7 +237,7 @@ mod tests {
             Range::new(500, 700),
             Bytes::from(&b"root"[..]),
             true,
-            Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(Placeholder::new(
+            Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(InputType::new(
                 "hash",
             )))),
         );

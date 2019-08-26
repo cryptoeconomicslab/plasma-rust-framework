@@ -7,7 +7,6 @@ use super::witness::{PlasmaDataBlock, Witness};
 use crate::db::Message;
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
-use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use ethabi::{ParamType, Token};
 use ethereum_types::{Address, H256};
@@ -17,7 +16,6 @@ use plasma_core::data_structure::error::{
 };
 use plasma_core::data_structure::Range;
 use plasma_db::traits::kvs::KeyValueStore;
-use std::sync::Arc;
 
 pub type DeciderId = Address;
 pub type QuantifierId = Address;
@@ -81,12 +79,13 @@ pub enum Property {
 
 #[derive(Clone, Debug)]
 pub enum Quantifier {
+    HashQuantifier(InputType),
     // start to end
     IntegerRangeQuantifier(IntegerRangeQuantifierInput),
     // 0 to upperBound
-    NonnegativeIntegerLessThanQuantifier(Placeholder),
+    NonnegativeIntegerLessThanQuantifier(InputType),
     // signer
-    SignedByQuantifier(Placeholder),
+    SignedByQuantifier(InputType),
     // blocknumber and range
     BlockRangeQuantifier(BlockRangeQuantifierInput),
 }
@@ -181,6 +180,7 @@ impl From<Property> for Token {
 impl Quantifier {
     pub fn get_id(&self) -> u64 {
         match self {
+            Quantifier::HashQuantifier(_) => 4,
             Quantifier::IntegerRangeQuantifier(_) => 0,
             Quantifier::NonnegativeIntegerLessThanQuantifier(_) => 1,
             Quantifier::SignedByQuantifier(_) => 2,
@@ -189,6 +189,7 @@ impl Quantifier {
     }
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
+            Quantifier::HashQuantifier(input) => input.to_abi(),
             Quantifier::IntegerRangeQuantifier(input) => input.to_abi(),
             Quantifier::NonnegativeIntegerLessThanQuantifier(input) => input.to_abi(),
             Quantifier::SignedByQuantifier(input) => input.to_abi(),
@@ -199,11 +200,13 @@ impl Quantifier {
         if id == 0 {
             IntegerRangeQuantifierInput::from_abi(data).map(Quantifier::IntegerRangeQuantifier)
         } else if id == 1 {
-            Placeholder::from_abi(data).map(Quantifier::NonnegativeIntegerLessThanQuantifier)
+            InputType::from_abi(data).map(Quantifier::NonnegativeIntegerLessThanQuantifier)
         } else if id == 2 {
-            Placeholder::from_abi(data).map(Quantifier::SignedByQuantifier)
+            InputType::from_abi(data).map(Quantifier::SignedByQuantifier)
         } else if id == 3 {
             BlockRangeQuantifierInput::from_abi(data).map(Quantifier::BlockRangeQuantifier)
+        } else if id == 4 {
+            InputType::from_abi(data).map(Quantifier::HashQuantifier)
         } else {
             panic!("unknown decider")
         }
@@ -314,60 +317,76 @@ impl Decodable for Placeholder {
     }
 }
 
-/*
-pub enum InputType<T> {
-    Placeholder(str),
-    Constant(T),
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum InputType {
+    Placeholder(Bytes),
+    ConstantAddress(Address),
+    ConstantBytes(Bytes),
+    ConstantH256(H256),
+    ConstantInteger(Integer),
+    ConstantRange(Range),
 }
 
-impl<T:Encodable> Encodable for InputType<T> {
+impl InputType {
+    pub fn placeholder(placeholder: &str) -> Self {
+        InputType::Placeholder(Bytes::from(placeholder))
+    }
+}
+
+impl Encodable for InputType {
     fn to_tuple(&self) -> Vec<Token> {
         match self {
-            Placeholder(placeholder) => {
-
+            InputType::Placeholder(placeholder) => {
+                vec![Token::Uint(0.into()), Token::Bytes(placeholder.to_vec())]
             }
-            Constant(constant) => {
-                vec![
-                    Token::Address(self.get_decider_id()),
-                    Token::Tuple(constant.to_tuple()),
-                ]
+            InputType::ConstantAddress(address) => vec![
+                Token::Uint(1.into()),
+                Token::Bytes(address.as_bytes().to_vec()),
+            ],
+            InputType::ConstantBytes(bytes) => {
+                vec![Token::Uint(2.into()), Token::Bytes(bytes.to_vec())]
+            }
+            InputType::ConstantH256(h256) => vec![
+                Token::Uint(3.into()),
+                Token::Bytes(h256.as_bytes().to_vec()),
+            ],
+            InputType::ConstantInteger(integer) => {
+                let b: Bytes = (*integer).into();
+                vec![Token::Uint(4.into()), Token::Bytes(b.to_vec())]
+            }
+            InputType::ConstantRange(range) => {
+                vec![Token::Uint(5.into()), Token::Bytes(range.to_abi())]
             }
         }
     }
 }
 
-impl<T:Decodable> Decodable for InputType<T> {
-    type Ok = Property;
+impl Decodable for InputType {
+    type Ok = InputType;
     fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
-        let decider_id = tuple[0].clone().to_address();
-        let input_data = tuple[1].clone().to_bytes();
-        if let (Some(decider_id), Some(input_data)) = (decider_id, input_data) {
-            Ok(Property::from_bytes(decider_id, &input_data).unwrap())
+        let id = tuple[0].clone().to_uint();
+        let bytes = tuple[1].clone().to_bytes();
+        if let (Some(id), Some(bytes)) = (id, bytes) {
+            let id_num = id.as_u64();
+            if id_num == 0 {
+                Ok(InputType::Placeholder(Bytes::from(bytes)))
+            } else if id_num == 1 {
+                Ok(InputType::ConstantAddress(Address::from_slice(&bytes)))
+            } else if id_num == 2 {
+                Ok(InputType::ConstantBytes(Bytes::from(bytes)))
+            } else if id_num == 3 {
+                Ok(InputType::ConstantH256(H256::from_slice(&bytes)))
+            } else if id_num == 3 {
+                Ok(InputType::ConstantInteger(Bytes::from(bytes).into()))
+            } else {
+                Range::from_abi(&bytes).map(|item| InputType::ConstantRange(item))
+            }
         } else {
             Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
         }
     }
     fn get_param_types() -> Vec<ParamType> {
-        vec![ParamType::Address, ParamType::Bytes]
-    }
-}
-*/
-
-#[derive(Clone)]
-pub struct PropertyFactory(Arc<dyn Fn(QuantifierResultItem) -> Property>);
-
-impl PropertyFactory {
-    pub fn new(handler: Box<dyn Fn(QuantifierResultItem) -> Property>) -> Self {
-        PropertyFactory(Arc::new(handler))
-    }
-    pub fn call(&self, item: QuantifierResultItem) -> Property {
-        self.0(item)
-    }
-}
-
-impl std::fmt::Debug for PropertyFactory {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "PropertyFactory")
+        vec![ParamType::Uint(256), ParamType::Bytes]
     }
 }
 
@@ -416,20 +435,20 @@ impl QuantifierResult {
 mod tests {
 
     use super::Property;
-    use crate::types::{Placeholder, PreimageExistsInput};
+    use crate::types::{InputType, PreimageExistsInput};
     use plasma_core::data_structure::abi::{Decodable, Encodable};
 
     #[test]
     fn test_encode_and_decode_property() {
         let property = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-            Placeholder::new("hash"),
+            InputType::placeholder("hash"),
         )));
         let encoded = property.to_abi();
         let decoded = Property::from_abi(&encoded).unwrap();
         if let Property::PreimageExistsDecider(input) = decoded {
             assert_eq!(
                 input,
-                Box::new(PreimageExistsInput::new(Placeholder::new("hash")))
+                Box::new(PreimageExistsInput::new(InputType::placeholder("hash")))
             );
         } else {
             panic!()

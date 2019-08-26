@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::types::{IncludedAtBlockInput, Integer, PlasmaDataBlock, Witness};
+use crate::types::{Integer, PlasmaDataBlock, Witness};
 use bytes::Bytes;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_db::traits::kvs::KeyValueStore;

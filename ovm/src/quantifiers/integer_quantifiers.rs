@@ -1,6 +1,6 @@
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
-    Integer, IntegerRangeQuantifierInput, Placeholder, QuantifierResult, QuantifierResultItem,
+    InputType, Integer, IntegerRangeQuantifierInput, QuantifierResult, QuantifierResultItem,
 };
 use plasma_db::traits::kvs::KeyValueStore;
 
@@ -50,10 +50,10 @@ impl Default for NonnegativeIntegerLessThanQuantifier {
 impl NonnegativeIntegerLessThanQuantifier {
     pub fn get_all_quantified<KVS: KeyValueStore>(
         decider: &PropertyExecutor<KVS>,
-        placeholder: &Placeholder,
+        placeholder: &InputType,
     ) -> QuantifierResult {
         if let QuantifierResultItem::Integer(upper_bound) = decider.replace(&placeholder) {
-            if *upper_bound < Integer(0) {
+            if upper_bound < Integer(0) {
                 panic!("upper_bound shouldn't negative value.");
             }
             QuantifierResult::new(get_range(0, upper_bound.0), true)

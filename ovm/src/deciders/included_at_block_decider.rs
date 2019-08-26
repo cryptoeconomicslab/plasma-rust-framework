@@ -33,7 +33,7 @@ impl Decider for IncludedAtBlockDecider {
             decider.replace(input.get_block_number()),
             decider.replace(input.get_plasma_data_block()),
         ) {
-            let witness = db.get_witness(*block_number, plasma_data_block)?;
+            let witness = db.get_witness(block_number, &plasma_data_block)?;
             if let Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, _) = witness.clone() {
                 let leaf = MerkleIntervalNode::Leaf {
                     end: plasma_data_block.get_updated_range().get_end(),

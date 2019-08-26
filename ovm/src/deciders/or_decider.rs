@@ -50,28 +50,28 @@ impl Decider for OrDecider {
     }
 }
 
-/*
 #[cfg(test)]
 mod tests {
     use crate::db::HashPreimageDb;
-    use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
-        Decision, NotDeciderInput, OrDeciderInput, PreimageExistsInput, Property, Witness,
+        Decision, InputType, NotDeciderInput, OrDeciderInput, PreimageExistsInput, Property,
+        Witness,
     };
+    use crate::utils::static_hash;
     use bytes::Bytes;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     #[test]
     fn test_decide() {
-        let left_hash = Verifier::static_hash(&Bytes::from("left"));
-        let right_hash = Verifier::static_hash(&Bytes::from("right"));
+        let left_hash = static_hash(&Bytes::from("left"));
+        let right_hash = static_hash(&Bytes::from("right"));
         let left = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-            Verifier::static_hash(&Bytes::from("left")),
+            InputType::ConstantH256(static_hash(&Bytes::from("left"))),
         )));
         let left_witness = Witness::Bytes(Bytes::from("left"));
         let right = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-            Verifier::static_hash(&Bytes::from("right")),
+            InputType::ConstantH256(static_hash(&Bytes::from("right"))),
         )));
         let right_witness = Witness::Bytes(Bytes::from("right"));
         let input = OrDeciderInput::new(
@@ -79,7 +79,7 @@ mod tests {
             Property::NotDecider(Box::new(NotDeciderInput::new(right))),
         );
         let or_decider = Property::OrDecider(Box::new(input.clone()));
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let mut decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         assert!(db.store_witness(left_hash, &left_witness).is_ok());
         assert!(db.store_witness(right_hash, &right_witness).is_ok());
@@ -87,4 +87,3 @@ mod tests {
         assert_eq!(decided.get_outcome(), true);
     }
 }
-*/

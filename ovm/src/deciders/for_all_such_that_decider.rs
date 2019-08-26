@@ -81,46 +81,47 @@ impl Decider for ForAllSuchThatDecider {
     }
 }
 
-/*
 #[cfg(test)]
 mod tests {
     use super::ForAllSuchThatDecider;
     use crate::db::HashPreimageDb;
-    use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
-        Decider, Decision, ForAllSuchThatInput, Integer, IntegerRangeQuantifierInput,
-        PreimageExistsInput, Property, PropertyFactory, Quantifier, QuantifierResultItem, Witness,
+        Decider, Decision, ForAllSuchThatInput, InputType, Integer, IntegerRangeQuantifierInput,
+        PreimageExistsInput, Property, Quantifier, Witness,
     };
+    use crate::utils::static_hash;
+    use bytes::Bytes;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
     #[test]
     fn test_decide() {
         let input = ForAllSuchThatInput::new(
-            Quantifier::IntegerRangeQuantifier(IntegerRangeQuantifierInput::new(5, 20)),
-            Some(PropertyFactory::new(Box::new(|item| {
-                if let QuantifierResultItem::Integer(number) = item {
-                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-                        Verifier::static_hash(&number.into()),
-                    )))
-                } else {
-                    panic!("invalid type of item");
-                }
-            }))),
+            Quantifier::IntegerRangeQuantifier(IntegerRangeQuantifierInput::new(
+                InputType::ConstantInteger(Integer(5)),
+                InputType::ConstantInteger(Integer(20)),
+            )),
+            Bytes::from("n"),
+            Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
+                Quantifier::HashQuantifier(InputType::Placeholder(Bytes::from("n"))),
+                Bytes::from("hash"),
+                Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
+                    InputType::Placeholder(Bytes::from("hash")),
+                ))),
+            ))),
         );
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let mut decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         for i in 5..20 {
             let integer = Integer(i);
             assert!(db
                 .store_witness(
-                    Verifier::static_hash(&integer.into()),
+                    static_hash(&integer.into()),
                     &Witness::Bytes(integer.into())
                 )
                 .is_ok());
         }
-        let decided: Decision = ForAllSuchThatDecider::decide(&decider, &input).unwrap();
+        let decided: Decision = ForAllSuchThatDecider::decide(&mut decider, &input).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
 }
-*/
