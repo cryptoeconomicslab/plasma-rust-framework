@@ -69,7 +69,7 @@ where
             InputType::Placeholder(placeholder) => self.variables.get(placeholder).unwrap().clone(),
             InputType::ConstantAddress(constant) => QuantifierResultItem::Address(*constant),
             InputType::ConstantBytes(constant) => QuantifierResultItem::Bytes(constant.clone()),
-            InputType::ConstantH256(constant) => QuantifierResultItem::H256(constant.clone()),
+            InputType::ConstantH256(constant) => QuantifierResultItem::H256(*constant),
             InputType::ConstantInteger(constant) => QuantifierResultItem::Integer(*constant),
             InputType::ConstantRange(constant) => QuantifierResultItem::Range(*constant),
         }

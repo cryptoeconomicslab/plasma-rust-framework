@@ -376,10 +376,10 @@ impl Decodable for InputType {
                 Ok(InputType::ConstantBytes(Bytes::from(bytes)))
             } else if id_num == 3 {
                 Ok(InputType::ConstantH256(H256::from_slice(&bytes)))
-            } else if id_num == 3 {
+            } else if id_num == 4 {
                 Ok(InputType::ConstantInteger(Bytes::from(bytes).into()))
             } else {
-                Range::from_abi(&bytes).map(|item| InputType::ConstantRange(item))
+                Range::from_abi(&bytes).map(InputType::ConstantRange)
             }
         } else {
             Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
