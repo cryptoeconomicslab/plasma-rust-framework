@@ -20,6 +20,23 @@ pub struct Message {
 }
 
 impl Message {
+    pub fn new(
+        channel_id: Bytes,
+        sender: Address,
+        recipient: Address,
+        nonce: Integer,
+        message: Bytes,
+    ) -> Self {
+        Self {
+            channel_id,
+            sender,
+            recipient,
+            nonce,
+            signers: vec![],
+            message,
+            signed_message: Bytes::from(""),
+        }
+    }
     pub fn get_signers(&self) -> &Vec<Address> {
         &self.signers
     }
