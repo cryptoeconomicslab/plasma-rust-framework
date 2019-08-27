@@ -124,6 +124,9 @@ fn create_tokens(f: &syn::Field) -> proc_macro2::TokenStream {
             "Address" => quote! {
                 Token::Address(self.#ident)
             },
+            "bool" => quote! {
+                Token::Bool(self.#ident)
+            },
             _ => quote! {
                 Token::Tuple(self.#ident.to_tuple())
             },
@@ -153,6 +156,9 @@ fn create_param_type_token_stream(f: &syn::Field) -> proc_macro2::TokenStream {
             },
             "Address" => quote! {
                 ethabi::ParamType::Address
+            },
+            "bool" => quote! {
+                ethabi::ParamType::Bool
             },
             _ => quote! {
                 ethabi::ParamType::Tuple(#type_name::get_param_types())
@@ -185,6 +191,9 @@ fn create_parse_val_token_stream(
         },
         "Address" => quote! {
             let #ident: Address = tuple[#index].clone().to_address().unwrap();
+        },
+        "bool" => quote! {
+            let #ident: bool = tuple[#index].clone().to_bool().unwrap();
         },
         _ => quote! {
             let #ident: #type_name = #type_name::from_tuple(&tuple[#index].clone().to_tuple().unwrap()).unwrap();

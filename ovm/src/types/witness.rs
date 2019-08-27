@@ -78,7 +78,6 @@ impl Witness {
             if let Some(bytes) = bytes {
                 Ok(Witness::Bytes(Bytes::from(bytes)))
             } else {
-                println!("decodeing witness error");
                 Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
             }
         } else {
@@ -92,16 +91,13 @@ impl Witness {
                     PlasmaDataBlock::from_tuple(&plasma_data_block).unwrap(),
                 ))
             } else {
-                println!("decodeing witness error 1");
                 Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
             }
         }
     }
     fn from_abi_part(id: U256, data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        let decoded = ethabi::decode(&Self::get_param_types(id.as_u64()), data).map_err(|_e| {
-            println!("decodeing witness error 2");
-            PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode)
-        })?;
+        let decoded = ethabi::decode(&Self::get_param_types(id.as_u64()), data)
+            .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
         Self::from_tuple_part(id.as_u64(), &decoded)
     }
     pub fn get_number(&self) -> U256 {
@@ -142,7 +138,6 @@ impl Decodable for Witness {
         if let (Some(witness_id), Some(witness_data)) = (witness_id, witness_data) {
             Ok(Witness::from_abi_part(witness_id, &witness_data).unwrap())
         } else {
-            println!("decodeing witness error");
             Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
         }
     }
