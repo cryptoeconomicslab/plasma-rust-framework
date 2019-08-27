@@ -3,6 +3,8 @@ use crate::types::{
     BlockRangeQuantifierInput, PlasmaDataBlock, QuantifierResult, QuantifierResultItem, Witness,
 };
 use bytes::Bytes;
+use ethereum_types::H256;
+use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
 use plasma_core::data_structure::abi::Decodable;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::traits::rangestore::RangeStore;
@@ -16,6 +18,19 @@ impl Default for BlockRangeQuantifier {
 }
 
 impl BlockRangeQuantifier {
+    pub fn verify_exclusion(plasma_data_block: &PlasmaDataBlock, inclusion_proof: &Bytes) -> bool {
+        let leaf = MerkleIntervalNode::Leaf {
+            end: plasma_data_block.get_updated_range().get_end(),
+            data: Bytes::from(H256::zero().as_bytes()),
+        };
+        let inclusion_bounds_result = MerkleIntervalTree::verify(
+            &leaf,
+            plasma_data_block.get_index(),
+            inclusion_proof.clone(),
+            plasma_data_block.get_root(),
+        );
+        inclusion_bounds_result.is_ok()
+    }
     pub fn get_all_quantified<KVS>(
         decider: &PropertyExecutor<KVS>,
         input: &BlockRangeQuantifierInput,
@@ -34,13 +49,22 @@ impl BlockRangeQuantifier {
         let sum = result
             .iter()
             .fold(0, |acc, r| acc + r.get_end() - r.get_start());
-        let full_range_included: bool = sum == (range.get_end() - range.get_start());
+        let mut full_range_included: bool = sum == (range.get_end() - range.get_start());
         let plasma_data_blocks: Vec<PlasmaDataBlock> = result
             .iter()
             .map(|r| Witness::from_abi(r.get_value()).unwrap())
-            .map(|w| {
-                if let Witness::IncludedInIntervalTreeAtBlock(_, plasma_data_block) = w {
-                    plasma_data_block.clone()
+            .filter_map(move |w| {
+                if let Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, plasma_data_block) =
+                    w
+                {
+                    if plasma_data_block.get_is_included() {
+                        Some(plasma_data_block.clone())
+                    } else {
+                        if !Self::verify_exclusion(&plasma_data_block, &inclusion_proof) {
+                            full_range_included = false
+                        }
+                        None
+                    }
                 } else {
                     panic!("invalid witness")
                 }
