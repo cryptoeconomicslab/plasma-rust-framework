@@ -1,6 +1,6 @@
 use crate::types::{
-    BlockRangeQuantifierInput, ForAllSuchThatInput, IncludedAtBlockInput, Integer, OrDeciderInput,
-    Property, PropertyFactory, Quantifier, QuantifierResultItem,
+    BlockRangeQuantifierInput, ForAllSuchThatInput, IncludedAtBlockInput, Integer, Property,
+    PropertyFactory, Quantifier, QuantifierResultItem,
 };
 use plasma_core::data_structure::Range;
 
@@ -26,15 +26,9 @@ pub fn create_coin_range_property(block_number: Integer, range: Range) -> Proper
         Quantifier::BlockRangeQuantifier(BlockRangeQuantifierInput::new(block_number, range)),
         Some(PropertyFactory::new(Box::new(move |item| {
             if let QuantifierResultItem::PlasmaDataBlock(plasma_data_block) = item {
-                Property::OrDecider(Box::new(OrDeciderInput::new(
-                    Property::IncludedAtBlockDecider(Box::new(IncludedAtBlockInput::new(
-                        block_number,
-                        plasma_data_block.clone(),
-                    ))),
-                    Property::ExcludedAtBlockDecider(Box::new(IncludedAtBlockInput::new(
-                        block_number,
-                        plasma_data_block.clone(),
-                    ))),
+                Property::IncludedAtBlockDecider(Box::new(IncludedAtBlockInput::new(
+                    block_number,
+                    plasma_data_block.clone(),
                 )))
             } else {
                 panic!("invalid type in PropertyFactory");
