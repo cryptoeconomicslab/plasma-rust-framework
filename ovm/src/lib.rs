@@ -134,21 +134,13 @@ mod tests {
         let alice: Address = secret_key_alice.public().address().into();
         let bob: Address = secret_key_bob.public().address().into();
         let channel_id = Bytes::from("channel_id");
-        let channel_message = Message::new(
-            channel_id,
-            alice,
-            bob,
-            Integer(10),
-            Bytes::from("state_update"),
-        );
+        let channel_message = Message::new(channel_id, Integer(10), Bytes::from("state_update"));
         let message = Bytes::from(channel_message.to_abi());
         let signature = SignVerifier::sign(&secret_key_bob, &message);
         let property = create_state_channel_property(alice, bob, channel_message.clone());
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
-        assert!(db
-            .store_witness(bob, Bytes::from(channel_message.to_abi()), signature)
-            .is_ok());
+        assert!(db.store_witness(bob, message, signature).is_ok());
         let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
