@@ -1,14 +1,11 @@
 use crate::db::SignedByDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{
-    Decider, Decision, DecisionValue, ImplicationProofElement, Property, SignedByInput, Witness,
-};
+use crate::types::{Decider, Decision, ImplicationProofElement, Property, SignedByInput, Witness};
 use bytes::Bytes;
 use ethereum_types::{Address, H256};
 use ethsign::{SecretKey, Signature};
-use plasma_core::data_structure::abi::Decodable;
-use plasma_db::traits::kvs::{BaseDbKey, KeyValueStore};
+use plasma_db::traits::kvs::KeyValueStore;
 use tiny_keccak::Keccak;
 
 pub fn signature_to_bytes(signature: &Signature) -> Bytes {
@@ -66,7 +63,6 @@ impl Decider for SignedByDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &SignedByInput,
-        _witness: Option<Witness>,
     ) -> Result<Decision, Error> {
         let db: SignedByDb<T> = SignedByDb::new(decider.get_db());
         let witness = db.get_witness(input)?;
@@ -85,29 +81,6 @@ impl Decider for SignedByDecider {
         } else {
             panic!("invalid witness");
         }
-    }
-    fn check_decision<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &SignedByInput,
-    ) -> Result<Decision, Error> {
-        let decision_key = input.hash();
-        let result = decider
-            .get_db()
-            .bucket(&BaseDbKey::from(&b"signed_by_decider"[..]))
-            .get(&BaseDbKey::from(decision_key.to_vec().as_slice()))
-            .map_err::<Error, _>(Into::into)?;
-        if let Some(decision_value_bytes) = result {
-            let decision_value = DecisionValue::from_abi(&decision_value_bytes).unwrap();
-            return Ok(Decision::new(
-                decision_value.get_decision(),
-                vec![ImplicationProofElement::new(
-                    Property::SignedByDecider(input.clone()),
-                    Some(decision_value.get_witness().clone()),
-                )],
-            ));
-        }
-
-        Err(Error::from(ErrorKind::Undecided))
     }
 }
 
@@ -135,7 +108,7 @@ mod tests {
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
         assert!(db.store_witness(&input, &witness).is_ok());
-        let decided: Decision = decider.decide(&property, Some(witness)).unwrap();
+        let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
 

@@ -23,7 +23,7 @@ mod tests {
     use crate::types::{
         AndDeciderInput, Decision, ForAllSuchThatInput, HasLowerNonceInput, Integer,
         IntegerRangeQuantifierInput, PreimageExistsInput, Property, PropertyFactory, Quantifier,
-        QuantifierResultItem, SignedByInput, Witness, WitnessFactory,
+        QuantifierResultItem, SignedByInput, Witness,
     };
     use bytes::Bytes;
     use ethereum_types::Address;
@@ -65,17 +65,10 @@ mod tests {
                     panic!("invalid type in PropertyFactory");
                 }
             }))),
-            Some(WitnessFactory::new(Box::new(|item| {
-                if let QuantifierResultItem::Integer(number) = item {
-                    Witness::Bytes(number.into())
-                } else {
-                    panic!("invalid type in PropertyFactory");
-                }
-            }))),
         )));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         store_preimage(&decider);
-        let decided: Decision = decider.decide(&property, None).unwrap();
+        let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
 
@@ -94,12 +87,9 @@ mod tests {
                     panic!("invalid type in PropertyFactory");
                 }
             }))),
-            Some(WitnessFactory::new(Box::new(|_item| {
-                Witness::Bytes(Bytes::from(&b"aaa"[..]))
-            }))),
         )));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
-        let decided_result = decider.decide(&property, None);
+        let decided_result = decider.decide(&property);
         assert_eq!(decided_result.is_ok(), false);
     }
 
@@ -123,17 +113,10 @@ mod tests {
                     panic!("invalid type in PropertyFactory");
                 }
             }))),
-            Some(WitnessFactory::new(Box::new(|item| {
-                if let QuantifierResultItem::Integer(number) = item {
-                    Witness::Bytes(number.into())
-                } else {
-                    panic!("invalid type in PropertyFactory");
-                }
-            }))),
         )));
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         store_preimage(&decider);
-        let decided: Decision = decider.decide(&property, None).unwrap();
+        let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
 
@@ -164,20 +147,17 @@ mod tests {
                     panic!("invalid type in PropertyFactory");
                 }
             }))),
-            None,
         )));
         let right_property = Property::SignedByDecider(sign_input.clone());
         let property = Property::AndDecider(Box::new(AndDeciderInput::new(
             left_property,
-            Witness::Bytes("".into()),
             right_property,
-            witness.clone(),
         )));
 
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
         assert!(db.store_witness(&sign_input, &witness).is_ok());
-        let decided: Decision = decider.decide(&property, None).unwrap();
+        let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
 
@@ -188,7 +168,7 @@ mod tests {
         let range = Range::new(0, 100);
         let checkpoint_property = create_plasma_property(block_number, range);
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
-        let result = decider.decide(&checkpoint_property, None);
+        let result = decider.decide(&checkpoint_property);
         // faid to decide because no local decision
         assert!(result.is_err());
     }

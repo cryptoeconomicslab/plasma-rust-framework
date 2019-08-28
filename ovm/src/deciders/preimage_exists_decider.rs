@@ -2,13 +2,11 @@ use crate::db::HashPreimageDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
-    Decider, Decision, DecisionValue, ImplicationProofElement, PreimageExistsInput, Property,
-    Witness,
+    Decider, Decision, ImplicationProofElement, PreimageExistsInput, Property, Witness,
 };
 use bytes::Bytes;
 use ethereum_types::H256;
-use plasma_core::data_structure::abi::Decodable;
-use plasma_db::traits::kvs::{BaseDbKey, KeyValueStore};
+use plasma_db::traits::kvs::KeyValueStore;
 use tiny_keccak::Keccak;
 
 pub struct Verifier {}
@@ -41,7 +39,6 @@ impl Decider for PreimageExistsDecider {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &PreimageExistsInput,
-        _witness: Option<Witness>,
     ) -> Result<Decision, Error> {
         let key = input.get_hash();
         let db: HashPreimageDb<T> = HashPreimageDb::new(decider.get_db());
@@ -60,29 +57,6 @@ impl Decider for PreimageExistsDecider {
         } else {
             panic!("invalid witness")
         }
-    }
-    fn check_decision<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &PreimageExistsInput,
-    ) -> Result<Decision, Error> {
-        let decision_key = input.get_hash();
-        let result = decider
-            .get_db()
-            .bucket(&BaseDbKey::from(&b"preimage_exists_decider"[..]))
-            .get(&BaseDbKey::from(decision_key.as_bytes()))
-            .map_err::<Error, _>(Into::into)?;
-        if let Some(decision_value_bytes) = result {
-            let decision_value = DecisionValue::from_abi(&decision_value_bytes).unwrap();
-            return Ok(Decision::new(
-                decision_value.get_decision(),
-                vec![ImplicationProofElement::new(
-                    Property::PreimageExistsDecider(Box::new(input.clone())),
-                    Some(decision_value.get_witness().clone()),
-                )],
-            ));
-        }
-
-        Err(Error::from(ErrorKind::Undecided))
     }
 }
 
@@ -105,7 +79,7 @@ mod tests {
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         assert!(db.store_witness(hash, &witness).is_ok());
-        let decided: Decision = decider.decide(&property, None).unwrap();
+        let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
 

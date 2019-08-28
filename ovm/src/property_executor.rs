@@ -9,34 +9,22 @@ use crate::quantifiers::{
     SignedByQuantifier,
 };
 use crate::types::Decider;
-use crate::types::{Decision, Property, Quantifier, QuantifierResult, Witness};
+use crate::types::{Decision, Property, Quantifier, QuantifierResult};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
 
 /// Mixin for adding decide method to Property
 pub trait DecideMixin<KVS: KeyValueStore> {
-    fn decide(
-        &self,
-        decider: &PropertyExecutor<KVS>,
-        witness: Option<Witness>,
-    ) -> Result<Decision, Error>;
-    fn check_decision(&self, decider: &PropertyExecutor<KVS>) -> Result<Decision, Error>;
+    fn decide(&self, decider: &PropertyExecutor<KVS>) -> Result<Decision, Error>;
 }
 
 impl<KVS> DecideMixin<KVS> for Property
 where
     KVS: KeyValueStore,
 {
-    fn decide(
-        &self,
-        decider: &PropertyExecutor<KVS>,
-        witness: Option<Witness>,
-    ) -> Result<Decision, Error> {
-        decider.decide(self, witness)
-    }
-    fn check_decision(&self, decider: &PropertyExecutor<KVS>) -> Result<Decision, Error> {
-        decider.check_decision(self)
+    fn decide(&self, decider: &PropertyExecutor<KVS>) -> Result<Decision, Error> {
+        decider.decide(self)
     }
 }
 
@@ -73,39 +61,15 @@ where
     pub fn get_range_db(&self) -> &RangeDbImpl<KVS> {
         &self.range_db
     }
-    pub fn decide(&self, property: &Property, witness: Option<Witness>) -> Result<Decision, Error> {
+    pub fn decide(&self, property: &Property) -> Result<Decision, Error> {
         match property {
-            Property::AndDecider(input) => AndDecider::decide(self, input, witness),
-            Property::NotDecider(input) => NotDecider::decide(self, input, witness),
-            Property::PreimageExistsDecider(input) => {
-                PreimageExistsDecider::decide(self, input, witness)
-            }
-            Property::ForAllSuchThatDecider(input) => {
-                ForAllSuchThatDecider::decide(self, input, witness)
-            }
-            Property::OrDecider(input) => OrDecider::decide(self, input, witness),
-            Property::SignedByDecider(input) => SignedByDecider::decide(self, input, witness),
-            Property::HasLowerNonceDecider(input) => {
-                HasLowerNonceDecider::decide(self, input, witness)
-            }
-            _ => panic!("not implemented!!"),
-        }
-    }
-    pub fn check_decision(&self, property: &Property) -> Result<Decision, Error> {
-        match property {
-            Property::AndDecider(input) => AndDecider::check_decision(self, input),
-            Property::NotDecider(input) => NotDecider::check_decision(self, input),
-            Property::PreimageExistsDecider(input) => {
-                PreimageExistsDecider::check_decision(self, input)
-            }
-            Property::ForAllSuchThatDecider(input) => {
-                ForAllSuchThatDecider::check_decision(self, input)
-            }
-            Property::OrDecider(input) => OrDecider::check_decision(self, input),
-            Property::SignedByDecider(input) => SignedByDecider::check_decision(self, input),
-            Property::HasLowerNonceDecider(input) => {
-                HasLowerNonceDecider::check_decision(self, input)
-            }
+            Property::AndDecider(input) => AndDecider::decide(self, input),
+            Property::NotDecider(input) => NotDecider::decide(self, input),
+            Property::PreimageExistsDecider(input) => PreimageExistsDecider::decide(self, input),
+            Property::ForAllSuchThatDecider(input) => ForAllSuchThatDecider::decide(self, input),
+            Property::OrDecider(input) => OrDecider::decide(self, input),
+            Property::SignedByDecider(input) => SignedByDecider::decide(self, input),
+            Property::HasLowerNonceDecider(input) => HasLowerNonceDecider::decide(self, input),
             _ => panic!("not implemented!!"),
         }
     }

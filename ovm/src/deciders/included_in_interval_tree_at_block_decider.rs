@@ -2,15 +2,14 @@ use crate::db::RangeAtBlockDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
-    Decider, Decision, DecisionValue, ImplicationProofElement, IncludedInIntervalTreeAtBlockInput,
-    Property, Witness,
+    Decider, Decision, ImplicationProofElement, IncludedInIntervalTreeAtBlockInput, Property,
+    Witness,
 };
 use bytes::Bytes;
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
-use plasma_core::data_structure::abi::{Decodable, Encodable};
+use plasma_core::data_structure::abi::Encodable;
 use plasma_core::data_structure::Range;
 use plasma_db::traits::kvs::KeyValueStore;
-use plasma_db::traits::rangestore::RangeStore;
 
 /// IncludedInIntervalTreeAtBlock is decider which decide inclusion of data in merkle interval tree
 pub struct IncludedInIntervalTreeAtBlock {}
@@ -26,7 +25,6 @@ impl Decider for IncludedInIntervalTreeAtBlock {
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
         input: &IncludedInIntervalTreeAtBlockInput,
-        _witness: Option<Witness>,
     ) -> Result<Decision, Error> {
         let db: RangeAtBlockDb<T> = RangeAtBlockDb::new(decider.get_range_db());
         let witness = db.get_witness(input)?;
@@ -67,26 +65,5 @@ impl Decider for IncludedInIntervalTreeAtBlock {
         } else {
             panic!("invalid witness")
         }
-    }
-    fn check_decision<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &IncludedInIntervalTreeAtBlockInput,
-    ) -> Result<Decision, Error> {
-        let decision_key = input.get_coin_range();
-        let result = decider
-            .get_range_db()
-            .bucket(&Bytes::from("range_at_block"))
-            .bucket(&input.get_block_number().into())
-            .get(decision_key.get_start(), decision_key.get_end())
-            .map_err::<Error, _>(Into::into)?;
-        let decision_value =
-            DecisionValue::from_abi(result[0].get_value()).map_err::<Error, _>(Into::into)?;
-        Ok(Decision::new(
-            decision_value.get_decision(),
-            vec![ImplicationProofElement::new(
-                Property::IncludedInIntervalTreeAtBlockDecider(input.clone()),
-                Some(decision_value.get_witness().clone()),
-            )],
-        ))
     }
 }

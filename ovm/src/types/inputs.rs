@@ -1,5 +1,4 @@
-use super::core::{Integer, Property, PropertyFactory, Quantifier, WitnessFactory};
-use super::witness::Witness;
+use super::core::{Integer, Property, PropertyFactory, Quantifier};
 use crate::db::Message;
 use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
@@ -11,60 +10,30 @@ use plasma_core::data_structure::Range;
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct AndDeciderInput {
     left: Property,
-    left_witness: Witness,
     right: Property,
-    right_witness: Witness,
 }
 
 impl AndDeciderInput {
-    pub fn new(
-        left: Property,
-        left_witness: Witness,
-        right: Property,
-        right_witness: Witness,
-    ) -> Self {
-        AndDeciderInput {
-            left,
-            left_witness,
-            right,
-            right_witness,
-        }
+    pub fn new(left: Property, right: Property) -> Self {
+        AndDeciderInput { left, right }
     }
     pub fn get_left(&self) -> &Property {
         &self.left
     }
     pub fn get_right(&self) -> &Property {
         &self.right
-    }
-    pub fn get_left_witness(&self) -> &Witness {
-        &self.left_witness
-    }
-    pub fn get_right_witness(&self) -> &Witness {
-        &self.right_witness
     }
 }
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct OrDeciderInput {
     left: Property,
-    left_witness: Witness,
     right: Property,
-    right_witness: Witness,
 }
 
 impl OrDeciderInput {
-    pub fn new(
-        left: Property,
-        left_witness: Witness,
-        right: Property,
-        right_witness: Witness,
-    ) -> Self {
-        OrDeciderInput {
-            left,
-            left_witness,
-            right,
-            right_witness,
-        }
+    pub fn new(left: Property, right: Property) -> Self {
+        OrDeciderInput { left, right }
     }
     pub fn get_left(&self) -> &Property {
         &self.left
@@ -72,29 +41,19 @@ impl OrDeciderInput {
     pub fn get_right(&self) -> &Property {
         &self.right
     }
-    pub fn get_left_witness(&self) -> &Witness {
-        &self.left_witness
-    }
-    pub fn get_right_witness(&self) -> &Witness {
-        &self.right_witness
-    }
 }
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct NotDeciderInput {
     property: Property,
-    witness: Witness,
 }
 
 impl NotDeciderInput {
-    pub fn new(property: Property, witness: Witness) -> Self {
-        NotDeciderInput { property, witness }
+    pub fn new(property: Property) -> Self {
+        NotDeciderInput { property }
     }
     pub fn get_property(&self) -> &Property {
         &self.property
-    }
-    pub fn get_witness(&self) -> &Witness {
-        &self.witness
     }
 }
 
@@ -105,20 +64,13 @@ pub struct ForAllSuchThatInput {
     // PropertyFactory and WitnessFactory isn't serializable. Clients don't send these to smart contract directly
     #[ignore]
     property_factory: Option<PropertyFactory>,
-    #[ignore]
-    witness_factory: Option<WitnessFactory>,
 }
 
 impl ForAllSuchThatInput {
-    pub fn new(
-        quantifier: Quantifier,
-        property_factory: Option<PropertyFactory>,
-        witness_factory: Option<WitnessFactory>,
-    ) -> Self {
+    pub fn new(quantifier: Quantifier, property_factory: Option<PropertyFactory>) -> Self {
         ForAllSuchThatInput {
             quantifier,
             property_factory,
-            witness_factory,
         }
     }
     pub fn get_quantifier(&self) -> &Quantifier {
@@ -126,9 +78,6 @@ impl ForAllSuchThatInput {
     }
     pub fn get_property_factory(&self) -> &Option<PropertyFactory> {
         &self.property_factory
-    }
-    pub fn get_witness_factory(&self) -> &Option<WitnessFactory> {
-        &self.witness_factory
     }
 }
 
