@@ -143,12 +143,13 @@ mod tests {
         );
         let message = Bytes::from(channel_message.to_abi());
         let signature = SignVerifier::sign(&secret_key_bob, &message);
-        let witness = Witness::Bytes(signature);
         let sign_input = SignedByInput::new(Bytes::from(channel_message.to_abi()), bob);
-        let property = create_state_channel_property(alice, bob, channel_message);
+        let property = create_state_channel_property(alice, bob, channel_message.clone());
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
-        assert!(db.store_witness(&sign_input, &witness).is_ok());
+        assert!(db
+            .store_witness(bob, Bytes::from(channel_message.to_abi()), signature)
+            .is_ok());
         let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }

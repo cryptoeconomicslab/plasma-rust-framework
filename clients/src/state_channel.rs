@@ -1,5 +1,6 @@
 use bytes::Bytes;
 use ethereum_types::Address;
+use ethsign::SecretKey;
 use ovm::db::{ChannelDb, Message, MessageDb, SignedByDb};
 use ovm::deciders::SignVerifier;
 use ovm::property_executor::PropertyExecutor;
@@ -11,17 +12,51 @@ use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct StateChannel<KVS: KeyValueStore + DatabaseTrait> {
     db: KVS,
+    secret_key: SecretKey,
+    my_address: Address,
 }
 
 impl<KVS: KeyValueStore + DatabaseTrait> StateChannel<KVS> {
+    pub fn new(private_key: &str) -> Self {
+        let raw_key = hex::decode(private_key).unwrap();
+        let secret_key = SecretKey::from_raw(&raw_key).unwrap();
+        let my_address: Address = secret_key.public().address().into();
+
+        Self {
+            db: KVS::open("test"),
+            secret_key: SecretKey::from_raw(&raw_key).unwrap(),
+            my_address,
+        }
+    }
     /// Called handling new message through pubsub network
-    pub fn handle_message(&self, channel_message: Message, signature: Bytes) {
+    pub fn handle_message(&self, channel_message: &Message, signature: Bytes) -> Bytes {
         let message = Bytes::from(channel_message.to_abi());
         let counter_party = SignVerifier::recover(&signature, &message);
-        let witness = Witness::Bytes(signature);
-        let sign_input = SignedByInput::new(Bytes::from(channel_message.to_abi()), counter_party);
         let db = SignedByDb::new(&self.db);
-        assert!(db.store_witness(&sign_input, &witness).is_ok());
+        assert!(db
+            .store_witness(
+                counter_party,
+                Bytes::from(channel_message.to_abi()),
+                signature
+            )
+            .is_ok());
+        self.sign_and_store_message(channel_message)
+    }
+
+    fn sign_and_store_message(&self, channel_message: &Message) -> Bytes {
+        let message_db: MessageDb<KVS> = (&self.db).into();
+        assert!(message_db.store_message(channel_message).is_ok());
+        let message = Bytes::from(channel_message.to_abi());
+        let signature = SignVerifier::sign(&self.secret_key, &message);
+        let db = SignedByDb::new(&self.db);
+        assert!(db
+            .store_witness(
+                self.my_address,
+                Bytes::from(channel_message.to_abi()),
+                signature.clone()
+            )
+            .is_ok());
+        signature.clone()
     }
 
     /// Gets exit claim
