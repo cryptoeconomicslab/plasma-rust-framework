@@ -1,5 +1,4 @@
 pub mod and_decider;
-pub mod excluded_at_block_decider;
 pub mod for_all_such_that_decider;
 pub mod has_lower_nonce;
 pub mod included_at_block_decider;
@@ -9,7 +8,6 @@ pub mod preimage_exists_decider;
 pub mod signed_by_decider;
 
 pub use self::and_decider::AndDecider;
-pub use self::excluded_at_block_decider::ExcludedAtBlockDecider;
 pub use self::for_all_such_that_decider::ForAllSuchThatDecider;
 pub use self::has_lower_nonce::HasLowerNonceDecider;
 pub use self::included_at_block_decider::IncludedAtBlockDecider;

@@ -75,7 +75,6 @@ pub enum Property {
     // channelId, nonce, participant
     ChannelUpdateSignatureExistsDecider(ChannelUpdateSignatureExistsDeciderInput),
     IncludedAtBlockDecider(Box<IncludedAtBlockInput>),
-    ExcludedAtBlockDecider(Box<IncludedAtBlockInput>),
 }
 
 #[derive(Clone, Debug)]
@@ -102,7 +101,6 @@ impl Property {
             Property::HasLowerNonceDecider(_) => DECIDER_LIST[6],
             Property::ChannelUpdateSignatureExistsDecider(_) => DECIDER_LIST[7],
             Property::IncludedAtBlockDecider(_) => DECIDER_LIST[8],
-            Property::ExcludedAtBlockDecider(_) => DECIDER_LIST[9],
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -116,7 +114,6 @@ impl Property {
             Property::HasLowerNonceDecider(input) => input.to_abi(),
             Property::ChannelUpdateSignatureExistsDecider(input) => input.to_abi(),
             Property::IncludedAtBlockDecider(input) => input.to_abi(),
-            Property::ExcludedAtBlockDecider(input) => input.to_abi(),
         }
     }
     fn from_bytes(decider_id: Address, data: &[u8]) -> Result<Self, PlasmaCoreError> {
@@ -142,9 +139,6 @@ impl Property {
         } else if decider_id == DECIDER_LIST[8] {
             IncludedAtBlockInput::from_abi(data)
                 .map(|input| Property::IncludedAtBlockDecider(Box::new(input)))
-        } else if decider_id == DECIDER_LIST[9] {
-            IncludedAtBlockInput::from_abi(data)
-                .map(|input| Property::ExcludedAtBlockDecider(Box::new(input)))
         } else {
             panic!("unknown decider")
         }
