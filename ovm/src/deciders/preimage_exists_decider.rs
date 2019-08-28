@@ -108,5 +108,4 @@ mod tests {
         let decided: Decision = decider.decide(&property, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
-
 }

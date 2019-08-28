@@ -144,5 +144,4 @@ mod tests {
         let decided: Decision = ForAllSuchThatDecider::decide(&decider, &input, None).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
-
 }

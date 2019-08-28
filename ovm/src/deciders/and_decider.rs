@@ -88,5 +88,4 @@ mod tests {
         let status = AndDecider::check_decision(&decider, &input).unwrap();
         assert_eq!(status.get_outcome(), true);
     }
-
 }

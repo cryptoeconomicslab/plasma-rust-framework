@@ -80,5 +80,4 @@ mod tests {
         db.set_event_seen(k);
         assert_eq!(db.get_event_seen(k), true);
     }
-
 }
