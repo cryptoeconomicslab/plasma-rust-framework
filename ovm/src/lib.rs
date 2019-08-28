@@ -22,7 +22,7 @@ mod tests {
     use crate::statements::{create_plasma_property, create_state_channel_property};
     use crate::types::{
         Decision, ForAllSuchThatInput, Integer, IntegerRangeQuantifierInput, PreimageExistsInput,
-        Property, PropertyFactory, Quantifier, QuantifierResultItem, SignedByInput, Witness,
+        Property, PropertyFactory, Quantifier, QuantifierResultItem, Witness,
     };
     use bytes::Bytes;
     use ethereum_types::Address;
@@ -143,7 +143,6 @@ mod tests {
         );
         let message = Bytes::from(channel_message.to_abi());
         let signature = SignVerifier::sign(&secret_key_bob, &message);
-        let sign_input = SignedByInput::new(Bytes::from(channel_message.to_abi()), bob);
         let property = create_state_channel_property(alice, bob, channel_message.clone());
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());

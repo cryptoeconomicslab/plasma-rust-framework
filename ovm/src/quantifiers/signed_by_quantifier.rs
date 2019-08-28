@@ -1,4 +1,4 @@
-use crate::db::{MessageDb, SignedByDb};
+use crate::db::SignedByDb;
 use crate::property_executor::PropertyExecutor;
 use crate::types::{QuantifierResult, QuantifierResultItem};
 use ethereum_types::Address;

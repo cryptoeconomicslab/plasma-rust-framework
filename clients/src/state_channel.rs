@@ -5,7 +5,7 @@ use ovm::db::{ChannelDb, Message, MessageDb, SignedByDb};
 use ovm::deciders::SignVerifier;
 use ovm::property_executor::PropertyExecutor;
 use ovm::statements::create_state_channel_property;
-use ovm::types::{Decision, ImplicationProofElement, Property, SignedByInput, Witness};
+use ovm::types::{Decision, ImplicationProofElement, Property};
 use plasma_core::data_structure::abi::Encodable;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -21,10 +21,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> StateChannel<KVS> {
         let raw_key = hex::decode(private_key).unwrap();
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let my_address: Address = secret_key.public().address().into();
-
         Self {
             db: KVS::open("test"),
-            secret_key: SecretKey::from_raw(&raw_key).unwrap(),
+            secret_key,
             my_address,
         }
     }
@@ -33,13 +32,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> StateChannel<KVS> {
         let message = Bytes::from(channel_message.to_abi());
         let counter_party = SignVerifier::recover(&signature, &message);
         let db = SignedByDb::new(&self.db);
-        assert!(db
-            .store_witness(
-                counter_party,
-                Bytes::from(channel_message.to_abi()),
-                signature
-            )
-            .is_ok());
+        assert!(db.store_witness(counter_party, message, signature).is_ok());
         self.sign_and_store_message(channel_message)
     }
 
@@ -50,11 +43,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> StateChannel<KVS> {
         let signature = SignVerifier::sign(&self.secret_key, &message);
         let db = SignedByDb::new(&self.db);
         assert!(db
-            .store_witness(
-                self.my_address,
-                Bytes::from(channel_message.to_abi()),
-                signature.clone()
-            )
+            .store_witness(self.my_address, message, signature.clone())
             .is_ok());
         signature.clone()
     }
