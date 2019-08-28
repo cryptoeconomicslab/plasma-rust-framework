@@ -1,3 +1,4 @@
+use crate::db::MessageDb;
 use crate::property_executor::PropertyExecutor;
 use crate::types::{QuantifierResult, QuantifierResultItem};
 use ethereum_types::Address;
@@ -19,9 +20,8 @@ impl SignedByQuantifier {
     where
         KVS: KeyValueStore,
     {
-        let messages = decider
-            .get_message_db()
-            .get_messages_signed_by(signed_by, None, None);
+        let message_db = MessageDb::from(decider.get_db());
+        let messages = message_db.get_messages_signed_by(signed_by, None, None);
         QuantifierResult::new(
             messages
                 .iter()

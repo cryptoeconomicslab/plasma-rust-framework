@@ -120,11 +120,11 @@ impl Decodable for Message {
     }
 }
 
-pub struct MessageDb<KVS> {
-    db: KVS,
+pub struct MessageDb<'a, KVS> {
+    db: &'a KVS,
 }
 
-impl<KVS> MessageDb<KVS>
+impl<'a, KVS> MessageDb<'a, KVS>
 where
     KVS: KeyValueStore,
 {
@@ -154,13 +154,23 @@ where
             .filter(|message| message.get_signers().contains(&signer))
             .collect()
     }
+    pub fn get_most_recent_message(&self, channel_id: &Bytes) -> Option<Message> {
+        let mut list: Vec<Message> = self
+            .db
+            .bucket(&channel_id.into())
+            .iter_all(&Bytes::from("").into(), Box::new(move |_k, _v| true))
+            .iter()
+            .filter_map(|kv| Message::from_abi(kv.get_value()).ok())
+            .collect();
+        list.pop()
+    }
 }
 
-impl<KVS> From<KVS> for MessageDb<KVS>
+impl<'a, KVS> From<&'a KVS> for MessageDb<'a, KVS>
 where
     KVS: KeyValueStore,
 {
-    fn from(kvs: KVS) -> Self {
+    fn from(kvs: &'a KVS) -> Self {
         Self { db: kvs }
     }
 }

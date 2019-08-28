@@ -1,7 +1,12 @@
 [package]
-name = "clients"
+name = "ovm-clients"
 version = "0.1.0"
 authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"
 
 [dependencies]
+bytes = "0.4.12"
+ethereum-types = "^0.5.2"
+ovm = { path = "../ovm" }
+plasma-core = { path = "../core" }
+plasma-db = { path = "../db" }
