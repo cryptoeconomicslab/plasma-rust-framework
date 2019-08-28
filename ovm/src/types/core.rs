@@ -360,5 +360,4 @@ mod tests {
             panic!()
         }
     }
-
 }

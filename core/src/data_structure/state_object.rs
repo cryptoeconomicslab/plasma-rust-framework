@@ -74,5 +74,4 @@ mod tests {
         let decoded: StateObject = StateObject::from_abi(&encoded).unwrap();
         assert_eq!(decoded.predicate, state_object.predicate);
     }
-
 }

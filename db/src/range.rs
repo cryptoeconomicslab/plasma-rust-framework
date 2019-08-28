@@ -75,5 +75,4 @@ mod tests {
         assert_eq!(range.intersect(50, 120), true);
         assert_eq!(range.intersect(100, 200), false);
     }
-
 }

@@ -187,5 +187,4 @@ mod tests {
             transaction.get_range().get_start()
         );
     }
-
 }

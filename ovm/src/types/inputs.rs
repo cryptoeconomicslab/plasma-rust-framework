@@ -211,5 +211,4 @@ mod tests {
             input.get_coin_range().get_start()
         );
     }
-
 }

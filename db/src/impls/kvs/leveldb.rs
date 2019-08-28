@@ -115,5 +115,4 @@ mod tests {
         assert_eq!(result.is_ok(), true);
         assert_eq!(result.ok().unwrap().unwrap(), b"value".to_vec());
     }
-
 }

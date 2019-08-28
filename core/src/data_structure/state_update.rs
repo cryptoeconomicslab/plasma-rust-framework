@@ -107,5 +107,4 @@ mod tests {
             state_update.get_range().get_start()
         );
     }
-
 }

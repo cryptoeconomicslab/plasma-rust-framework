@@ -71,5 +71,4 @@ mod tests {
         let decided: Decision = decider.decide(&and_decider).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
-
 }

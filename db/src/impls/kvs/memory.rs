@@ -96,5 +96,4 @@ mod tests {
         assert_eq!(result[0].get_key().as_bytes(), &b"b"[..]);
         assert_eq!(result[1].get_key().as_bytes(), &b"c"[..]);
     }
-
 }

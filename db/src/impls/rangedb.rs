@@ -192,5 +192,4 @@ mod tests {
         assert_eq!(result1[0].get_start(), 100);
         assert_eq!(result1[0].get_value(), b"Bob is owner");
     }
-
 }
