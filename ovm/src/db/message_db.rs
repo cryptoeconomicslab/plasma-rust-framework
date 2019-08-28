@@ -1,3 +1,4 @@
+use crate::error::Error;
 use crate::types::Integer;
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
@@ -163,6 +164,14 @@ where
             .filter_map(|kv| Message::from_abi(kv.get_value()).ok())
             .collect();
         list.pop()
+    }
+    pub fn store_message(&self, message: &Message) -> Result<(), Error> {
+        let nonce_bytes: Bytes = message.nonce.into();
+        let channel_id: Bytes = message.channel_id.clone();
+        self.db
+            .bucket(&channel_id.into())
+            .put(&nonce_bytes.into(), &message.to_abi())
+            .map_err(Into::into)
     }
 }
 
