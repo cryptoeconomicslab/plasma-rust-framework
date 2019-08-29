@@ -1,9 +1,10 @@
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
-    BlockRangeQuantifierInput, DecisionValue, Property, QuantifierResult, QuantifierResultItem,
-    Witness,
+    BlockRangeQuantifierInput, PlasmaDataBlock, QuantifierResult, QuantifierResultItem, Witness,
 };
 use bytes::Bytes;
+use ethereum_types::H256;
+use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
 use plasma_core::data_structure::abi::Decodable;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::traits::rangestore::RangeStore;
@@ -17,6 +18,19 @@ impl Default for BlockRangeQuantifier {
 }
 
 impl BlockRangeQuantifier {
+    pub fn verify_exclusion(plasma_data_block: &PlasmaDataBlock, inclusion_proof: &Bytes) -> bool {
+        let leaf = MerkleIntervalNode::Leaf {
+            end: plasma_data_block.get_updated_range().get_end(),
+            data: Bytes::from(H256::zero().as_bytes()),
+        };
+        let inclusion_bounds_result = MerkleIntervalTree::verify(
+            &leaf,
+            plasma_data_block.get_index(),
+            inclusion_proof.clone(),
+            plasma_data_block.get_root(),
+        );
+        inclusion_bounds_result.is_ok()
+    }
     pub fn get_all_quantified<KVS>(
         decider: &PropertyExecutor<KVS>,
         input: &BlockRangeQuantifierInput,
@@ -24,35 +38,42 @@ impl BlockRangeQuantifier {
     where
         KVS: KeyValueStore,
     {
-        let block_number = input.get_block_number();
-        let range = input.get_coin_range();
+        let range = input.coin_range;
         let result = decider
             .get_range_db()
             .bucket(&Bytes::from("range_at_block"))
-            .bucket(&block_number.into())
+            .bucket(&input.block_number.into())
             .get(range.get_start(), range.get_end())
             .unwrap();
         let sum = result
             .iter()
+            .filter_map(|r| r.get_intersection(range.get_start(), range.get_end()))
             .fold(0, |acc, r| acc + r.get_end() - r.get_start());
-        let full_range_included: bool = sum == (range.get_end() - range.get_start());
-        let properties: Vec<Property> = result
+        let mut full_range_included: bool = sum == (range.get_end() - range.get_start());
+        let plasma_data_blocks: Vec<PlasmaDataBlock> = result
             .iter()
-            .map(|r| DecisionValue::from_abi(r.get_value()).unwrap())
-            .map(|d| {
-                if let Witness::IncludedInIntervalTreeAtBlock(_, plasma_data_block) =
-                    d.get_witness()
+            .map(|r| Witness::from_abi(r.get_value()).unwrap())
+            .filter_map(move |w| {
+                if let Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, plasma_data_block) =
+                    w
                 {
-                    plasma_data_block.get_property().clone()
+                    if plasma_data_block.get_is_included() {
+                        Some(plasma_data_block.clone())
+                    } else {
+                        if !Self::verify_exclusion(&plasma_data_block, &inclusion_proof) {
+                            full_range_included = false
+                        }
+                        None
+                    }
                 } else {
                     panic!("invalid witness")
                 }
             })
             .collect();
         QuantifierResult::new(
-            properties
+            plasma_data_blocks
                 .iter()
-                .map(|p| QuantifierResultItem::Property(p.clone()))
+                .map(|p| QuantifierResultItem::PlasmaDataBlock(p.clone()))
                 .collect(),
             full_range_included,
         )
