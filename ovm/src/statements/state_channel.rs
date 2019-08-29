@@ -10,9 +10,9 @@ use plasma_core::data_structure::abi::Encodable;
 pub fn create_state_channel_property(
     my_address: Address,
     counter_party_address: Address,
-    most_recent_message: Message,
+    latest_message: Message,
 ) -> Property {
-    let upper_nonce = Integer(most_recent_message.nonce.0 + 1);
+    let upper_nonce = Integer(latest_message.nonce.0 + 1);
     let left_property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
         Quantifier::SignedByQuantifier(my_address),
         Some(PropertyFactory::new(Box::new(move |item| {
@@ -24,7 +24,7 @@ pub fn create_state_channel_property(
         }))),
     )));
     let right_property = Property::SignedByDecider(SignedByInput::new(
-        Bytes::from(most_recent_message.to_abi()),
+        Bytes::from(latest_message.to_abi()),
         counter_party_address,
     ));
     Property::AndDecider(Box::new(AndDeciderInput::new(
