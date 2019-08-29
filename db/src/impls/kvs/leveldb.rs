@@ -75,16 +75,42 @@ impl KeyValueStore for CoreDb {
             .write(WriteOptions::new(), &batch)
             .map_err(Into::into)
     }
-    fn iter_all(
+    fn iter_all_with_prefix(
         &self,
         prefix: &BaseDbKey,
+        start: &BaseDbKey,
         mut f: Box<dyn FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
     ) -> Vec<KeyValue> {
         let read_lock = self.db.read();
         let iter = read_lock.iter(ReadOptions::new());
         let mut result = vec![];
-        iter.seek(prefix);
+        iter.seek(&prefix.concat(start));
         for (k, v) in iter {
+            if prefix.concat(start) == k {
+                continue;
+            }
+            if k.0.starts_with(&prefix.0) && f(&k, &v) {
+                result.push(KeyValue::new(k.clone(), v.clone()));
+                continue;
+            } else {
+                break;
+            }
+        }
+        result
+    }
+    fn iter_all(
+        &self,
+        start: &BaseDbKey,
+        mut f: Box<dyn FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
+    ) -> Vec<KeyValue> {
+        let read_lock = self.db.read();
+        let iter = read_lock.iter(ReadOptions::new());
+        let mut result = vec![];
+        iter.seek(start);
+        for (k, v) in iter {
+            if *start == k {
+                continue;
+            }
             if f(&k, &v) {
                 result.push(KeyValue::new(k.clone(), v.clone()));
                 continue;
@@ -114,5 +140,18 @@ mod tests {
         let result = root.get(&b"ab"[..].into());
         assert_eq!(result.is_ok(), true);
         assert_eq!(result.ok().unwrap().unwrap(), b"value".to_vec());
+    }
+
+    #[test]
+    fn test_iter() {
+        let core_db = CoreDb::open("test");
+        let root: Bucket = core_db.root();
+        let bucket_a: Bucket = root.bucket(&"a".into());
+        let bucket_b: Bucket = root.bucket(&"b".into());
+        assert_eq!(bucket_a.put(&"0".into(), &b"value"[..]).is_ok(), true);
+        assert_eq!(bucket_a.put(&"1".into(), &b"value"[..]).is_ok(), true);
+        assert_eq!(bucket_b.put(&"0".into(), &b"value"[..]).is_ok(), true);
+        let result = bucket_a.iter_all(&"".into(), Box::new(move |_k, _v| true));
+        assert_eq!(result.len(), 2);
     }
 }

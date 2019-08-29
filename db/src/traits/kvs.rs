@@ -3,7 +3,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 use std::cmp::Ordering;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct BaseDbKey(Vec<u8>);
+pub struct BaseDbKey(pub Vec<u8>);
 
 impl BaseDbKey {
     pub fn new(key: Vec<u8>) -> Self {
@@ -33,6 +33,12 @@ impl From<&[u8]> for BaseDbKey {
 impl From<Bytes> for BaseDbKey {
     fn from(bytes: Bytes) -> Self {
         BaseDbKey::new(bytes.to_vec())
+    }
+}
+
+impl From<&str> for BaseDbKey {
+    fn from(string: &str) -> Self {
+        BaseDbKey::new(Bytes::from(string).to_vec())
     }
 }
 
@@ -104,9 +110,17 @@ pub trait KeyValueStore {
     fn has(&self, key: &BaseDbKey) -> Result<bool, Error>;
     fn batch(&self, operations: &[Batch]) -> Result<(), Error>;
     /// This is substitute of iter
-    fn iter_all(
+    fn iter_all_with_prefix(
         &self,
         prefix: &BaseDbKey,
+        start: &BaseDbKey,
+        f: Box<dyn FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
+    ) -> Vec<KeyValue> {
+        self.iter_all(&prefix.concat(start), f)
+    }
+    fn iter_all(
+        &self,
+        start: &BaseDbKey,
         f: Box<dyn FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
     ) -> Vec<KeyValue>;
     fn bucket<'a>(&'a self, prefix: &BaseDbKey) -> Bucket<'a>;
@@ -146,11 +160,11 @@ impl<'a> KeyValueStore for Bucket<'a> {
     }
     fn iter_all(
         &self,
-        prefix: &BaseDbKey,
+        start: &BaseDbKey,
         f: Box<dyn FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
     ) -> Vec<KeyValue> {
         self.store
-            .iter_all(&self.prefix.concat(prefix), f)
+            .iter_all_with_prefix(&self.prefix, start, f)
             .iter()
             .map(|kv| {
                 KeyValue::new(
