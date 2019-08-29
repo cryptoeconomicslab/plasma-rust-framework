@@ -38,12 +38,11 @@ impl BlockRangeQuantifier {
     where
         KVS: KeyValueStore,
     {
-        let block_number = input.get_block_number();
-        let range = input.get_coin_range();
+        let range = input.coin_range;
         let result = decider
             .get_range_db()
             .bucket(&Bytes::from("range_at_block"))
-            .bucket(&block_number.into())
+            .bucket(&input.block_number.into())
             .get(range.get_start(), range.get_end())
             .unwrap();
         let sum = result

@@ -180,8 +180,8 @@ pub type IntegerRangeQuantifierInput = Range;
 
 #[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
 pub struct BlockRangeQuantifierInput {
-    block_number: Integer,
-    coin_range: Range,
+    pub block_number: Integer,
+    pub coin_range: Range,
 }
 
 impl BlockRangeQuantifierInput {
@@ -190,12 +190,6 @@ impl BlockRangeQuantifierInput {
             block_number,
             coin_range,
         }
-    }
-    pub fn get_block_number(&self) -> Integer {
-        self.block_number
-    }
-    pub fn get_coin_range(&self) -> Range {
-        self.coin_range
     }
 }
 
