@@ -47,6 +47,7 @@ impl BlockRangeQuantifier {
             .unwrap();
         let sum = result
             .iter()
+            .filter_map(|r| r.get_intersection(range.get_start(), range.get_end()))
             .fold(0, |acc, r| acc + r.get_end() - r.get_start());
         let mut full_range_included: bool = sum == (range.get_end() - range.get_start());
         let plasma_data_blocks: Vec<PlasmaDataBlock> = result

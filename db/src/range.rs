@@ -45,6 +45,20 @@ impl Range {
         let max_end = min(self.end, end);
         max_start < max_end
     }
+    /// Returns the intersection of 2 ranges.
+    pub fn get_intersection(&self, start: u64, end: u64) -> Option<Range> {
+        let intersection_start = max(self.start, start);
+        let intersection_end = min(self.end, end);
+        if intersection_start < intersection_end {
+            Some(Range {
+                start: intersection_start,
+                end: intersection_end,
+                value: self.value.clone(),
+            })
+        } else {
+            None
+        }
+    }
 }
 
 impl Encodable for Range {
@@ -74,5 +88,13 @@ mod tests {
         let range = Range::new(0, 100, b"aaa");
         assert_eq!(range.intersect(50, 120), true);
         assert_eq!(range.intersect(100, 200), false);
+    }
+
+    #[test]
+    fn test_get_intersection() {
+        let range = Range::new(0, 100, b"aaa");
+        let intersection = range.get_intersection(50, 150).unwrap();
+        assert_eq!(intersection.get_start(), 50);
+        assert_eq!(intersection.get_end(), 100);
     }
 }
