@@ -1,6 +1,3 @@
-pub mod plasma_aggregator;
-pub mod plasma_client;
-
 #[cfg(test)]
 mod tests {
     #[test]
