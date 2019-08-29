@@ -15,19 +15,19 @@ pub use self::property_executor::DecideMixin;
 #[cfg(test)]
 mod tests {
 
-    use crate::db::{HashPreimageDb, SignedByDb};
+    use crate::db::{HashPreimageDb, Message, SignedByDb};
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::deciders::SignVerifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::statements::create_plasma_property;
+    use crate::statements::{create_plasma_property, create_state_channel_property};
     use crate::types::{
-        AndDeciderInput, Decision, ForAllSuchThatInput, HasLowerNonceInput, Integer,
-        IntegerRangeQuantifierInput, PreimageExistsInput, Property, PropertyFactory, Quantifier,
-        QuantifierResultItem, SignedByInput, Witness,
+        Decision, ForAllSuchThatInput, Integer, IntegerRangeQuantifierInput, PreimageExistsInput,
+        Property, PropertyFactory, Quantifier, QuantifierResultItem, SignedByInput, Witness,
     };
     use bytes::Bytes;
     use ethereum_types::Address;
     use ethsign::SecretKey;
+    use plasma_core::data_structure::abi::Encodable;
     use plasma_core::data_structure::Range;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
     use plasma_db::traits::kvs::KeyValueStore;
@@ -131,29 +131,21 @@ mod tests {
                 .unwrap();
         let secret_key_alice = SecretKey::from_raw(&raw_key_alice).unwrap();
         let secret_key_bob = SecretKey::from_raw(&raw_key_bob).unwrap();
-        let message = Bytes::from("state_update");
-        let signature = SignVerifier::sign(&secret_key_bob, &message);
-        let witness = Witness::Bytes(signature);
         let alice: Address = secret_key_alice.public().address().into();
         let bob: Address = secret_key_bob.public().address().into();
-        let sign_input = SignedByInput::new(Bytes::from("state_update"), bob);
-        let _nonce = Integer(10);
-        let left_property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-            Quantifier::SignedByQuantifier(alice),
-            Some(PropertyFactory::new(Box::new(|item| {
-                if let QuantifierResultItem::Message(message) = item {
-                    Property::HasLowerNonceDecider(HasLowerNonceInput::new(message, Integer(11)))
-                } else {
-                    panic!("invalid type in PropertyFactory");
-                }
-            }))),
-        )));
-        let right_property = Property::SignedByDecider(sign_input.clone());
-        let property = Property::AndDecider(Box::new(AndDeciderInput::new(
-            left_property,
-            right_property,
-        )));
-
+        let channel_id = Bytes::from("channel_id");
+        let channel_message = Message::new(
+            channel_id,
+            alice,
+            bob,
+            Integer(10),
+            Bytes::from("state_update"),
+        );
+        let message = Bytes::from(channel_message.to_abi());
+        let signature = SignVerifier::sign(&secret_key_bob, &message);
+        let witness = Witness::Bytes(signature);
+        let sign_input = SignedByInput::new(Bytes::from(channel_message.to_abi()), bob);
+        let property = create_state_channel_property(alice, bob, channel_message);
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
         assert!(db.store_witness(&sign_input, &witness).is_ok());
