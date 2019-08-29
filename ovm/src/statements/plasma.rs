@@ -69,8 +69,6 @@ mod tests {
     ) {
         let property =
             Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(H256::zero())));
-        let dammy_property =
-            Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(H256::zero())));
         let mut leaves = vec![];
         for i in 0..100 {
             leaves.push(MerkleIntervalNode::Leaf {
@@ -85,7 +83,6 @@ mod tests {
         let tree = MerkleIntervalTree::generate(&leaves);
         let root = tree.get_root();
         let inclusion_proof = tree.get_inclusion_proof(0, 100);
-        let exclusion_proof = tree.get_inclusion_proof(100, 1000);
         let plasma_data_block: PlasmaDataBlock = PlasmaDataBlock::new(
             Integer(0),
             Range::new(0, 100),
@@ -93,26 +90,10 @@ mod tests {
             property,
             root.clone(),
         );
-        let exclusion_plasma_data_block: PlasmaDataBlock = PlasmaDataBlock::new(
-            Integer(0),
-            Range::new(100, 1000),
-            false,
-            dammy_property,
-            root.clone(),
-        );
         let witness =
             Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, plasma_data_block.clone());
         let input = IncludedAtBlockInput::new(block_number, plasma_data_block.clone());
-        let exclusion_witness = Witness::IncludedInIntervalTreeAtBlock(
-            exclusion_proof,
-            exclusion_plasma_data_block.clone(),
-        );
-        let exclusion_input =
-            IncludedAtBlockInput::new(block_number, exclusion_plasma_data_block.clone());
         assert!(db.store_witness(&input, &witness).is_ok());
-        assert!(db
-            .store_witness(&exclusion_input, &exclusion_witness)
-            .is_ok());
     }
 
     /// plasma
