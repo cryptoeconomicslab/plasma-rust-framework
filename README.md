@@ -12,6 +12,12 @@ The primary goal of this repository is to implement Rust client following OVM st
 
 **This is an experimental software, does not run in a production yet.**
 
+## Introduction
+
+CryptoeconomicsLab have been researching and developping Plasma and application framework on it.
+Now we are aiming to development framework for general second layer based on [Optimistic Virtual Machine](https://github.com/plasma-group/ovm).
+As [our development direction](https://medium.com/cryptoeconomics-lab/cel-development-direction-to-the-greater-abstraction-6860f87ce0eb), this repository supports "Client" of second layer. We determined to use Rust from the point of code reuse and secure code.
+
 ## What we do in the repository
 
 ### OVM Client implementation
