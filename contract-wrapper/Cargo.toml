@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 web3 = { git = "https://github.com/cryptoeconomicslab/rust-web3", branch = 'ethabi-tuple' }
 ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
+ethereum-types = "^0.5.2"
 serde = '*'
 hex-literal = '*'
 plasma-core = { path = '../core' }
