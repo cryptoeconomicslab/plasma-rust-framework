@@ -1,26 +1,47 @@
-# Plasma Rust Framework
-[Draft] Plasma Chamber's Rust implemenation.
-Plasma Chamber is now a compliant of Plasma Core.
-This repositry must be conpatible with [pigi](https://github.com/plasma-group/pigi).
+# OVM Rust Framework
 
+OVM client's Rust implementation.
+This repositry must be conpatible with [ovm](https://github.com/plasma-group/ovm).
 
 [![Build Status](https://travis-ci.org/cryptoeconomicslab/plasma-rust-framework.svg?branch=master)](https://travis-ci.org/cryptoeconomicslab/plasma-rust-framework)
 
-
 ## Overview
-- Gradually try shifting from JS to Rust
-- For browser and NodeJS: Publish WASM to WAPM, and publish generated wrapper & @types to NPM
-- For App: Compile rust to each target environment
 
+We are aiming to general L2 development framework based on Optimistic Virtual Machine.
+The primary goal of this repository is to implement Rust client following OVM standard and to build specific L2 constructions such as Channel, Plasma and Optimistic rollup. Furthermore, this client enables more generalized applications on these constructions.
 
-## Build Source Code
+**This is an experimental software, does not run in a production yet.**
+
+## What we do in the repository
+
+### OVM Client implementation
+
+This repository don't include smart contract, but includes components below.
+
+- The decision mechanism and core deciders
+- Networking utilities for both Layer 1 and Layer 2
+- Plasma and State Channel client implementation
+
+### Multi platform
+
+- Run on Linux and Mac
+- Android Integration: https://github.com/cryptoeconomicslab/plasma-android-sdk
+- Browser: TBD
+
+### Smart contracts
+
+OVM core smart contract(Universal Adjudicator contract), predicate and deposit contract is [here](https://github.com/cryptoeconomicslab/ovm-contracts).
+
+## Development
+
+### Test Source Code
+
+Testing all crates.
 
 ```
-cargo build --release
+cargo test --all
 ```
 
-### Run Manually
+## About us
 
-```
-./target/release/plasma-chamber 
-```
+[Company Site](https://www.cryptoeconomicslab.com)
