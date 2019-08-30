@@ -86,9 +86,9 @@ mod tests {
         let plasma_data_block: PlasmaDataBlock = PlasmaDataBlock::new(
             Integer(0),
             Range::new(0, 100),
+            root.clone(),
             inclusion,
             property,
-            root.clone(),
         );
         let witness =
             Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, plasma_data_block.clone());
