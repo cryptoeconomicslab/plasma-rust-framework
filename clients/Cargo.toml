@@ -6,11 +6,13 @@ edition = "2018"
 
 [dependencies]
 bytes = "0.4.12"
+ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
 ethereum-types = "^0.5.2"
 hex = "0.3.1"
 ovm = { path = "../ovm" }
 plasma-core = { path = "../core" }
 plasma-db = { path = "../db" }
+contract-wrapper = { path = "../contract-wrapper" }
 
  [dependencies.ethsign]
 version = "0.6.1"

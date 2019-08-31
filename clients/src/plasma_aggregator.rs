@@ -1,3 +1,5 @@
+pub struct PlasmaAggregator {}
+
 #[cfg(test)]
 mod tests {
     #[test]

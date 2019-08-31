@@ -6,19 +6,72 @@ use super::error::{Error, ErrorKind};
 use super::Range;
 use bytes::Bytes;
 use ethabi::Token;
-use ethereum_types::{Address, H256};
+use ethereum_types::Address;
 use tiny_keccak::Keccak;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Witness {
-    v: H256,
-    r: H256,
-    s: u64,
+/// Transaction without signature
+pub struct TransactionParams {
+    plasma_contract_address: Address,
+    range: Range,
+    parameters: Bytes,
 }
 
-impl Witness {
-    pub fn new(v: H256, r: H256, s: u64) -> Self {
-        Witness { v, r, s }
+impl TransactionParams {
+    pub fn new(plasma_contract_address: Address, range: Range, parameters: Bytes) -> Self {
+        TransactionParams {
+            plasma_contract_address,
+            range,
+            parameters,
+        }
+    }
+}
+
+// TODO: use AbiEncodable
+impl Encodable for TransactionParams {
+    fn to_tuple(&self) -> Vec<Token> {
+        vec![
+            Token::Address(self.plasma_contract_address),
+            Token::Tuple(self.range.to_tuple()),
+            Token::Bytes(self.parameters.to_vec()),
+        ]
+    }
+}
+
+// TODO: use AbiDecodable
+impl Decodable for TransactionParams {
+    type Ok = Self;
+    fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
+        let plasma_contract_address = tuple[0].clone().to_address();
+        let range = tuple[1].clone().to_tuple();
+        let parameters = tuple[2].clone().to_bytes();
+        if let (Some(plasma_contract_address), Some(range), Some(parameters)) =
+            (plasma_contract_address, range, parameters)
+        {
+            Ok(TransactionParams {
+                plasma_contract_address,
+                range: Range::from_tuple(&range).ok().unwrap(),
+                parameters: Bytes::from(parameters),
+            })
+        } else {
+            Err(Error::from(ErrorKind::AbiDecode))
+        }
+    }
+
+    fn from_abi(data: &[u8]) -> Result<Self, Error> {
+        let decoded: Vec<Token> = ethabi::decode(
+            &[
+                ethabi::ParamType::Address,
+                ethabi::ParamType::Tuple(vec![
+                    ethabi::ParamType::Uint(8),
+                    ethabi::ParamType::Uint(8),
+                ]),
+                ethabi::ParamType::Bytes,
+            ],
+            data,
+        )
+        .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;
+        Self::from_tuple(&decoded)
     }
 }
 
@@ -29,7 +82,7 @@ impl Witness {
 /// - has a `end` (A range element)
 /// - has a `method_id` (like ABI)
 /// - has many `parameters`
-/// - has a `witness` (signature, proof or some)
+/// - has a `signature` (for now)
 /// - Traits
 ///   - Encodable
 ///   - Decodable
@@ -37,7 +90,7 @@ pub struct Transaction {
     plasma_contract_address: Address,
     range: Range,
     parameters: Bytes,
-    witness: Witness,
+    signature: Bytes,
 }
 
 impl Transaction {
@@ -50,15 +103,25 @@ impl Transaction {
         plasma_contract_address: Address,
         range: Range,
         parameters: Bytes,
-        witness: &Witness,
+        signature: Bytes,
     ) -> Transaction {
         Transaction {
             plasma_contract_address,
             range,
             parameters,
-            witness: witness.clone(),
+            signature,
         }
     }
+
+    pub fn from_params(transaction_params: TransactionParams, signature: Bytes) -> Transaction {
+        Transaction::new(
+            transaction_params.plasma_contract_address,
+            transaction_params.range,
+            transaction_params.parameters,
+            signature,
+        )
+    }
+
     /// ### tx.to_body_abi()
     /// A function to convert the transaction instance to the body abi bytes
     /// ```ignore
@@ -110,9 +173,7 @@ impl Encodable for Transaction {
             Token::Address(self.plasma_contract_address),
             Token::Tuple(self.range.to_tuple()),
             Token::Bytes(self.parameters.to_vec()),
-            Token::FixedBytes(self.witness.v.as_bytes().to_vec()),
-            Token::FixedBytes(self.witness.r.as_bytes().to_vec()),
-            Token::Uint(self.witness.s.into()),
+            Token::Bytes(self.signature.to_vec()),
         ]
     }
 }
@@ -120,20 +181,18 @@ impl Encodable for Transaction {
 impl Decodable for Transaction {
     type Ok = Self;
     fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
-        let plasma_contract = tuple[0].clone().to_address();
+        let plasma_contract_address = tuple[0].clone().to_address();
         let range = tuple[1].clone().to_tuple();
         let parameters = tuple[2].clone().to_bytes();
-        let v = tuple[3].clone().to_fixed_bytes();
-        let r = tuple[4].clone().to_fixed_bytes();
-        let s = tuple[5].clone().to_uint();
-        if let (Some(plasma_contract), Some(range), Some(parameters), Some(v), Some(r), Some(s)) =
-            (plasma_contract, range, parameters, v, r, s)
+        let signature = tuple[3].clone().to_bytes();
+        if let (Some(plasma_contract_address), Some(range), Some(parameters), Some(signature)) =
+            (plasma_contract_address, range, parameters, signature)
         {
             Ok(Transaction::new(
-                plasma_contract,
+                plasma_contract_address,
                 Range::from_tuple(&range).ok().unwrap(),
                 Bytes::from(parameters),
-                &Witness::new(H256::from_slice(&v), H256::from_slice(&r), s.as_u64()),
+                Bytes::from(signature),
             ))
         } else {
             Err(Error::from(ErrorKind::AbiDecode))
@@ -153,9 +212,7 @@ impl Decodable for Transaction {
                     ethabi::ParamType::Uint(8),
                 ]),
                 ethabi::ParamType::Bytes,
-                ethabi::ParamType::FixedBytes(32),
-                ethabi::ParamType::FixedBytes(32),
-                ethabi::ParamType::Uint(1),
+                ethabi::ParamType::Bytes,
             ],
             data,
         )
@@ -166,19 +223,20 @@ impl Decodable for Transaction {
 
 #[cfg(test)]
 mod tests {
-    use super::{Range, Transaction, Witness};
+    use super::{Range, Transaction};
     use crate::data_structure::abi::{Decodable, Encodable};
     use bytes::Bytes;
-    use ethereum_types::{Address, H256};
+    use ethereum_types::Address;
 
     #[test]
     fn test_abi_encode() {
         let parameters_bytes = Bytes::from(&b"parameters"[..]);
+        let signature_bytes = Bytes::from(&b"signature"[..]);
         let transaction = Transaction::new(
             Address::zero(),
             Range::new(0, 100),
             parameters_bytes,
-            &Witness::new(H256::zero(), H256::zero(), 0),
+            signature_bytes,
         );
         let encoded = transaction.to_abi();
         let decoded: Transaction = Transaction::from_abi(&encoded).unwrap();

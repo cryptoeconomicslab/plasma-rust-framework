@@ -193,6 +193,20 @@ impl BlockRangeQuantifierInput {
     }
 }
 
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+pub struct IsDeprecatedInput {
+    pub plasma_data_block: PlasmaDataBlock,
+}
+
+impl IsDeprecatedInput {
+    pub fn new(plasma_data_block: PlasmaDataBlock) -> Self {
+        Self { plasma_data_block }
+    }
+    pub fn get_plasma_data_block(&self) -> &PlasmaDataBlock {
+        &self.plasma_data_block
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
