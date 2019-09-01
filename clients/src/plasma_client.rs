@@ -69,11 +69,11 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         signed_tx
     }
 
-    /// Start exit on plasma. return exit property abi.
-    pub fn get_exit_claim(&self, block_number: Integer, range: Range) -> Vec<u8> {
+    /// Start exit on plasma. return exit property
+    pub fn get_exit_claim(&self, block_number: Integer, range: Range) -> Property {
         // TODO: decide property and claim property to contract
         // TODO: store as exit list
-        create_plasma_property(block_number, range).to_abi()
+        create_plasma_property(block_number, range)
     }
 
     /// Handle exit on plasma.

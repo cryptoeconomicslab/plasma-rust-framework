@@ -13,8 +13,8 @@ pub struct StateDb<'a, KVS: KeyValueStore> {
 }
 
 impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
-    pub fn new(db: &'a RangeDbImpl<KVS>) -> Self {
-        StateDb { db }
+    pub fn from(range_db: &'a RangeDbImpl<KVS>) -> Self {
+        StateDb { db: range_db }
     }
 
     pub fn get_verified_plasma_data_blocks(
@@ -87,7 +87,8 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
                 for range in ranges.iter() {
                     if range.validate() {
                         // TODO: handle error
-                        let _ = self.db
+                        let _ = self
+                            .db
                             .bucket(&Bytes::from(&b"verified_plasma_data_blocks"[..]))
                             .put(range.get_start(), range.get_end(), range.get_value());
                     }
@@ -122,7 +123,7 @@ mod tests {
     fn test_store() {
         let base_db = CoreDbMemoryImpl::open("test");
         let db = RangeDbImpl::from(base_db);
-        let mut state_db = StateDb::new(&db);
+        let mut state_db = StateDb::from(&db);
         let address: Address = Address::zero();
 
         let plasma_data_block = PlasmaDataBlock::new(
@@ -142,7 +143,7 @@ mod tests {
     fn test_split() {
         let base_db = CoreDbMemoryImpl::open("test");
         let db = RangeDbImpl::from(base_db);
-        let mut state_db = StateDb::new(&db);
+        let mut state_db = StateDb::from(&db);
         let address: Address = Address::zero();
 
         let plasma_data_block = PlasmaDataBlock::new(

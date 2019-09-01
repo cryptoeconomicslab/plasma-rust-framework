@@ -6,7 +6,7 @@ use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
 };
-use plasma_core::data_structure::Range;
+use plasma_core::data_structure::{Range, Transaction};
 
 #[derive(Clone, Debug)]
 pub struct PlasmaDataBlock {
@@ -52,6 +52,16 @@ impl PlasmaDataBlock {
     }
     pub fn get_root(&self) -> &Bytes {
         &self.root
+    }
+    pub fn transition(&self, transaction: &Transaction) -> Self {
+        // FIXME
+        Self {
+            index: self.index,
+            updated_range: transaction.get_range().clone(),
+            is_included: false,
+            property: self.property.clone(),
+            root: Bytes::from(&b""[..]),
+        }
     }
 }
 

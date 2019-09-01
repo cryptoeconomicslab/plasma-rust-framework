@@ -1,6 +1,7 @@
 use super::abi::{Decodable, Encodable};
 use super::error::{Error, ErrorKind};
 use ethabi::Token;
+use std::cmp::{max, min};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Range {
@@ -27,8 +28,48 @@ impl Range {
             Range::new(0, 0)
         }
     }
+    fn overlap(&self, range: &Range) -> bool {
+        (self.start <= range.start && range.start <= self.end)
+            || (range.start < self.start && self.start <= range.end)
+    }
+
     pub fn is_subrange(&self, b: &Range) -> bool {
         self.get_start() <= b.get_start() && self.get_end() >= b.get_end()
+    }
+    pub fn is_covered_with(&self, ranges: Vec<Range>) -> bool {
+        let merged_ranges = Range::merge_ranges(ranges);
+        merged_ranges.iter().any(|range| range.is_subrange(self))
+    }
+    pub fn merge_range(range1: &Range, range2: &Range) -> Option<Range> {
+        if range1.overlap(range2) {
+            let start = min(range1.start, range2.start);
+            let end = max(range1.end, range2.end);
+            Some(Range::new(start, end))
+        } else {
+            None
+        }
+    }
+    pub fn merge_ranges(ranges: Vec<Range>) -> Vec<Range> {
+        ranges.iter().fold(vec![], |vec, range| {
+            if vec.len() == 0 {
+                vec![range.clone()]
+            } else {
+                let mut res = vec![];
+                let mut merged = false;
+                for r in vec.iter() {
+                    if let Some(merged_range) = Range::merge_range(&r, &range) {
+                        merged = true;
+                        res.push(merged_range);
+                    } else {
+                        res.push(*r);
+                    }
+                }
+                if !merged {
+                    res.push(*range);
+                }
+                res
+            }
+        })
     }
 }
 
@@ -64,5 +105,34 @@ mod tests {
         let range2 = Range::new(1, 2);
 
         assert!(range1.is_subrange(&range2));
+    }
+
+    #[test]
+    fn test_merge_ranges() {
+        let ranges = vec![Range::new(1, 2), Range::new(2, 3), Range::new(3, 12)];
+        assert_eq!(Range::merge_ranges(ranges), vec![Range::new(1, 12)]);
+    }
+
+    #[test]
+    fn test_merge_ranges2() {
+        let ranges = vec![Range::new(1, 2), Range::new(3, 12)];
+        assert_eq!(
+            Range::merge_ranges(ranges),
+            vec![Range::new(1, 2), Range::new(3, 12)]
+        );
+    }
+
+    #[test]
+    fn test_is_covered_with() {
+        let range1 = Range::new(1, 7);
+        let ranges = vec![Range::new(1, 2), Range::new(2, 3), Range::new(3, 12)];
+        assert!(range1.is_covered_with(ranges));
+    }
+
+    #[test]
+    fn test_is_not_covered_with() {
+        let range1 = Range::new(1, 7);
+        let ranges = vec![Range::new(1, 2), Range::new(3, 12)];
+        assert!(!range1.is_covered_with(ranges));
     }
 }
