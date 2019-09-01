@@ -39,6 +39,11 @@ impl PlasmaDataBlock {
     pub fn get_updated_range(&self) -> Range {
         self.updated_range
     }
+
+    pub fn set_updated_range(&mut self, range: Range) {
+        self.updated_range = range;
+    }
+
     pub fn get_is_included(&self) -> bool {
         self.is_included
     }

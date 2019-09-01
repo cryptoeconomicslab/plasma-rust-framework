@@ -27,6 +27,9 @@ impl Range {
             Range::new(0, 0)
         }
     }
+    pub fn is_subrange(&self, b: &Range) -> bool {
+        self.get_start() <= b.get_start() && self.get_end() >= b.get_end()
+    }
 }
 
 impl Encodable for Range {
@@ -48,5 +51,18 @@ impl Decodable for Range {
     }
     fn get_param_types() -> Vec<ethabi::ParamType> {
         vec![ethabi::ParamType::Uint(64), ethabi::ParamType::Uint(64)]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_subrange() {
+        let range1 = Range::new(0, 10);
+        let range2 = Range::new(1, 2);
+
+        assert!(range1.is_subrange(&range2));
     }
 }
