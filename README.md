@@ -14,9 +14,9 @@ The primary goal of this repository is to implement Rust client following OVM st
 
 ## Introduction
 
-CryptoeconomicsLab have been researching and developping Plasma and application framework on it.
-Now we are aiming to development framework for general second layer based on [Optimistic Virtual Machine](https://github.com/plasma-group/ovm).
-As [our development direction](https://medium.com/cryptoeconomics-lab/cel-development-direction-to-the-greater-abstraction-6860f87ce0eb), this repository supports "Client" of second layer. We determined to use Rust from the point of code reuse and secure code.
+CryptoeconomicsLab has been researching and developping Plasma and application framework on it.
+Now we are aiming to develop a general-purpose framework for the second layer based on [Optimistic Virtual Machine](https://github.com/plasma-group/ovm).
+As [our development direction](https://medium.com/cryptoeconomics-lab/cel-development-direction-to-the-greater-abstraction-6860f87ce0eb) illustrates here, this repository is to support the Client part of the second layer. We decided to use the Rust language since it will enable us to write secure and reusable source codes for multiple platforms.
 
 ## What we do in the repository
 
@@ -28,7 +28,7 @@ This repository don't include smart contract, but includes components below.
 - Networking utilities for both Layer 1 and Layer 2
 - Plasma and State Channel client implementation
 
-### Multi platform
+### Multiplatform
 
 - Run on Linux and Mac
 - Android Integration: https://github.com/cryptoeconomicslab/plasma-android-sdk
@@ -36,7 +36,7 @@ This repository don't include smart contract, but includes components below.
 
 ### Smart contracts
 
-OVM core smart contract(Universal Adjudicator contract), predicate and deposit contract is [here](https://github.com/cryptoeconomicslab/ovm-contracts).
+OVM core smart contract(Universal Adjudication Contract), Predicates, and Deposit And Exit Contract are [here](https://github.com/cryptoeconomicslab/ovm-contracts).
 
 ## Development
 
@@ -50,4 +50,5 @@ cargo test --all
 
 ## About us
 
-[Company Site](https://www.cryptoeconomicslab.com)
+[Corporate Website](https://www.cryptoeconomicslab.com)
+[Medium](https://medium.com/cryptoeconomics-lab)
