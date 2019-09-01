@@ -6,7 +6,7 @@ use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::traits::rangestore::RangeStore;
 use plasma_db::RangeDbImpl;
 
-struct StateDb<'a, KVS: KeyValueStore> {
+pub struct StateDb<'a, KVS: KeyValueStore> {
     db: &'a RangeDbImpl<KVS>,
 }
 
@@ -27,6 +27,7 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
             .iter()
             .map(|range| PlasmaDataBlock::from_abi(range.get_value()).unwrap())
             .collect();
+        println!("{:?}", res);
 
         Ok(res)
     }
@@ -38,12 +39,19 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
         let start = plasma_data_block.get_updated_range().get_start();
         let end = plasma_data_block.get_updated_range().get_end();
 
-        let result = self.db.get(start, end)?;
+        let result = self
+            .db
+            .bucket(&Bytes::from(&b"verified_plasma_data_blocks"[..]))
+            .get(start, end)?;
+        println!("{:?}", result);
         if result.len() == 0 {
-            self.db.put(start, end, &plasma_data_block.to_abi());
+            // TODO: handle error
+            let _ = self.db
+                .bucket(&Bytes::from(&b"verified_plasma_data_blocks"[..]))
+                .put(start, end, &plasma_data_block.to_abi());
             Ok(())
         } else {
-            // TODO: update, override
+            // TODO: update, split, override
             Ok(())
         }
     }
@@ -52,18 +60,19 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
 #[cfg(test)]
 mod tests {
     use super::StateDb;
+    use bytes::Bytes;
     use ethereum_types::Address;
-    use ovm::types::{Integer, Property, SignedByInput};
+    use ovm::types::{Integer, PlasmaDataBlock, Property, SignedByInput};
     use plasma_core::data_structure::Range;
     use plasma_db::impls::kvs::memory::CoreDbMemoryImpl;
-    use plasma_db::range::Range;
-    use plasma_db::{Error, RangeDbImpl};
+    use plasma_db::traits::db::DatabaseTrait;
+    use plasma_db::RangeDbImpl;
 
     #[test]
     fn test_state_db() {
-        let base_db = CoreMemoryImpl::open("test");
+        let base_db = CoreDbMemoryImpl::open("test");
         let db = RangeDbImpl::from(base_db);
-        let state_db = StateDb::new(db);
+        let mut state_db = StateDb::new(&db);
         let address: Address = Address::zero();
 
         let plasma_data_block = PlasmaDataBlock::new(
@@ -71,15 +80,13 @@ mod tests {
             Range::new(0, 100),
             true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
+            Bytes::from(&b"root"[..])
         );
 
-        state_db.put_verified_plasma_data_block(plasma_data_block);
+        let _ = state_db.put_verified_plasma_data_block(plasma_data_block);
         let result = state_db
-            .get_verified_plasma_data_blocks(
-                plasma_data_block.range.get_start(),
-                plasma_data_block.range.get_end(),
-            )
+            .get_verified_plasma_data_blocks(0, 100)
             .unwrap();
-        assert_eq!(result.length, 1);
+        assert_eq!(result.len(), 1);
     }
 }
