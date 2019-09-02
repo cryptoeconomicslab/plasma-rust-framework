@@ -1,4 +1,6 @@
 use super::core::{Integer, Property};
+// TODO: use general verifier.
+use super::super::deciders::SignVerifier;
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::U256;
@@ -55,12 +57,29 @@ impl PlasmaDataBlock {
     }
     pub fn transition(&self, transaction: &Transaction) -> Self {
         // FIXME
+        // write property updating logic
         Self {
-            index: self.index,
+            index: Integer::new(transaction.get_range().get_start()),
             updated_range: transaction.get_range().clone(),
             is_included: false,
             property: self.property.clone(),
             root: Bytes::from(&b""[..]),
+        }
+    }
+
+    pub fn verify_deprecation(&self, transaction: &Transaction) -> bool {
+        if let Property::SignedByDecider(input) = &self.property {
+            if SignVerifier::recover(
+                transaction.get_signature(),
+                &Bytes::from(transaction.to_body_abi()),
+            ) == input.get_public_key()
+            {
+                return true;
+            }
+            false
+        } else {
+            // TODO: implement how to verify_deprecation using other.decider
+            false
         }
     }
 }

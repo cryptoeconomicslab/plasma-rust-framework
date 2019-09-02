@@ -160,6 +160,9 @@ impl Transaction {
     pub fn get_plasma_contract_address(&self) -> Address {
         self.plasma_contract_address
     }
+    pub fn get_signature(&self) -> &Bytes {
+        &self.signature
+    }
 }
 
 impl Encodable for Transaction {

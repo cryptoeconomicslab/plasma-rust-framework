@@ -2,9 +2,10 @@ use super::error::{Error, ErrorKind};
 use super::state_db::StateDb;
 use ethereum_types::Address;
 use ethsign::SecretKey;
+use ovm::db::SignedByDb;
 use ovm::property_executor::PropertyExecutor;
 use ovm::types::PlasmaDataBlock;
-use plasma_core::data_structure::Transaction;
+use plasma_core::data_structure::{PlasmaBlock, Transaction};
 use plasma_db::impls::kvs::memory::CoreDbMemoryImpl;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -64,8 +65,7 @@ impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
         }
         let next_state = prev_state.transition(&transaction);
         // verify state transition
-        let decider = PropertyExecutor::<CoreDbMemoryImpl>::default();
-        if !decider.decide(prev_state.get_property()).is_ok() {
+        if !prev_state.verify_deprecation(&transaction) {
             return Err(Error::from(ErrorKind::InvalidTransaction));
         }
         self.enqueue_state_update(next_state);
@@ -74,5 +74,12 @@ impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
 
     fn enqueue_state_update(&mut self, state_update: PlasmaDataBlock) {
         // TODO: implement
+        // store in range db
+    }
+
+    fn generate_block(&self) -> PlasmaBlock {
+        // dequeue all plasma_data_block stored in range db
+        // generate block using that data.
+        PlasmaBlock {}
     }
 }
