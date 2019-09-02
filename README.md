@@ -1,7 +1,7 @@
 # OVM Rust Framework
 
 OVM client's Rust implementation.
-This repositry must be conpatible with [ovm](https://github.com/plasma-group/ovm).
+This repositry must be compatible with [ovm](https://github.com/plasma-group/ovm).
 
 [![Build Status](https://travis-ci.org/cryptoeconomicslab/plasma-rust-framework.svg?branch=master)](https://travis-ci.org/cryptoeconomicslab/plasma-rust-framework)
 
