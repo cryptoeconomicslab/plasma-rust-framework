@@ -13,6 +13,7 @@ ovm = { path = "../ovm" }
 plasma-core = { path = "../core" }
 plasma-db = { path = "../db" }
 contract-wrapper = { path = "../contract-wrapper" }
+failure = "0.1.5"
 
  [dependencies.ethsign]
 version = "0.6.1"
