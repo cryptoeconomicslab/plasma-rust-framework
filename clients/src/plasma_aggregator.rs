@@ -1,3 +1,4 @@
+use super::block_manager::BlockManager;
 use super::error::{Error, ErrorKind};
 use super::state_db::StateDb;
 use ethereum_types::Address;
@@ -16,6 +17,7 @@ pub struct PlasmaAggregator<'a, KVS: KeyValueStore> {
     state_db: StateDb<'a, KVS>,
     secret_key: SecretKey,
     my_address: Address,
+    block_manager: BlockManager,
     //    state_update_queue:
 }
 
@@ -29,12 +31,14 @@ impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let my_address: Address = secret_key.public().address().into();
         let state_db = StateDb::from(&range_db);
+        let block_manager = BlockManager {};
 
         PlasmaAggregator {
             plasma_contract_address,
             secret_key,
             my_address,
             state_db,
+            block_manager,
         }
     }
 
@@ -77,9 +81,9 @@ impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
         // store in range db
     }
 
-    fn generate_block(&self) -> PlasmaBlock {
+    fn submit_next_block(&self) {
         // dequeue all plasma_data_block stored in range db
         // generate block using that data.
-        PlasmaBlock {}
+        self.block_manager.submit_next_block();
     }
 }
