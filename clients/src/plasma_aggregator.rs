@@ -17,7 +17,7 @@ pub struct PlasmaAggregator<'a, KVS: KeyValueStore> {
     state_db: StateDb<'a, KVS>,
     secret_key: SecretKey,
     my_address: Address,
-    block_manager: BlockManager,
+    block_manager: BlockManager<KVS>,
     //    state_update_queue:
 }
 
@@ -31,7 +31,7 @@ impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let my_address: Address = secret_key.public().address().into();
         let state_db = StateDb::from(&range_db);
-        let block_manager = BlockManager {};
+        let block_manager = BlockManager::new();
 
         PlasmaAggregator {
             plasma_contract_address,
@@ -72,13 +72,11 @@ impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
         if !prev_state.verify_deprecation(&transaction) {
             return Err(Error::from(ErrorKind::InvalidTransaction));
         }
-        self.enqueue_state_update(next_state);
+        let res = self.block_manager.enqueue_state_update(next_state);
+        if res.is_err() {
+            return Err(Error::from(ErrorKind::InvalidTransaction));
+        }
         Ok(())
-    }
-
-    fn enqueue_state_update(&mut self, state_update: PlasmaDataBlock) {
-        // TODO: implement
-        // store in range db
     }
 
     fn submit_next_block(&self) {

@@ -219,6 +219,7 @@ dependencies = [
  "ethsign 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "merkle-interval-tree 0.1.0",
  "ovm 0.1.0",
  "plasma-core 0.1.0",
  "plasma-db 0.1.0",
