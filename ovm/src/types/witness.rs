@@ -116,6 +116,13 @@ impl Witness {
             ]
         }
     }
+    pub fn to_bytes(&self) -> &Bytes {
+        if let Witness::Bytes(bytes) = self {
+            bytes
+        } else {
+            panic!("witness isn't bytes!")
+        }
+    }
 }
 
 impl Encodable for Witness {

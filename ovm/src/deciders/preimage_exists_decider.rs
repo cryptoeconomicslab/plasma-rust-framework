@@ -35,18 +35,17 @@ impl Decider for PreimageExistsDecider {
         let db: HashPreimageDb<T> = HashPreimageDb::new(decider.get_db());
         if let QuantifierResultItem::H256(hash) = decider.replace(input.get_hash()) {
             let witness = db.get_witness(hash)?;
-            if let Witness::Bytes(preimage) = witness {
-                if Verifier::hash(&preimage) != hash {
-                    return Err(Error::from(ErrorKind::InvalidPreimage));
-                }
-                return Ok(Decision::new(
-                    true,
-                    vec![ImplicationProofElement::new(
-                        Property::PreimageExistsDecider(Box::new(input.clone())),
-                        Some(Witness::Bytes(preimage)),
-                    )],
-                ));
+            let preimage = witness.to_bytes();
+            if Verifier::hash(preimage) != hash {
+                return Err(Error::from(ErrorKind::InvalidPreimage));
             }
+            return Ok(Decision::new(
+                true,
+                vec![ImplicationProofElement::new(
+                    Property::PreimageExistsDecider(Box::new(input.clone())),
+                    Some(Witness::Bytes(preimage.clone())),
+                )],
+            ));
         }
         panic!("invalid witness")
     }
