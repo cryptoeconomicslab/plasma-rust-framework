@@ -1,10 +1,7 @@
 use crate::db::SignedByDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{
-    Decider, Decision, ImplicationProofElement, Property, QuantifierResultItem, SignedByInput,
-    Witness,
-};
+use crate::types::{Decider, Decision, ImplicationProofElement, Property, SignedByInput, Witness};
 use bytes::Bytes;
 use ethereum_types::{Address, H256};
 use ethsign::{SecretKey, Signature};
@@ -68,26 +65,20 @@ impl Decider for SignedByDecider {
         input: &SignedByInput,
     ) -> Result<Decision, Error> {
         let db: SignedByDb<T> = SignedByDb::new(decider.get_db());
-        if let (QuantifierResultItem::Bytes(message), QuantifierResultItem::Address(public_key)) = (
-            decider.replace(input.get_message()),
-            decider.replace(input.get_public_key()),
-        ) {
-            let signed_by_message = db.get_witness(public_key, &message)?;
-            if Verifier::recover(&signed_by_message.signature, &signed_by_message.message)
-                != public_key
-            {
-                return Err(Error::from(ErrorKind::InvalidPreimage));
-            }
-            Ok(Decision::new(
-                true,
-                vec![ImplicationProofElement::new(
-                    Property::SignedByDecider(input.clone()),
-                    Some(Witness::Bytes(signed_by_message.signature)),
-                )],
-            ))
-        } else {
-            panic!("invalid witness");
+        let message = decider.replace(input.get_message()).to_bytes();
+        let public_key = decider.replace(input.get_public_key()).to_address();
+        let signed_by_message = db.get_witness(public_key, &message)?;
+        if Verifier::recover(&signed_by_message.signature, &signed_by_message.message) != public_key
+        {
+            return Err(Error::from(ErrorKind::InvalidPreimage));
         }
+        Ok(Decision::new(
+            true,
+            vec![ImplicationProofElement::new(
+                Property::SignedByDecider(input.clone()),
+                Some(Witness::Bytes(signed_by_message.signature)),
+            )],
+        ))
     }
 }
 

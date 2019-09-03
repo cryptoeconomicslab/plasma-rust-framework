@@ -24,17 +24,12 @@ impl IntegerRangeQuantifier {
         decider: &PropertyExecutor<KVS>,
         input: &IntegerRangeQuantifierInput,
     ) -> QuantifierResult {
-        if let (QuantifierResultItem::Integer(start), QuantifierResultItem::Integer(end)) = (
-            decider.replace(input.get_start()),
-            decider.replace(input.get_end()),
-        ) {
-            if end < start {
-                panic!("invalid start and end");
-            }
-            QuantifierResult::new(get_range(start.0, end.0), true)
-        } else {
-            panic!("invalid input");
+        let start = decider.replace(input.get_start()).to_integer();
+        let end = decider.replace(input.get_end()).to_integer();
+        if end < start {
+            panic!("invalid start and end");
         }
+        QuantifierResult::new(get_range(start.0, end.0), true)
     }
 }
 
@@ -52,13 +47,10 @@ impl NonnegativeIntegerLessThanQuantifier {
         decider: &PropertyExecutor<KVS>,
         placeholder: &InputType,
     ) -> QuantifierResult {
-        if let QuantifierResultItem::Integer(upper_bound) = decider.replace(&placeholder) {
-            if upper_bound < Integer(0) {
-                panic!("upper_bound shouldn't negative value.");
-            }
-            QuantifierResult::new(get_range(0, upper_bound.0), true)
-        } else {
-            panic!("invalid input")
+        let upper_bound = decider.replace(&placeholder).to_integer();
+        if upper_bound < Integer(0) {
+            panic!("upper_bound shouldn't negative value.");
         }
+        QuantifierResult::new(get_range(0, upper_bound.0), true)
     }
 }

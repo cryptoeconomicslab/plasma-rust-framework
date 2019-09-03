@@ -19,18 +19,15 @@ impl SignedByQuantifier {
     where
         KVS: KeyValueStore,
     {
-        if let QuantifierResultItem::Address(signed_by) = decider.replace(&signed_by) {
-            let message_db = SignedByDb::new(decider.get_db());
-            let messages = message_db.get_all_signed_by(signed_by);
-            QuantifierResult::new(
-                messages
-                    .iter()
-                    .map(|m| QuantifierResultItem::Bytes(m.message.clone()))
-                    .collect(),
-                true,
-            )
-        } else {
-            panic!("invalid input")
-        }
+        let signed_by = decider.replace(signed_by).to_address();
+        let message_db = SignedByDb::new(decider.get_db());
+        let messages = message_db.get_all_signed_by(signed_by);
+        QuantifierResult::new(
+            messages
+                .iter()
+                .map(|m| QuantifierResultItem::Bytes(m.message.clone()))
+                .collect(),
+            true,
+        )
     }
 }

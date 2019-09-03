@@ -2,8 +2,7 @@ use crate::db::HashPreimageDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
-    Decider, Decision, ImplicationProofElement, PreimageExistsInput, Property,
-    QuantifierResultItem, Witness,
+    Decider, Decision, ImplicationProofElement, PreimageExistsInput, Property, Witness,
 };
 use crate::utils::static_hash;
 use bytes::Bytes;
@@ -33,21 +32,19 @@ impl Decider for PreimageExistsDecider {
         input: &PreimageExistsInput,
     ) -> Result<Decision, Error> {
         let db: HashPreimageDb<T> = HashPreimageDb::new(decider.get_db());
-        if let QuantifierResultItem::H256(hash) = decider.replace(input.get_hash()) {
-            let witness = db.get_witness(hash)?;
-            let preimage = witness.to_bytes();
-            if Verifier::hash(preimage) != hash {
-                return Err(Error::from(ErrorKind::InvalidPreimage));
-            }
-            return Ok(Decision::new(
-                true,
-                vec![ImplicationProofElement::new(
-                    Property::PreimageExistsDecider(Box::new(input.clone())),
-                    Some(Witness::Bytes(preimage.clone())),
-                )],
-            ));
+        let hash = decider.replace(input.get_hash()).to_h256();
+        let witness = db.get_witness(hash)?;
+        let preimage = witness.to_bytes();
+        if Verifier::hash(preimage) != hash {
+            return Err(Error::from(ErrorKind::InvalidPreimage));
         }
-        panic!("invalid witness")
+        Ok(Decision::new(
+            true,
+            vec![ImplicationProofElement::new(
+                Property::PreimageExistsDecider(Box::new(input.clone())),
+                Some(Witness::Bytes(preimage.clone())),
+            )],
+        ))
     }
 }
 

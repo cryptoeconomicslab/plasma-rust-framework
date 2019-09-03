@@ -411,6 +411,44 @@ pub enum QuantifierResultItem {
     H256(H256),
 }
 
+impl QuantifierResultItem {
+    pub fn to_bytes(&self) -> Bytes {
+        if let QuantifierResultItem::Bytes(bytes) = self {
+            bytes.clone()
+        } else {
+            panic!("QuantifierResultItem isn't Bytes!")
+        }
+    }
+    pub fn to_integer(&self) -> Integer {
+        if let QuantifierResultItem::Integer(integer) = self {
+            *integer
+        } else {
+            panic!("QuantifierResultItem isn't Integer!")
+        }
+    }
+    pub fn to_address(&self) -> Address {
+        if let QuantifierResultItem::Address(address) = self {
+            *address
+        } else {
+            panic!("QuantifierResultItem isn't Address!")
+        }
+    }
+    pub fn to_h256(&self) -> H256 {
+        if let QuantifierResultItem::H256(h256) = self {
+            *h256
+        } else {
+            panic!("QuantifierResultItem isn't H256!")
+        }
+    }
+    pub fn to_range(&self) -> Range {
+        if let QuantifierResultItem::Range(range) = self {
+            *range
+        } else {
+            panic!("QuantifierResultItem isn't Range!")
+        }
+    }
+}
+
 pub struct QuantifierResult {
     results: Vec<QuantifierResultItem>,
     all_results_quantified: bool,
