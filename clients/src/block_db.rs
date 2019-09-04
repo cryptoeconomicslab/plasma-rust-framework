@@ -2,7 +2,6 @@ use bytes::Bytes;
 use ovm::types::PlasmaDataBlock;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_db::error::Error;
-use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::traits::rangestore::RangeStore;
 use plasma_db::RangeDbImpl;

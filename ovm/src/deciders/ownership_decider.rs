@@ -48,7 +48,6 @@ impl OwnershipPredicate {
         if transaction.get_range() != post_state.get_updated_range() {
             return false
         }
-
     }
 
     pub fn execute_state_transition(prev_state: PlasmaDataBlock, transaction: Transaction) -> PlasmaDataBlock {

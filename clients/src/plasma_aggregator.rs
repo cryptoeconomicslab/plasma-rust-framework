@@ -13,6 +13,8 @@ use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
 
 pub struct PlasmaAggregator<'a, KVS: KeyValueStore> {
+    aggregator_address: Address,
+    commitment_contract_address: Address,
     plasma_contract_address: Address,
     state_db: StateDb<'a, KVS>,
     secret_key: SecretKey,
@@ -23,7 +25,9 @@ pub struct PlasmaAggregator<'a, KVS: KeyValueStore> {
 
 impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
     pub fn new(
+        aggregator_address: Address,
         plasma_contract_address: Address,
+        commitment_contract_address: Address,
         private_key: &str,
         range_db: &'a RangeDbImpl<KVS>,
     ) -> Self {
@@ -31,10 +35,15 @@ impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let my_address: Address = secret_key.public().address().into();
         let state_db = StateDb::from(&range_db);
-        let block_manager = BlockManager::new();
+        let block_manager = BlockManager::new(
+            aggregator_address.clone(),
+            commitment_contract_address.clone(),
+        );
 
         PlasmaAggregator {
+            aggregator_address,
             plasma_contract_address,
+            commitment_contract_address,
             secret_key,
             my_address,
             state_db,
