@@ -103,7 +103,5 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
 
     /// Handle BlockSubmitted Event from aggregator
     /// check new state update and verify, store them.
-    pub fn handle_new_block(&self, block: PlasmaBlock) {
-
-    }
+    pub fn handle_new_block(&self, block: PlasmaBlock) {}
 }

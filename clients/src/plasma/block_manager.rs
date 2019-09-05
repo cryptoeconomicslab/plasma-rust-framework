@@ -1,10 +1,10 @@
 use super::block_db::BlockDb;
+use super::state_update::StateUpdate;
 use bytes::Bytes;
 use contract_wrapper::commitment_contract_adaptor::CommitmentContractAdaptor;
 use ethabi::Contract as ContractABI;
 use ethereum_types::Address;
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
-use ovm::types::PlasmaDataBlock;
 use plasma_core::data_structure::abi::Encodable;
 use plasma_db::error::Error;
 use plasma_db::traits::db::DatabaseTrait;
@@ -31,7 +31,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
         }
     }
 
-    pub fn enqueue_state_update(&self, state_update: PlasmaDataBlock) -> Result<(), Error> {
+    pub fn enqueue_state_update(&self, state_update: StateUpdate) -> Result<(), Error> {
         let block_db = BlockDb::from(&self.db);
         block_db.enqueue_state_update(state_update)
     }
@@ -50,7 +50,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
         let mut leaves = vec![];
         for s in state_updates.iter() {
             leaves.push(MerkleIntervalNode::Leaf {
-                end: s.get_updated_range().get_end(),
+                end: s.get_range().get_end(),
                 data: Bytes::from(s.to_abi()),
             });
         }
@@ -79,7 +79,7 @@ mod tests {
     use super::BlockManager;
     use bytes::Bytes;
     use ethereum_types::Address;
-    use ovm::types::{Integer, PlasmaDataBlock, Property, SignedByInput};
+    use ovm::types::{Integer, Property, SignedByInput, StateUpdate};
     use plasma_core::data_structure::Range;
     use plasma_db::impls::kvs::memory::CoreDbMemoryImpl;
 
@@ -87,7 +87,7 @@ mod tests {
     fn test_submit_next_block() {
         let block_manager = BlockManager::<CoreDbMemoryImpl>::new();
         let address: Address = Address::zero();
-        let plasma_data_block = PlasmaDataBlock::new(
+        let plasma_data_block = StateUpdate::new(
             Integer::new(1),
             Range::new(0, 100),
             true,

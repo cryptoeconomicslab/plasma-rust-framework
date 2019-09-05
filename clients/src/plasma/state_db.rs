@@ -1,5 +1,5 @@
+use super::state_update::StateUpdate;
 use bytes::Bytes;
-use ovm::types::PlasmaDataBlock;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::Range;
 use plasma_db::error::Error;
@@ -17,54 +17,50 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
         StateDb { db: range_db }
     }
 
-    pub fn get_verified_plasma_data_blocks(
+    pub fn get_verified_state_updates(
         &self,
         start: u64,
         end: u64,
-    ) -> Result<Vec<PlasmaDataBlock>, Error> {
+    ) -> Result<Vec<StateUpdate>, Error> {
         let res = self
             .db
-            .bucket(&Bytes::from(&b"verified_plasma_data_blocks"[..]))
+            .bucket(&Bytes::from(&b"verified_state_updates"[..]))
             .get(start, end)?
             .iter()
-            .map(|range| PlasmaDataBlock::from_abi(range.get_value()).unwrap())
+            .map(|range| StateUpdate::from_abi(range.get_value()).unwrap())
             .collect();
         Ok(res)
     }
 
-    pub fn put_verified_plasma_data_block(
-        &mut self,
-        plasma_data_block: PlasmaDataBlock,
-    ) -> Result<(), Error> {
-        let start = plasma_data_block.get_updated_range().get_start();
-        let end = plasma_data_block.get_updated_range().get_end();
+    pub fn put_verified_state_update(&mut self, state_update: StateUpdate) -> Result<(), Error> {
+        let start = state_update.get_range().get_start();
+        let end = state_update.get_range().get_end();
 
         let result = self
             .db
-            .bucket(&Bytes::from(&b"verified_plasma_data_blocks"[..]))
+            .bucket(&Bytes::from(&b"verified_state_updates"[..]))
             .get(start, end)?;
 
         if result.len() == 0 {
             // TODO: handle error
             let _ = self
                 .db
-                .bucket(&Bytes::from(&b"verified_plasma_data_blocks"[..]))
-                .put(start, end, &plasma_data_block.to_abi());
+                .bucket(&Bytes::from(&b"verified_state_updates"[..]))
+                .put(start, end, &state_update.to_abi());
             Ok(())
         } else if result.len() == 1 {
             let range = Range::new(result[0].get_start(), result[0].get_end());
 
-            if range.is_subrange(&plasma_data_block.get_updated_range()) {
+            if range.is_subrange(&state_update.get_range()) {
                 // split into two or three range if new range is subrange.
                 let intersection = result[0].get_intersection(start, end).unwrap();
                 let mut first_block =
-                    PlasmaDataBlock::from_abi(intersection.get_value().clone()).unwrap();
-                first_block
-                    .set_updated_range(Range::new(range.get_start(), intersection.get_start()));
+                    StateUpdate::from_abi(intersection.get_value().clone()).unwrap();
+                first_block.set_range(Range::new(range.get_start(), intersection.get_start()));
 
                 let mut third_block =
-                    PlasmaDataBlock::from_abi(intersection.get_value().clone()).unwrap();
-                third_block.set_updated_range(Range::new(intersection.get_end(), range.get_end()));
+                    StateUpdate::from_abi(intersection.get_value().clone()).unwrap();
+                third_block.set_range(Range::new(intersection.get_end(), range.get_end()));
 
                 let ranges = vec![
                     RangeWithValue::new(
@@ -75,7 +71,7 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
                     RangeWithValue::new(
                         intersection.get_start(),
                         intersection.get_end(),
-                        &plasma_data_block.to_abi(),
+                        &state_update.to_abi(),
                     ),
                     RangeWithValue::new(
                         intersection.get_end(),
@@ -89,16 +85,16 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
                         // TODO: handle error
                         let _ = self
                             .db
-                            .bucket(&Bytes::from(&b"verified_plasma_data_blocks"[..]))
+                            .bucket(&Bytes::from(&b"verified_state_updates"[..]))
                             .put(range.get_start(), range.get_end(), range.get_value());
                     }
                 }
-            } else if range == plasma_data_block.get_updated_range() {
+            } else if range == state_update.get_range() {
                 // override if range is same.
                 let _ = self
                     .db
-                    .bucket(&Bytes::from(&b"verified_plasma_data_blocks"[..]))
-                    .put(start, end, &plasma_data_block.to_abi());
+                    .bucket(&Bytes::from(&b"verified_state_updates"[..]))
+                    .put(start, end, &state_update.to_abi());
             }
             Ok(())
         } else {
@@ -113,7 +109,7 @@ mod tests {
     use super::StateDb;
     use bytes::Bytes;
     use ethereum_types::Address;
-    use ovm::types::{Integer, PlasmaDataBlock, Property, SignedByInput};
+    use ovm::types::{Integer, Property, SignedByInput, StateUpdate};
     use plasma_core::data_structure::Range;
     use plasma_db::impls::kvs::memory::CoreDbMemoryImpl;
     use plasma_db::traits::db::DatabaseTrait;
@@ -126,7 +122,7 @@ mod tests {
         let mut state_db = StateDb::from(&db);
         let address: Address = Address::zero();
 
-        let plasma_data_block = PlasmaDataBlock::new(
+        let state_update = StateUpdate::new(
             Integer::new(1),
             Range::new(0, 100),
             true,
@@ -134,8 +130,8 @@ mod tests {
             Bytes::from(&b"root"[..]),
         );
 
-        let _ = state_db.put_verified_plasma_data_block(plasma_data_block);
-        let result = state_db.get_verified_plasma_data_blocks(0, 100).unwrap();
+        let _ = state_db.put_verified_state_update(state_update);
+        let result = state_db.get_verified_state_updates(0, 100).unwrap();
         assert_eq!(result.len(), 1);
     }
 
@@ -146,7 +142,7 @@ mod tests {
         let mut state_db = StateDb::from(&db);
         let address: Address = Address::zero();
 
-        let plasma_data_block = PlasmaDataBlock::new(
+        let state_update = StateUpdate::new(
             Integer::new(1),
             Range::new(0, 100),
             true,
@@ -154,7 +150,7 @@ mod tests {
             Bytes::from(&b"root"[..]),
         );
 
-        let plasma_data_block2 = PlasmaDataBlock::new(
+        let state_update2 = StateUpdate::new(
             Integer::new(1),
             Range::new(0, 50),
             true,
@@ -162,12 +158,12 @@ mod tests {
             Bytes::from(&b"root"[..]),
         );
 
-        let _ = state_db.put_verified_plasma_data_block(plasma_data_block);
-        let _ = state_db.put_verified_plasma_data_block(plasma_data_block2);
-        let result = state_db.get_verified_plasma_data_blocks(0, 100).unwrap();
+        let _ = state_db.put_verified_state_update(state_update);
+        let _ = state_db.put_verified_state_update(state_update2);
+        let result = state_db.get_verified_state_updates(0, 100).unwrap();
 
         assert_eq!(result.len(), 2);
-        assert_eq!(result[0].get_updated_range(), Range::new(0, 50));
-        assert_eq!(result[1].get_updated_range(), Range::new(50, 100));
+        assert_eq!(result[0].get_range(), Range::new(0, 50));
+        assert_eq!(result[1].get_range(), Range::new(50, 100));
     }
 }

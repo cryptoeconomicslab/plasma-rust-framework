@@ -53,5 +53,9 @@ impl OwnershipPredicate {
     pub fn execute_state_transition(prev_state: PlasmaDataBlock, transaction: Transaction) -> PlasmaDataBlock {
         PlasmaDataBlock::new()
     }
+
+    pub fn decide() -> {
+
+    }
 }
 

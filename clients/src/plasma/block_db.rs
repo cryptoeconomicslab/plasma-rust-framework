@@ -1,5 +1,5 @@
+use super::state_update::StateUpdate;
 use bytes::Bytes;
-use ovm::types::PlasmaDataBlock;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_db::error::Error;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -18,8 +18,8 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
         BlockDb { db: range_db }
     }
 
-    pub fn enqueue_state_update(&self, state_update: PlasmaDataBlock) -> Result<(), Error> {
-        let range = state_update.get_updated_range();
+    pub fn enqueue_state_update(&self, state_update: StateUpdate) -> Result<(), Error> {
+        let range = state_update.get_range();
 
         let _ = self.db.bucket(&Bytes::from(&"plasma_block_db"[..])).put(
             range.get_start(),
@@ -33,25 +33,25 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
         &self,
         start: u64,
         end: u64,
-    ) -> Result<Vec<PlasmaDataBlock>, Error> {
+    ) -> Result<Vec<StateUpdate>, Error> {
         let res = self
             .db
             .bucket(&Bytes::from(&"plasma_block_db"[..]))
             .get(start, end)?
             .iter()
-            .map(|range| PlasmaDataBlock::from_abi(range.get_value()).unwrap())
+            .map(|range| StateUpdate::from_abi(range.get_value()).unwrap())
             .collect();
 
         Ok(res)
     }
 
-    pub fn get_pending_state_updates(&self) -> Result<Vec<PlasmaDataBlock>, Error> {
+    pub fn get_pending_state_updates(&self) -> Result<Vec<StateUpdate>, Error> {
         let res = self
             .db
             .bucket(&Bytes::from(&"plasma_block_db"[..]))
             .get(MIN_RANGE, MAX_RANGE)?
             .iter()
-            .map(|range| PlasmaDataBlock::from_abi(range.get_value()).unwrap())
+            .map(|range| StateUpdate::from_abi(range.get_value()).unwrap())
             .collect();
         Ok(res)
     }
@@ -70,7 +70,7 @@ mod tests {
     use super::BlockDb;
     use bytes::Bytes;
     use ethereum_types::Address;
-    use ovm::types::{Integer, PlasmaDataBlock, Property, SignedByInput};
+    use ovm::types::{Integer, Property, SignedByInput, StateUpdate};
     use plasma_core::data_structure::Range;
     use plasma_db::impls::kvs::memory::CoreDbMemoryImpl;
     use plasma_db::traits::db::DatabaseTrait;
@@ -83,7 +83,7 @@ mod tests {
         let mut block_db = BlockDb::from(&db);
         let address: Address = Address::zero();
 
-        let plasma_data_block = PlasmaDataBlock::new(
+        let state_update = StateUpdate::new(
             Integer::new(1),
             Range::new(0, 100),
             true,
@@ -91,7 +91,7 @@ mod tests {
             Bytes::from(&b"root"[..]),
         );
 
-        let _ = block_db.enqueue_state_update(plasma_data_block);
+        let _ = block_db.enqueue_state_update(state_update);
         let result = block_db.get_queued_state_updates(0, 100).unwrap();
         assert_eq!(result.len(), 1);
     }
@@ -103,33 +103,27 @@ mod tests {
         let mut block_db = BlockDb::from(&db);
         let address: Address = Address::zero();
 
-        let plasma_data_block = PlasmaDataBlock::new(
+        let state_update = StateUpdate::new(
             Integer::new(1),
             Range::new(0, 10),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Bytes::from(&b"root"[..]),
         );
 
-        let plasma_data_block2 = PlasmaDataBlock::new(
+        let state_update2 = StateUpdate::new(
             Integer::new(1),
             Range::new(10, 100),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Bytes::from(&b"root"[..]),
         );
 
-        let plasma_data_block3 = PlasmaDataBlock::new(
+        let state_update3 = StateUpdate::new(
             Integer::new(1),
             Range::new(100, 115),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Bytes::from(&b"root"[..]),
         );
 
-        let _ = block_db.enqueue_state_update(plasma_data_block);
-        let _ = block_db.enqueue_state_update(plasma_data_block2);
-        let _ = block_db.enqueue_state_update(plasma_data_block3);
+        let _ = block_db.enqueue_state_update(state_update);
+        let _ = block_db.enqueue_state_update(state_update2);
+        let _ = block_db.enqueue_state_update(state_update3);
         let result = block_db.get_queued_state_updates(0, 100).unwrap();
         assert_eq!(result.len(), 2);
     }
@@ -141,7 +135,7 @@ mod tests {
         let mut block_db = BlockDb::from(&db);
         let address: Address = Address::zero();
 
-        let plasma_data_block = PlasmaDataBlock::new(
+        let state_update = StateUpdate::new(
             Integer::new(1),
             Range::new(0, 10),
             true,
@@ -149,7 +143,7 @@ mod tests {
             Bytes::from(&b"root"[..]),
         );
 
-        let plasma_data_block2 = PlasmaDataBlock::new(
+        let state_update2 = StateUpdate::new(
             Integer::new(1),
             Range::new(10, 100),
             true,
@@ -157,7 +151,7 @@ mod tests {
             Bytes::from(&b"root"[..]),
         );
 
-        let plasma_data_block3 = PlasmaDataBlock::new(
+        let state_update3 = StateUpdate::new(
             Integer::new(1),
             Range::new(100, 115),
             true,
@@ -165,9 +159,9 @@ mod tests {
             Bytes::from(&b"root"[..]),
         );
 
-        let _ = block_db.enqueue_state_update(plasma_data_block);
-        let _ = block_db.enqueue_state_update(plasma_data_block2);
-        let _ = block_db.enqueue_state_update(plasma_data_block3);
+        let _ = block_db.enqueue_state_update(state_update);
+        let _ = block_db.enqueue_state_update(state_update2);
+        let _ = block_db.enqueue_state_update(state_update3);
         let result = block_db.get_pending_state_updates().unwrap();
         assert_eq!(result.len(), 3);
     }
@@ -179,7 +173,7 @@ mod tests {
         let mut block_db = BlockDb::from(&db);
         let address: Address = Address::zero();
 
-        let plasma_data_block = PlasmaDataBlock::new(
+        let state_update = StateUpdate::new(
             Integer::new(1),
             Range::new(0, 10),
             true,
@@ -187,7 +181,7 @@ mod tests {
             Bytes::from(&b"root"[..]),
         );
 
-        let plasma_data_block2 = PlasmaDataBlock::new(
+        let state_update2 = StateUpdate::new(
             Integer::new(1),
             Range::new(10, 100),
             true,
@@ -195,7 +189,7 @@ mod tests {
             Bytes::from(&b"root"[..]),
         );
 
-        let plasma_data_block3 = PlasmaDataBlock::new(
+        let state_update3 = StateUpdate::new(
             Integer::new(1),
             Range::new(100, 115),
             true,
@@ -203,9 +197,9 @@ mod tests {
             Bytes::from(&b"root"[..]),
         );
 
-        let _ = block_db.enqueue_state_update(plasma_data_block);
-        let _ = block_db.enqueue_state_update(plasma_data_block2);
-        let _ = block_db.enqueue_state_update(plasma_data_block3);
+        let _ = block_db.enqueue_state_update(state_update);
+        let _ = block_db.enqueue_state_update(state_update2);
+        let _ = block_db.enqueue_state_update(state_update3);
         let _ = block_db.delete_all_queued_state_updates().unwrap();
         let result = block_db.get_pending_state_updates().unwrap();
         assert_eq!(result.len(), 0);

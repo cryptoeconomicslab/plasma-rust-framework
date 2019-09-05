@@ -62,34 +62,30 @@ impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
     // - handle multi prev_states case.
     // - fix decide logic for state transition.
     pub fn ingest_transaction(&mut self, transaction: Transaction) -> Result<(), Error> {
-        let plasma_data_blocks = self
+        let state_updates = self
             .state_db
-            .get_verified_plasma_data_blocks(
+            .get_verified_state_updates(
                 transaction.get_range().get_start(),
                 transaction.get_range().get_end(),
             )
             .unwrap();
-        let prev_state = &plasma_data_blocks[0];
-        if !prev_state
-            .get_updated_range()
-            .is_subrange(&transaction.get_range())
-        {
+        let prev_state = &state_updates[0];
+        if !prev_state.get_range().is_subrange(&transaction.get_range()) {
             return Err(Error::from(ErrorKind::InvalidTransaction));
         }
-        let next_state = prev_state.transition(&transaction);
-        // verify state transition
-        if !prev_state.verify_deprecation(&transaction) {
-            return Err(Error::from(ErrorKind::InvalidTransaction));
+        if let Ok(next_state) = prev_state.execute_state_transition(&transaction) {
+            let res = self.block_manager.enqueue_state_update(next_state);
+            if res.is_err() {
+                return Err(Error::from(ErrorKind::InvalidTransaction));
+            }
+
+            return Ok(());
         }
-        let res = self.block_manager.enqueue_state_update(next_state);
-        if res.is_err() {
-            return Err(Error::from(ErrorKind::InvalidTransaction));
-        }
-        Ok(())
+        Err(Error::from(ErrorKind::InvalidTransaction))
     }
 
     fn submit_next_block(&self) {
-        // dequeue all plasma_data_block stored in range db
+        // dequeue all state_update stored in range db
         // generate block using that data.
         self.block_manager.submit_next_block();
     }
