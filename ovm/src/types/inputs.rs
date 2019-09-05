@@ -221,9 +221,9 @@ mod tests {
         let plasma_data_block: PlasmaDataBlock = PlasmaDataBlock::new(
             Integer(0),
             Range::new(500, 700),
+            Bytes::from(&b"root"[..]),
             true,
             Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(H256::zero()))),
-            Bytes::from(&b"root"[..]),
         );
         let input = IncludedAtBlockInput::new(Integer(10), plasma_data_block);
         let encoded = input.to_abi();

@@ -1,4 +1,5 @@
 use super::core::{Integer, Property};
+use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::U256;
@@ -8,29 +9,29 @@ use plasma_core::data_structure::error::{
 };
 use plasma_core::data_structure::Range;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct PlasmaDataBlock {
     index: Integer,
     updated_range: Range,
+    root: Bytes,
     is_included: bool,
     property: Property,
-    root: Bytes,
 }
 
 impl PlasmaDataBlock {
     pub fn new(
         index: Integer,
         updated_range: Range,
+        root: Bytes,
         is_included: bool,
         property: Property,
-        root: Bytes,
     ) -> Self {
         Self {
             index,
             updated_range,
+            root,
             is_included,
             property,
-            root,
         }
     }
     pub fn get_index(&self) -> usize {
@@ -47,51 +48,6 @@ impl PlasmaDataBlock {
     }
     pub fn get_root(&self) -> &Bytes {
         &self.root
-    }
-}
-
-impl Encodable for PlasmaDataBlock {
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![
-            Token::Tuple(self.updated_range.to_tuple()),
-            Token::Uint(self.index.0.into()),
-            Token::Bytes(self.root.to_vec()),
-            Token::Bool(self.is_included),
-            Token::Tuple(self.property.to_tuple()),
-        ]
-    }
-}
-
-impl Decodable for PlasmaDataBlock {
-    type Ok = PlasmaDataBlock;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
-        let updated_range = tuple[0].clone().to_tuple();
-        let index = tuple[1].clone().to_uint();
-        let root = tuple[2].clone().to_bytes();
-        let is_included = tuple[3].clone().to_bool();
-        let property = tuple[4].clone().to_tuple();
-        if let (Some(updated_range), Some(index), Some(is_included), Some(property), Some(root)) =
-            (updated_range, index, is_included, property, root)
-        {
-            Ok(PlasmaDataBlock {
-                updated_range: Range::from_tuple(&updated_range).unwrap(),
-                index: Integer(index.as_u64()),
-                is_included,
-                property: Property::from_tuple(&property).unwrap(),
-                root: Bytes::from(root),
-            })
-        } else {
-            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
-        }
-    }
-    fn get_param_types() -> Vec<ParamType> {
-        vec![
-            ParamType::Tuple(Range::get_param_types()),
-            ParamType::Uint(64),
-            ParamType::Bytes,
-            ParamType::Bool,
-            ParamType::Tuple(Property::get_param_types()),
-        ]
     }
 }
 
