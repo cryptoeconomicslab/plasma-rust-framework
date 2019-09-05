@@ -5,7 +5,7 @@ use crate::types::{
 };
 use bytes::Bytes;
 use ethereum_types::Address;
-use plasma_core::data_structure::abi::Encodable;
+use plasma_core::data_structure::abi::{Decodable, Encodable};
 
 pub fn create_state_channel_property(
     my_address: Address,
@@ -16,8 +16,11 @@ pub fn create_state_channel_property(
     let left_property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
         Quantifier::SignedByQuantifier(my_address),
         Some(PropertyFactory::new(Box::new(move |item| {
-            if let QuantifierResultItem::Message(message) = item {
-                Property::HasLowerNonceDecider(HasLowerNonceInput::new(message, upper_nonce))
+            if let QuantifierResultItem::Bytes(message) = item {
+                Property::HasLowerNonceDecider(HasLowerNonceInput::new(
+                    Message::from_abi(&message).unwrap(),
+                    upper_nonce,
+                ))
             } else {
                 panic!("invalid type in PropertyFactory");
             }
