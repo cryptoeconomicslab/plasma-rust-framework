@@ -5,7 +5,7 @@ use crate::types::{
 };
 use bytes::Bytes;
 use ethereum_types::Address;
-use plasma_core::data_structure::abi::{Decodable, Encodable};
+use plasma_core::data_structure::abi::Encodable;
 
 pub fn create_state_channel_property(
     my_address: Address,

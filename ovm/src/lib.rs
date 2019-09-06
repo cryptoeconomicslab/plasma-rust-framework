@@ -21,7 +21,7 @@ mod tests {
     use crate::statements::{create_plasma_property, create_state_channel_property};
     use crate::types::{
         Decision, ForAllSuchThatInput, InputType, Integer, IntegerRangeQuantifierInput,
-        PreimageExistsInput, Property, Quantifier, QuantifierResultItem, Witness,
+        PreimageExistsInput, Property, Quantifier, Witness,
     };
     use crate::utils::static_hash;
     use bytes::Bytes;

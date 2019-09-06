@@ -87,7 +87,7 @@ mod tests {
     use super::Verifier;
     use crate::db::SignedByDb;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decision, InputType, Property, SignedByInput, Witness};
+    use crate::types::{Decision, InputType, Property, SignedByInput};
     use bytes::Bytes;
     use ethereum_types::Address;
     use ethsign::SecretKey;
