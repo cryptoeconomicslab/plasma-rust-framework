@@ -3,6 +3,7 @@ use super::error::{Error, ErrorKind};
 use super::state_db::StateDb;
 use ethereum_types::Address;
 use ethsign::SecretKey;
+use ovm::db::TransactionDb;
 use plasma_core::data_structure::Transaction;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -16,10 +17,11 @@ pub struct PlasmaAggregator<'a, KVS: KeyValueStore> {
     _secret_key: SecretKey,
     _my_address: Address,
     block_manager: BlockManager<KVS>,
+    db: KVS,
     //    state_update_queue:
 }
 
-impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
+impl<'a, KVS: KeyValueStore + DatabaseTrait + Copy> PlasmaAggregator<'a, KVS> {
     pub fn new(
         aggregator_address: Address,
         plasma_contract_address: Address,
@@ -44,6 +46,7 @@ impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
             _my_address: my_address,
             state_db,
             block_manager,
+            db: KVS::open("aggregator_db"),
         }
     }
 
@@ -74,6 +77,10 @@ impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
             if res.is_err() {
                 return Err(Error::from(ErrorKind::InvalidTransaction));
             }
+
+            let range_db = RangeDbImpl::from(self.db);
+            let transaction_db = TransactionDb::new(&range_db);
+            transaction_db.put_transaction(self.block_manager.get_next_block_number(), transaction);
 
             return Ok(());
         }
