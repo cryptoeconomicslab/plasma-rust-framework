@@ -12,8 +12,7 @@ pub use self::decision_value::DecisionValue;
 pub use self::inputs::{
     AndDeciderInput, BlockRangeQuantifierInput, ChannelUpdateSignatureExistsDeciderInput,
     ForAllSuchThatInput, HasLowerNonceInput, IncludedAtBlockInput, IntegerRangeQuantifierInput,
-    IsDeprecatedInput, NotDeciderInput, OrDeciderInput, OwnershipDeciderInput, PreimageExistsInput,
-    SignedByInput,
+    NotDeciderInput, OrDeciderInput, OwnershipDeciderInput, PreimageExistsInput, SignedByInput,
 };
 pub use self::state_update::StateUpdate;
 pub use self::witness::{PlasmaDataBlock, Witness};

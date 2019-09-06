@@ -18,7 +18,7 @@ use std::io::BufReader;
 /// Plasma Client on OVM.
 pub struct PlasmaClient<KVS> {
     plasma_contract_address: Address,
-    db: KVS,
+    _db: KVS,
     secret_key: SecretKey,
     my_address: Address,
 }
@@ -31,7 +31,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
 
         PlasmaClient {
             plasma_contract_address,
-            db: KVS::open("plasma_db"),
+            _db: KVS::open("plasma_db"),
             secret_key,
             my_address,
         }
@@ -53,7 +53,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         )
         .unwrap();
         // TODO: handle result
-        let result = plasma_contract.deposit(self.my_address, amount, property);
+        let _result = plasma_contract.deposit(self.my_address, amount, property);
     }
 
     /// Create transaction to update state for specific coin range.
@@ -94,7 +94,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let checkpoint = (state_update, range);
 
         // TODO: handle result
-        let result = plasma_contract.withdraw(self.my_address, checkpoint);
+        let _result = plasma_contract.withdraw(self.my_address, checkpoint);
     }
 
     /// Challenge to specific exit by claiming contradicting statement.
@@ -102,5 +102,5 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
 
     /// Handle BlockSubmitted Event from aggregator
     /// check new state update and verify, store them.
-    pub fn handle_new_block(&self, block: PlasmaBlock) {}
+    pub fn handle_new_block(&self, _block: PlasmaBlock) {}
 }

@@ -1,8 +1,7 @@
 use crate::db::MessageDb;
 use crate::deciders::{
-    AndDecider, ForAllSuchThatDecider, HasLowerNonceDecider, IncludedAtBlockDecider,
-    IsDeprecatedDecider, NotDecider, OrDecider, OwnershipDecider, PreimageExistsDecider,
-    SignedByDecider,
+    AndDecider, ForAllSuchThatDecider, HasLowerNonceDecider, IncludedAtBlockDecider, NotDecider,
+    OrDecider, OwnershipDecider, PreimageExistsDecider, SignedByDecider,
 };
 use crate::error::Error;
 use crate::quantifiers::{
@@ -72,7 +71,6 @@ where
             Property::SignedByDecider(input) => SignedByDecider::decide(self, input),
             Property::HasLowerNonceDecider(input) => HasLowerNonceDecider::decide(self, input),
             Property::IncludedAtBlockDecider(input) => IncludedAtBlockDecider::decide(self, input),
-            Property::IsDeprecatedDecider(input) => IsDeprecatedDecider::decide(self, input),
             Property::OwnershipDecider(input) => OwnershipDecider::decide(self, input),
             _ => panic!("not implemented!!"),
         }

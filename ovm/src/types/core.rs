@@ -1,8 +1,7 @@
 use super::inputs::{
     AndDeciderInput, BlockRangeQuantifierInput, ChannelUpdateSignatureExistsDeciderInput,
     ForAllSuchThatInput, HasLowerNonceInput, IncludedAtBlockInput, IntegerRangeQuantifierInput,
-    IsDeprecatedInput, NotDeciderInput, OrDeciderInput, OwnershipDeciderInput, PreimageExistsInput,
-    SignedByInput,
+    NotDeciderInput, OrDeciderInput, OwnershipDeciderInput, PreimageExistsInput, SignedByInput,
 };
 use super::witness::{PlasmaDataBlock, Witness};
 use crate::db::Message;
@@ -76,7 +75,6 @@ pub enum Property {
     // channelId, nonce, participant
     ChannelUpdateSignatureExistsDecider(ChannelUpdateSignatureExistsDeciderInput),
     IncludedAtBlockDecider(Box<IncludedAtBlockInput>),
-    IsDeprecatedDecider(Box<IsDeprecatedInput>),
     OwnershipDecider(Box<OwnershipDeciderInput>),
 }
 
@@ -104,7 +102,6 @@ impl Property {
             Property::HasLowerNonceDecider(_) => DECIDER_LIST[6],
             Property::ChannelUpdateSignatureExistsDecider(_) => DECIDER_LIST[7],
             Property::IncludedAtBlockDecider(_) => DECIDER_LIST[8],
-            Property::IsDeprecatedDecider(_) => DECIDER_LIST[9],
             Property::OwnershipDecider(_) => DECIDER_LIST[10],
         }
     }
@@ -119,7 +116,6 @@ impl Property {
             Property::HasLowerNonceDecider(input) => input.to_abi(),
             Property::ChannelUpdateSignatureExistsDecider(input) => input.to_abi(),
             Property::IncludedAtBlockDecider(input) => input.to_abi(),
-            Property::IsDeprecatedDecider(input) => input.to_abi(),
             Property::OwnershipDecider(input) => input.to_abi(),
         }
     }
@@ -147,9 +143,6 @@ impl Property {
             IncludedAtBlockInput::from_abi(data)
                 .map(|input| Property::IncludedAtBlockDecider(Box::new(input)))
         } else if decider_id == DECIDER_LIST[9] {
-            IsDeprecatedInput::from_abi(data)
-                .map(|input| Property::IsDeprecatedDecider(Box::new(input)))
-        } else if decider_id == DECIDER_LIST[10] {
             OwnershipDeciderInput::from_abi(data)
                 .map(|input| Property::OwnershipDecider(Box::new(input)))
         } else {

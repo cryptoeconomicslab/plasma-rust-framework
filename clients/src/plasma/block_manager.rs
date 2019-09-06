@@ -1,13 +1,9 @@
 use super::block_db::BlockDb;
 use super::plasma_block::PlasmaBlock;
-use bytes::Bytes;
 use contract_wrapper::commitment_contract_adaptor::CommitmentContractAdaptor;
 use ethabi::Contract as ContractABI;
 use ethereum_types::Address;
-use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
-use ovm::types::core::Integer;
 use ovm::types::StateUpdate;
-use plasma_core::data_structure::abi::Encodable;
 use plasma_db::error::Error;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -67,7 +63,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
         .unwrap();
         let _ = contract.submit_block(self.aggregator_address, root);
 
-        block_db.save_block(&block);
+        let _ = block_db.save_block(&block);
     }
 
     pub fn get_next_block_number(&self) -> u64 {

@@ -3,10 +3,7 @@ use super::error::{Error, ErrorKind};
 use super::state_db::StateDb;
 use ethereum_types::Address;
 use ethsign::SecretKey;
-use ovm::db::SignedByDb;
-use ovm::property_executor::PropertyExecutor;
 use plasma_core::data_structure::Transaction;
-use plasma_db::impls::kvs::memory::CoreDbMemoryImpl;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
@@ -16,8 +13,8 @@ pub struct PlasmaAggregator<'a, KVS: KeyValueStore> {
     commitment_contract_address: Address,
     plasma_contract_address: Address,
     state_db: StateDb<'a, KVS>,
-    secret_key: SecretKey,
-    my_address: Address,
+    _secret_key: SecretKey,
+    _my_address: Address,
     block_manager: BlockManager<KVS>,
     //    state_update_queue:
 }
@@ -43,8 +40,8 @@ impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
             aggregator_address,
             plasma_contract_address,
             commitment_contract_address,
-            secret_key,
-            my_address,
+            _secret_key: secret_key,
+            _my_address: my_address,
             state_db,
             block_manager,
         }
@@ -83,9 +80,21 @@ impl<'a, KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<'a, KVS> {
         Err(Error::from(ErrorKind::InvalidTransaction))
     }
 
-    fn submit_next_block(&self) {
+    pub fn submit_next_block(&self) {
         // dequeue all state_update stored in range db
         // generate block using that data.
         self.block_manager.submit_next_block();
+    }
+
+    pub fn get_aggregator_addres(&self) -> Address {
+        self.aggregator_address.clone()
+    }
+
+    pub fn get_commitment_contract_address(&self) -> Address {
+        self.commitment_contract_address.clone()
+    }
+
+    pub fn get_plasma_contract_address(&self) -> Address {
+        self.plasma_contract_address.clone()
     }
 }
