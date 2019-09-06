@@ -1,3 +1,4 @@
+use super::plasma_block::PlasmaBlock;
 use bytes::Bytes;
 use contract_wrapper::plasma_contract_adaptor::PlasmaContractAdaptor;
 use ethabi::Contract as ContractABI;
@@ -8,9 +9,7 @@ use ovm::statements::create_plasma_property;
 use ovm::types::core::Property;
 use ovm::types::Integer;
 use plasma_core::data_structure::abi::Encodable;
-use plasma_core::data_structure::{
-    PlasmaBlock, Range, StateUpdate, Transaction, TransactionParams,
-};
+use plasma_core::data_structure::{Range, StateUpdate, Transaction, TransactionParams};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use std::fs::File;

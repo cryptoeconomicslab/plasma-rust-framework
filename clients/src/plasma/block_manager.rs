@@ -1,10 +1,12 @@
 use super::block_db::BlockDb;
+use super::plasma_block::PlasmaBlock;
 use super::state_update::StateUpdate;
 use bytes::Bytes;
 use contract_wrapper::commitment_contract_adaptor::CommitmentContractAdaptor;
 use ethabi::Contract as ContractABI;
 use ethereum_types::Address;
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
+use ovm::types::core::Integer;
 use plasma_core::data_structure::abi::Encodable;
 use plasma_db::error::Error;
 use plasma_db::traits::db::DatabaseTrait;
@@ -17,6 +19,7 @@ pub struct BlockManager<KVS: KeyValueStore> {
     db: RangeDbImpl<KVS>,
     commitment_contract_address: Address,
     aggregator_address: Address,
+    current_block_number: u64,
 }
 
 impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
@@ -28,6 +31,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
             aggregator_address,
             commitment_contract_address,
             db,
+            current_block_number: 0,
         }
     }
 
@@ -46,17 +50,10 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
             return;
         }
         let state_updates = result.unwrap();
+        let mut block = PlasmaBlock::new(self.get_next_block_number(), state_updates);
 
-        let mut leaves = vec![];
-        for s in state_updates.iter() {
-            leaves.push(MerkleIntervalNode::Leaf {
-                end: s.get_range().get_end(),
-                data: Bytes::from(s.to_abi()),
-            });
-        }
-
-        let tree = MerkleIntervalTree::generate(&leaves);
-        let root = tree.get_root();
+        block.merkelize();
+        let root = block.get_root().unwrap();
 
         // send root hash to commitment contract
         let f = File::open("CommitmentContract.json").unwrap();
@@ -70,7 +67,11 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
         .unwrap();
         let _ = contract.submit_block(self.aggregator_address, root);
 
-        // TODO: return included state_updates and proofs.
+        block_db.save_block(&block);
+    }
+
+    pub fn get_next_block_number(&self) -> u64 {
+        self.current_block_number + 1
     }
 }
 

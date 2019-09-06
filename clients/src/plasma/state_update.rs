@@ -1,4 +1,5 @@
 use super::error::{Error, ErrorKind};
+use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ovm::types::core::{Integer, Property};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
@@ -6,6 +7,7 @@ use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
 };
 use plasma_core::data_structure::{Range, Transaction};
+use tiny_keccak::Keccak;
 
 #[derive(Clone, Debug)]
 pub struct StateUpdate {
@@ -37,6 +39,15 @@ impl StateUpdate {
 
     pub fn get_block_number(&self) -> Integer {
         self.block_number
+    }
+
+    pub fn get_hash(&self) -> Bytes {
+        let mut sha3 = Keccak::new_sha3_256();
+        sha3.update(&self.to_abi());
+        let mut res: [u8; 32] = [0; 32];
+        sha3.finalize(&mut res);
+
+        Bytes::from(&res[..])
     }
 
     /// validate transaction and state update.

@@ -1,3 +1,4 @@
+use super::plasma_block::PlasmaBlock;
 use super::state_update::StateUpdate;
 use bytes::Bytes;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
@@ -61,6 +62,16 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
             .db
             .bucket(&Bytes::from(&"plasma_block_db"[..]))
             .del_batch(MIN_RANGE, MAX_RANGE)?;
+        Ok(())
+    }
+
+    pub fn save_block(&self, block: &PlasmaBlock) -> Result<(), Error> {
+        let index = block.get_block_number();
+        let _ = self
+            .db
+            .bucket(&Bytes::from(&"plasma_block_db"[..]))
+            .bucket(&Bytes::from(&"blocks"[..]))
+            .put(index, index, &block.to_abi())?;
         Ok(())
     }
 }
