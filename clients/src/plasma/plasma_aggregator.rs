@@ -102,4 +102,8 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     pub fn get_plasma_contract_address(&self) -> Address {
         self.plasma_contract_address.clone()
     }
+
+    pub fn show_queued_state_updates(&self) {
+        println!("{:?}", self.block_manager.get_queued_state_updates());
+    }
 }
