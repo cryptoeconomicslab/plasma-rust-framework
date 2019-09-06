@@ -212,6 +212,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "clients"
 version = "0.1.0"
 dependencies = [
+ "bincode 1.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "contract-wrapper 0.1.0",
  "ethabi 7.0.0 (git+https://github.com/cryptoeconomicslab/ethabi?branch=tuple-support-v7.0.0)",
@@ -223,6 +224,7 @@ dependencies = [
  "ovm 0.1.0",
  "plasma-core 0.1.0",
  "plasma-db 0.1.0",
+ "pubsub-messaging 0.1.0",
  "tiny-keccak 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

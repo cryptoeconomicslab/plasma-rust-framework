@@ -13,7 +13,7 @@ pub struct StateDb<'a, KVS: KeyValueStore> {
 }
 
 impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
-    pub fn from(range_db: &'a RangeDbImpl<KVS>) -> Self {
+    pub fn new(range_db: &'a RangeDbImpl<KVS>) -> Self {
         StateDb { db: range_db }
     }
 

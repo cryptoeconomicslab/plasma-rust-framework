@@ -14,6 +14,7 @@ use bytes::Bytes;
 /// let base_db = CoreDbMemoryImpl::open("test");
 /// let db = RangeDbImpl::from(base_db);
 /// ```
+#[derive(Clone)]
 pub struct RangeDbImpl<KVS> {
     db: KVS,
 }
