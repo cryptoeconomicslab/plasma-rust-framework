@@ -1,7 +1,8 @@
 use super::inputs::{
     AndDeciderInput, BlockRangeQuantifierInput, ChannelUpdateSignatureExistsDeciderInput,
     ForAllSuchThatInput, HasLowerNonceInput, IncludedAtBlockInput, IntegerRangeQuantifierInput,
-    IsDeprecatedInput, NotDeciderInput, OrDeciderInput, PreimageExistsInput, SignedByInput,
+    IsDeprecatedInput, NotDeciderInput, OrDeciderInput, OwnershipDeciderInput, PreimageExistsInput,
+    SignedByInput,
 };
 use super::witness::{PlasmaDataBlock, Witness};
 use crate::db::Message;
@@ -48,7 +49,7 @@ impl From<Bytes> for Integer {
 lazy_static! {
     static ref DECIDER_LIST: Vec<Address> = {
         let mut list = vec![];
-        for _ in 0..10 {
+        for _ in 0..11 {
             list.push(Address::random())
         }
         list
@@ -76,6 +77,7 @@ pub enum Property {
     ChannelUpdateSignatureExistsDecider(ChannelUpdateSignatureExistsDeciderInput),
     IncludedAtBlockDecider(Box<IncludedAtBlockInput>),
     IsDeprecatedDecider(Box<IsDeprecatedInput>),
+    OwnershipDecider(Box<OwnershipDeciderInput>),
 }
 
 #[derive(Clone, Debug)]
@@ -103,6 +105,7 @@ impl Property {
             Property::ChannelUpdateSignatureExistsDecider(_) => DECIDER_LIST[7],
             Property::IncludedAtBlockDecider(_) => DECIDER_LIST[8],
             Property::IsDeprecatedDecider(_) => DECIDER_LIST[9],
+            Property::OwnershipDecider(_) => DECIDER_LIST[10],
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -117,6 +120,7 @@ impl Property {
             Property::ChannelUpdateSignatureExistsDecider(input) => input.to_abi(),
             Property::IncludedAtBlockDecider(input) => input.to_abi(),
             Property::IsDeprecatedDecider(input) => input.to_abi(),
+            Property::OwnershipDecider(input) => input.to_abi(),
         }
     }
     fn from_bytes(decider_id: Address, data: &[u8]) -> Result<Self, PlasmaCoreError> {
@@ -145,6 +149,9 @@ impl Property {
         } else if decider_id == DECIDER_LIST[9] {
             IsDeprecatedInput::from_abi(data)
                 .map(|input| Property::IsDeprecatedDecider(Box::new(input)))
+        } else if decider_id == DECIDER_LIST[10] {
+            OwnershipDeciderInput::from_abi(data)
+                .map(|input| Property::OwnershipDecider(Box::new(input)))
         } else {
             panic!("unknown decider")
         }

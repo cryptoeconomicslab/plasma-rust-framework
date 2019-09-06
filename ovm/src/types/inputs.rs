@@ -6,7 +6,7 @@ use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::{Address, H256};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
-use plasma_core::data_structure::Range;
+use plasma_core::data_structure::{Range, StateUpdate};
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct AndDeciderInput {
@@ -204,6 +204,29 @@ impl IsDeprecatedInput {
     }
     pub fn get_plasma_data_block(&self) -> &PlasmaDataBlock {
         &self.plasma_data_block
+    }
+}
+
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+pub struct OwnershipDeciderInput {
+    state_update: StateUpdate,
+    owner: Address,
+}
+
+impl OwnershipDeciderInput {
+    pub fn new(state_update: StateUpdate, owner: Address) -> Self {
+        Self {
+            state_update,
+            owner,
+        }
+    }
+
+    pub fn get_owner(&self) -> Address {
+        self.owner.clone()
+    }
+
+    pub fn get_state_update(&self) -> StateUpdate {
+        self.state_update.clone()
     }
 }
 

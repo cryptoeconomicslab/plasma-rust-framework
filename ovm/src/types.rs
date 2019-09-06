@@ -1,6 +1,7 @@
 pub mod core;
 pub mod decision_value;
 pub mod inputs;
+pub mod state_update;
 pub mod witness;
 
 pub use self::core::{
@@ -11,6 +12,8 @@ pub use self::decision_value::DecisionValue;
 pub use self::inputs::{
     AndDeciderInput, BlockRangeQuantifierInput, ChannelUpdateSignatureExistsDeciderInput,
     ForAllSuchThatInput, HasLowerNonceInput, IncludedAtBlockInput, IntegerRangeQuantifierInput,
-    IsDeprecatedInput, NotDeciderInput, OrDeciderInput, PreimageExistsInput, SignedByInput,
+    IsDeprecatedInput, NotDeciderInput, OrDeciderInput, OwnershipDeciderInput, PreimageExistsInput,
+    SignedByInput,
 };
+pub use self::state_update::StateUpdate;
 pub use self::witness::{PlasmaDataBlock, Witness};

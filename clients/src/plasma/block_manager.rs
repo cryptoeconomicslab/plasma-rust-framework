@@ -1,12 +1,12 @@
 use super::block_db::BlockDb;
 use super::plasma_block::PlasmaBlock;
-use super::state_update::StateUpdate;
 use bytes::Bytes;
 use contract_wrapper::commitment_contract_adaptor::CommitmentContractAdaptor;
 use ethabi::Contract as ContractABI;
 use ethereum_types::Address;
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
 use ovm::types::core::Integer;
+use ovm::types::StateUpdate;
 use plasma_core::data_structure::abi::Encodable;
 use plasma_db::error::Error;
 use plasma_db::traits::db::DatabaseTrait;

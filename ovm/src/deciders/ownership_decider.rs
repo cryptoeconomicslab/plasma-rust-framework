@@ -1,61 +1,49 @@
-use plasma_core::data_structure::Transaction;
-use ovm::types::PlasmaDataBlock;
+use crate::db::TransactionDb;
+use crate::error::Error;
+use crate::property_executor::PropertyExecutor;
+use crate::types::{Decider, Decision, OwnershipDeciderInput, Property};
+use crate::DecideMixin;
+use plasma_core::data_structure::{StateUpdate, Transaction};
+use plasma_db::traits::kvs::KeyValueStore;
 
 /// OwnershipInput {
-///     pre_state,
-///     transaction,
-///     post_state
+///     state_update: StateUpdate,
+///     owner: Address,
 /// }
 ///
-/// 1. verify transaction have prev_state owner's signature.
+/// 1. verify there exists transaction with prev_state owner's signature.
 /// 2. prev_state's block_number is less than origin_block_number
 /// 3. ensure post_state's range is same as transaction's range.
 /// 4. transaction.parameters.new_state is same as post_state.state
-/// OwnershipDecider {
-///     decide(self, input) {
-///     }
-///
-/// }
-///
 
-struct OwnershipPredicate {}
+pub struct OwnershipDecider {}
 
 /// OwnershipDecider property construction
 /// Transaction have property which is
 /// Input = {
-///     prev_state: PlasmaDataBlock,
-///     transaction: Transaction,
-///     post_state: PlasmaDataBlock,
+///     state_update: StateUpdate,
+///     owner: Address,
 /// }
 /// property.input have to have owner address.
-/// PlasmaDataBlock have owner address in property.input
+/// StateUpdate have owner address in property.input
 /// Use SignedByDecider's address.
 
-impl OwnershipPredicate {
-    /// verify transaction
-    /// 1. verify transaction have prev_state owner's signature.
-    /// 2. prev_state's block_number is less than origin_block_number
-    /// 3. ensure post_state's range is same as transaction's range.
-    /// 4. transaction.parameters.new_state is same as post_state.state
-    pub fn verify_transaction(prev_state: PlasmaDataBlock, transaction: Transaction, post_state: PlasmaDataBlock) -> bool {
-        // verify transaction have valid signature of prev_state.parameters.owner.
-        let input = SignedByInput::new(transaction.signature, prev_state.parameters.owner);
-        let property = Property::SignedByDecider(input.clone());
-        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
-        if !decider.decide(&property).unwrap().get_outcome() {
-            return false
+impl Decider for OwnershipDecider {
+    type Input = OwnershipDeciderInput;
+    fn decide<T: KeyValueStore>(
+        decider: &PropertyExecutor<T>,
+        input: &OwnershipDeciderInput,
+    ) -> Result<Decision, Error> {
+        let db: TransactionDb<T> = TransactionDb::new(decider.get_range_db());
+        let state_update = input.get_state_update();
+        let witness =
+            db.get_transactions(state_update.get_block_number(), *state_update.get_range())?;
+
+        // TODO: verify signature.
+        if true {
+            Ok(Decision::new(true, vec![]))
+        } else {
+            panic!("invalid witness");
         }
-        if transaction.get_range() != post_state.get_updated_range() {
-            return false
-        }
-    }
-
-    pub fn execute_state_transition(prev_state: PlasmaDataBlock, transaction: Transaction) -> PlasmaDataBlock {
-        PlasmaDataBlock::new()
-    }
-
-    pub fn decide() -> {
-
     }
 }
-

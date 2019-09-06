@@ -1,8 +1,8 @@
-use super::state_update::StateUpdate;
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
 use ovm::types::core::Integer;
+use ovm::types::StateUpdate;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,

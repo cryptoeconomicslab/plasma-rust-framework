@@ -1,5 +1,5 @@
-use super::state_update::StateUpdate;
 use bytes::Bytes;
+use ovm::types::StateUpdate;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::Range;
 use plasma_db::error::Error;

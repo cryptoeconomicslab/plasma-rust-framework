@@ -1,6 +1,6 @@
 use super::plasma_block::PlasmaBlock;
-use super::state_update::StateUpdate;
 use bytes::Bytes;
+use ovm::types::StateUpdate;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_db::error::Error;
 use plasma_db::traits::kvs::KeyValueStore;

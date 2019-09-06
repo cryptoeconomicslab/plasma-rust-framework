@@ -1,12 +1,14 @@
-use super::error::{Error, ErrorKind};
+use crate::property_executor::PropertyExecutor;
+use crate::types::core::{Integer, Property};
+use crate::DecideMixin;
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
-use ovm::types::core::{Integer, Property};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
 };
 use plasma_core::data_structure::{Range, Transaction};
+use plasma_db::impls::kvs::CoreDbMemoryImpl;
 use tiny_keccak::Keccak;
 
 #[derive(Clone, Debug)]
@@ -50,8 +52,20 @@ impl StateUpdate {
         Bytes::from(&res[..])
     }
 
+    pub fn verify_state_transition(&self, transaction: &Transaction) -> bool {
+        let decider = PropertyExecutor::<CoreDbMemoryImpl>::default();
+        let res = self.property.decide(&decider);
+        match res {
+            Ok(decision) => decision.get_outcome(),
+            Err(_) => false,
+        }
+    }
+
     /// validate transaction and state update.
-    pub fn execute_state_transition(&self, transaction: &Transaction) -> Result<Self, Error> {
+    pub fn execute_state_transition(
+        &self,
+        transaction: &Transaction,
+    ) -> Result<Self, PlasmaCoreError> {
         // TODO: switch using self.property.
         // now just transition ownership.
 
