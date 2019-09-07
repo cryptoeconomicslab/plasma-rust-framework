@@ -1,4 +1,5 @@
 use super::core::{Integer, Property, PropertyFactory, Quantifier};
+use super::StateUpdate;
 use super::witness::PlasmaDataBlock;
 use crate::db::Message;
 use abi_derive::{AbiDecodable, AbiEncodable};
@@ -6,7 +7,7 @@ use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::{Address, H256};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
-use plasma_core::data_structure::{Range, StateUpdate};
+use plasma_core::data_structure::{Range};
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct AndDeciderInput {
@@ -192,6 +193,24 @@ impl BlockRangeQuantifierInput {
         }
     }
 }
+
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+pub struct IsDeprecatedDeciderInput {
+    state_update: StateUpdate,
+}
+
+impl IsDeprecatedDeciderInput {
+    pub fn new(state_update: StateUpdate) -> Self {
+        Self {
+            state_update,
+        }
+    }
+
+    pub fn get_state_update(&self) -> StateUpdate {
+        self.state_update.clone()
+    }
+}
+
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct OwnershipDeciderInput {

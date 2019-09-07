@@ -118,9 +118,10 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         let address = Address::zero();
         for i in 0..5 {
             let state_update = StateUpdate::new(
-                Range::new(i * 10, (i + 1) * 10),
-                Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
                 Integer::new(1),
+                Range::new(i * 10, (i + 1) * 10),
+                Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address))
+                    .get_decider_id(),
             );
             state_db.put_verified_state_update(state_update);
         }

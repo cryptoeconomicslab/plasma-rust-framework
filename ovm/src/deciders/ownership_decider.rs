@@ -37,7 +37,7 @@ impl Decider for OwnershipDecider {
         let db: TransactionDb<T> = TransactionDb::new(decider.get_range_db());
         let state_update = input.get_state_update();
         let witness =
-            db.get_transactions(state_update.get_block_number(), *state_update.get_range())?;
+            db.get_transactions(state_update.get_block_number().0, state_update.get_range())?;
 
         // TODO: verify signature.
         if true {

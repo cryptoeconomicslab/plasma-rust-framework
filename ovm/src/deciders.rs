@@ -7,6 +7,7 @@ pub mod or_decider;
 pub mod ownership_decider;
 pub mod preimage_exists_decider;
 pub mod signed_by_decider;
+pub mod is_deprecated_decider;
 
 pub use self::and_decider::AndDecider;
 pub use self::for_all_such_that_decider::ForAllSuchThatDecider;
@@ -17,3 +18,4 @@ pub use self::or_decider::OrDecider;
 pub use self::ownership_decider::OwnershipDecider;
 pub use self::preimage_exists_decider::PreimageExistsDecider;
 pub use self::signed_by_decider::{SignedByDecider, Verifier as SignVerifier};
+pub use self::is_deprecated_decider::IsDeprecatedDecider;

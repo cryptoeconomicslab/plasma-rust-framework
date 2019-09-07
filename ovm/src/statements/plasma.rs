@@ -1,6 +1,6 @@
 use crate::types::{
-    BlockRangeQuantifierInput, ForAllSuchThatInput, IncludedAtBlockInput, Integer, Property,
-    PropertyFactory, Quantifier, QuantifierResultItem,
+    BlockRangeQuantifierInput, ForAllSuchThatInput, IncludedAtBlockInput, IsDeprecatedDeciderInput, Integer, Property,
+    PropertyFactory, Quantifier, QuantifierResultItem, StateUpdate
 };
 use plasma_core::data_structure::Range;
 
@@ -25,10 +25,12 @@ pub fn create_coin_range_property(block_number: Integer, range: Range) -> Proper
     Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
         Quantifier::BlockRangeQuantifier(BlockRangeQuantifierInput::new(block_number, range)),
         Some(PropertyFactory::new(Box::new(move |item| {
+            // TODO: fix
+            // IsDeprecatedDecider(IsdeprecatedDeciderInput(state_update))
+            // IsDeprecatedDecider = input.state_update.property.decide()
             if let QuantifierResultItem::PlasmaDataBlock(plasma_data_block) = item {
-                Property::IncludedAtBlockDecider(Box::new(IncludedAtBlockInput::new(
-                    block_number,
-                    plasma_data_block.clone(),
+                Property::IsDeprecatedDecider(Box::new(IsDeprecatedDeciderInput::new(
+                    StateUpdate::from(plasma_data_block)
                 )))
             } else {
                 panic!("invalid type in PropertyFactory");
