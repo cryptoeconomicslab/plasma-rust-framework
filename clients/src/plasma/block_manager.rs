@@ -62,7 +62,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
         let contract_abi = ContractABI::load(reader).unwrap();
         let contract = CommitmentContractAdaptor::new(
             "http://127.0.0.1:9545",
-            &self.commitment_contract_address.clone().to_string(),
+            &self.commitment_contract_address.to_string(),
             contract_abi,
         )
         .unwrap();

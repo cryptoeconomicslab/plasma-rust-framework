@@ -22,7 +22,7 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
     pub fn enqueue_state_update(&self, state_update: StateUpdate) -> Result<(), Error> {
         let range = state_update.get_range();
 
-        let _ = self.db.bucket(&Bytes::from(&"plasma_block_db"[..])).put(
+        self.db.bucket(&Bytes::from(&"plasma_block_db"[..])).put(
             range.get_start(),
             range.get_end(),
             &state_update.to_abi(),
@@ -67,7 +67,7 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
 
     pub fn save_block(&self, block: &PlasmaBlock) -> Result<(), Error> {
         let index = block.get_block_number();
-        let _ = self
+        self
             .db
             .bucket(&Bytes::from(&"plasma_block_db"[..]))
             .bucket(&Bytes::from(&"blocks"[..]))

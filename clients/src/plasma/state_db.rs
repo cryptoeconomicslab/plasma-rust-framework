@@ -55,11 +55,11 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
                 // split into two or three range if new range is subrange.
                 let intersection = result[0].get_intersection(start, end).unwrap();
                 let mut first_block =
-                    StateUpdate::from_abi(intersection.get_value().clone()).unwrap();
+                    StateUpdate::from_abi(intersection.get_value()).unwrap();
                 first_block.set_range(Range::new(range.get_start(), intersection.get_start()));
 
                 let mut third_block =
-                    StateUpdate::from_abi(intersection.get_value().clone()).unwrap();
+                    StateUpdate::from_abi(intersection.get_value()).unwrap();
                 third_block.set_range(Range::new(intersection.get_end(), range.get_end()));
 
                 let ranges = vec![

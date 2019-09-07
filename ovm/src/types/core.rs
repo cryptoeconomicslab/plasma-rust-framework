@@ -151,7 +151,7 @@ impl Property {
             IsDeprecatedDeciderInput::from_abi(data)
                 .map(|input| Property::IsDeprecatedDecider(Box::new(input)))
         } else if decider_id == DECIDER_LIST[10] {
-            OwnershipDeciderInput::from_abi(data).map(|input| Property::OwnershipDecider(input))
+            OwnershipDeciderInput::from_abi(data).map(Property::OwnershipDecider)
         } else {
             panic!("unknown decider")
         }

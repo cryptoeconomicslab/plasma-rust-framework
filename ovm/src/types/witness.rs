@@ -9,7 +9,7 @@ use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
 };
-use plasma_core::data_structure::{Range, Transaction};
+use plasma_core::data_structure::Range;
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct PlasmaDataBlock {
@@ -38,7 +38,7 @@ impl PlasmaDataBlock {
             root,
             is_included,
             predicate_address,
-            block_number: block_number,
+            block_number,
             data,
         }
     }

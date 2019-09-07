@@ -64,7 +64,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let contract_abi = ContractABI::load(reader).unwrap();
         let plasma_contract = PlasmaContractAdaptor::new(
             "http://127.0.0.1:9545",
-            &self.plasma_contract_address.clone().to_string(),
+            &self.plasma_contract_address.to_string(),
             contract_abi,
         )
         .unwrap();
@@ -80,8 +80,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
 
         let signature =
             SignVerifier::sign(&self.secret_key, &Bytes::from(transaction_params.to_abi()));
-        let signed_tx = Transaction::from_params(transaction_params, signature);
-        signed_tx
+        Transaction::from_params(transaction_params, signature)
     }
 
     /// Start exit on plasma. return exit property
@@ -108,7 +107,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let contract_abi = ContractABI::load(reader).unwrap();
         let plasma_contract = PlasmaContractAdaptor::new(
             "http://127.0.0.1:9545",
-            &self.plasma_contract_address.clone().to_string(),
+            &self.plasma_contract_address.to_string(),
             contract_abi,
         )
         .unwrap();

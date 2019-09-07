@@ -40,7 +40,7 @@ impl Decider for OwnershipDecider {
             db.get_transactions(state_update.get_block_number().0, state_update.get_range())?;
         println!("TXS: {:?}", txs);
 
-        if txs.len() == 0 {
+        if txs.is_empty() {
             return Err(Error::from(ErrorKind::CannotDecide));
         }
         for tx in txs.iter() {

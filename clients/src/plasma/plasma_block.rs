@@ -29,7 +29,7 @@ impl PlasmaBlock {
 
     pub fn get_root(&self) -> Option<Bytes> {
         if let Some(tree) = &self.tree {
-            Some(Bytes::from(tree.get_root()))
+            Some(tree.get_root())
         } else {
             None
         }
@@ -106,7 +106,7 @@ impl Decodable for PlasmaBlock {
                     tree: None,
                 })
             } else {
-                return Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode));
+                Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
             }
         } else {
             Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))

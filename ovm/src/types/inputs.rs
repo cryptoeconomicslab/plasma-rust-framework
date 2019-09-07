@@ -2,7 +2,6 @@ use super::core::{Integer, Property, PropertyFactory, Quantifier};
 use super::witness::PlasmaDataBlock;
 use super::StateUpdate;
 use crate::db::Message;
-use crate::error::Error;
 use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};

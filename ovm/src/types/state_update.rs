@@ -88,8 +88,8 @@ impl StateUpdate {
 
         Ok(Self {
             block_number: Integer::new(self.block_number.0 + 1),
-            range: transaction.get_range().clone(),
-            property_address: self.property_address.clone(),
+            range: transaction.get_range(),
+            property_address: self.property_address,
             params: transaction.get_parameters().clone(),
         })
     }

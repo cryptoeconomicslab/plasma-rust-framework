@@ -37,8 +37,8 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let my_address: Address = secret_key.public().address().into();
         let block_manager = BlockManager::new(
-            aggregator_address.clone(),
-            commitment_contract_address.clone(),
+            aggregator_address,
+            commitment_contract_address,
         );
 
         PlasmaAggregator {
@@ -77,7 +77,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
                 transaction.get_range().get_end(),
             )
             .unwrap();
-        if state_updates.len() == 0 {
+        if state_updates.is_empty() {
             return Err(Error::from(ErrorKind::InvalidTransaction));
         }
         let prev_state = &state_updates[0];
@@ -101,15 +101,15 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     }
 
     pub fn get_aggregator_addres(&self) -> Address {
-        self.aggregator_address.clone()
+        self.aggregator_address
     }
 
     pub fn get_commitment_contract_address(&self) -> Address {
-        self.commitment_contract_address.clone()
+        self.commitment_contract_address
     }
 
     pub fn get_plasma_contract_address(&self) -> Address {
-        self.plasma_contract_address.clone()
+        self.plasma_contract_address
     }
 
     pub fn show_queued_state_updates(&self) {
