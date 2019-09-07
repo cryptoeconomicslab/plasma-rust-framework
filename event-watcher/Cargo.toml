@@ -5,7 +5,6 @@ authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"
 
 [dependencies]
-web3 = { git = "https://github.com/cryptoeconomicslab/rust-web3", branch = 'ethabi-tuple' }
 ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
 futures = "0.1.27"
 tokio = "0.1.21"
@@ -13,3 +12,9 @@ serde = { version="1.0.90", features = ["derive"] }
 ethereum-types = "0.5.2"
 rlp = "0.4.0"
 plasma-db = { path = "../db" }
+
+[dependencies.web3]
+git = "https://github.com/cryptoeconomicslab/rust-web3"
+branch = 'ethabi-tuple'
+default-features = false
+features = ["http", "tls", "ws"]
