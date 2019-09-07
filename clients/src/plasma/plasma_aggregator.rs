@@ -36,10 +36,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         let raw_key = hex::decode(private_key).unwrap();
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let my_address: Address = secret_key.public().address().into();
-        let block_manager = BlockManager::new(
-            aggregator_address,
-            commitment_contract_address,
-        );
+        let block_manager = BlockManager::new(aggregator_address, commitment_contract_address);
 
         PlasmaAggregator {
             aggregator_address,

@@ -48,8 +48,8 @@ mod tests {
     use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
-        IncludedAtBlockInput, Integer, OwnershipDeciderInput, PlasmaDataBlock, PreimageExistsInput,
-        Property, StateUpdate, Witness,
+        IncludedAtBlockInput, Integer, OwnershipDeciderInput, PlasmaDataBlock, Property,
+        StateUpdate, Witness,
     };
     use bytes::Bytes;
     use ethereum_types::{Address, H256};

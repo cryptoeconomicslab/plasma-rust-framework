@@ -67,8 +67,7 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
 
     pub fn save_block(&self, block: &PlasmaBlock) -> Result<(), Error> {
         let index = block.get_block_number();
-        self
-            .db
+        self.db
             .bucket(&Bytes::from(&"plasma_block_db"[..]))
             .bucket(&Bytes::from(&"blocks"[..]))
             .put(index, index, &block.to_abi())?;
