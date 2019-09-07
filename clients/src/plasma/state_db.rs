@@ -119,15 +119,13 @@ mod tests {
     fn test_store() {
         let base_db = CoreDbMemoryImpl::open("test");
         let db = RangeDbImpl::from(base_db);
-        let mut state_db = StateDb::from(&db);
+        let mut state_db = StateDb::new(&db);
         let address: Address = Address::zero();
 
         let state_update = StateUpdate::new(
-            Integer::new(1),
             Range::new(0, 100),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Bytes::from(&b"root"[..]),
+            Integer::new(1),
         );
 
         let _ = state_db.put_verified_state_update(state_update);
@@ -139,23 +137,19 @@ mod tests {
     fn test_split() {
         let base_db = CoreDbMemoryImpl::open("test");
         let db = RangeDbImpl::from(base_db);
-        let mut state_db = StateDb::from(&db);
+        let mut state_db = StateDb::new(&db);
         let address: Address = Address::zero();
 
         let state_update = StateUpdate::new(
-            Integer::new(1),
             Range::new(0, 100),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Bytes::from(&b"root"[..]),
+            Integer::new(1),
         );
 
         let state_update2 = StateUpdate::new(
-            Integer::new(1),
             Range::new(0, 50),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi2"[..]), address)),
-            Bytes::from(&b"root"[..]),
+            Integer::new(1),
         );
 
         let _ = state_db.put_verified_state_update(state_update);

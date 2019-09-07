@@ -5,7 +5,7 @@ authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"
 
 [lib]
-path = "clients/src/lib.rs"
+path = "src/lib.rs"
 
 
 [workspace]

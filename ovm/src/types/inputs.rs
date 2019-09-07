@@ -200,6 +200,7 @@ pub struct OwnershipDeciderInput {
 }
 
 impl OwnershipDeciderInput {
+    // TODO: how to put stateupdate in state_update.property?
     pub fn new(state_update: StateUpdate, owner: Address) -> Self {
         Self {
             state_update,

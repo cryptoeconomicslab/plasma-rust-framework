@@ -12,19 +12,34 @@ use plasma_core::data_structure::abi::Encodable;
 use plasma_core::data_structure::{Range, StateUpdate, Transaction, TransactionParams};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
+use pubsub_messaging::{connect, ClientHandler, Message, Sender};
 use std::fs::File;
 use std::io::BufReader;
+
+#[derive(Clone)]
+struct Handle();
+
+impl ClientHandler for Handle {
+    fn handle_message(&self, msg: Message, _sender: Sender) {
+        println!("ClientHandler handle_message: {:?}", msg);
+    }
+}
 
 /// Plasma Client on OVM.
 pub struct PlasmaClient<KVS> {
     plasma_contract_address: Address,
     _db: KVS,
     secret_key: SecretKey,
+    aggregator_endpoint: &'static str,
     my_address: Address,
 }
 
 impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
-    pub fn new(plasma_contract_address: Address, private_key: &str) -> Self {
+    pub fn new(
+        plasma_contract_address: Address,
+        aggregator_endpoint: &'static str,
+        private_key: &str,
+    ) -> Self {
         let raw_key = hex::decode(private_key).unwrap();
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let my_address: Address = secret_key.public().address().into();
@@ -34,6 +49,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
             _db: KVS::open("plasma_db"),
             secret_key,
             my_address,
+            aggregator_endpoint,
         }
     }
 
@@ -73,6 +89,14 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         // TODO: decide property and claim property to contract
         // TODO: store as exit list
         create_plasma_property(block_number, range)
+    }
+
+    pub fn send_transaction(&self, transaction: Transaction) {
+        let mut handler = Handle();
+        let mut client = connect(&self.aggregator_endpoint, handler).unwrap();
+        let msg = Message::new("Aggregator".to_string(), transaction.to_abi());
+        client.send(msg);
+        client.handle.join();
     }
 
     /// Handle exit on plasma.

@@ -1,5 +1,5 @@
 [package]
-name = "clients"
+name = "plasma-clients"
 version = "0.1.0"
 authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"

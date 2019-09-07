@@ -87,14 +87,12 @@ mod tests {
 
     #[test]
     fn test_submit_next_block() {
-        let block_manager = BlockManager::<CoreDbMemoryImpl>::new();
+        let block_manager = BlockManager::<CoreDbMemoryImpl>::new(Address::zero(), Address::zero());
         let address: Address = Address::zero();
         let plasma_data_block = StateUpdate::new(
-            Integer::new(1),
             Range::new(0, 100),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Bytes::from(&b"root"[..]),
+            Integer::new(1),
         );
 
         block_manager.enqueue_state_update(plasma_data_block);

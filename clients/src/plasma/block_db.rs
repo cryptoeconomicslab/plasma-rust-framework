@@ -95,11 +95,9 @@ mod tests {
         let address: Address = Address::zero();
 
         let state_update = StateUpdate::new(
-            Integer::new(1),
             Range::new(0, 100),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Bytes::from(&b"root"[..]),
+            Integer::new(1),
         );
 
         let _ = block_db.enqueue_state_update(state_update);
@@ -115,21 +113,21 @@ mod tests {
         let address: Address = Address::zero();
 
         let state_update = StateUpdate::new(
-            Integer::new(1),
             Range::new(0, 10),
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
+            Integer::new(1),
         );
 
         let state_update2 = StateUpdate::new(
-            Integer::new(1),
             Range::new(10, 100),
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
+            Integer::new(1),
         );
 
         let state_update3 = StateUpdate::new(
-            Integer::new(1),
             Range::new(100, 115),
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
+            Integer::new(1),
         );
 
         let _ = block_db.enqueue_state_update(state_update);
@@ -147,27 +145,21 @@ mod tests {
         let address: Address = Address::zero();
 
         let state_update = StateUpdate::new(
-            Integer::new(1),
             Range::new(0, 10),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Bytes::from(&b"root"[..]),
+            Integer::new(1),
         );
 
         let state_update2 = StateUpdate::new(
-            Integer::new(1),
             Range::new(10, 100),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Bytes::from(&b"root"[..]),
+            Integer::new(1),
         );
 
         let state_update3 = StateUpdate::new(
-            Integer::new(1),
             Range::new(100, 115),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Bytes::from(&b"root"[..]),
+            Integer::new(1),
         );
 
         let _ = block_db.enqueue_state_update(state_update);
@@ -185,27 +177,21 @@ mod tests {
         let address: Address = Address::zero();
 
         let state_update = StateUpdate::new(
-            Integer::new(1),
             Range::new(0, 10),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Bytes::from(&b"root"[..]),
+            Integer::new(1),
         );
 
         let state_update2 = StateUpdate::new(
-            Integer::new(1),
             Range::new(10, 100),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Bytes::from(&b"root"[..]),
+            Integer::new(1),
         );
 
         let state_update3 = StateUpdate::new(
-            Integer::new(1),
             Range::new(100, 115),
-            true,
             Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Bytes::from(&b"root"[..]),
+            Integer::new(1),
         );
 
         let _ = block_db.enqueue_state_update(state_update);

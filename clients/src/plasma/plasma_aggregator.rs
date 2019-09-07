@@ -1,10 +1,13 @@
 use super::block_manager::BlockManager;
 use super::error::{Error, ErrorKind};
 use super::state_db::StateDb;
+use bytes::Bytes;
 use ethereum_types::Address;
 use ethsign::SecretKey;
 use ovm::db::TransactionDb;
-use plasma_core::data_structure::Transaction;
+use ovm::types::core::{Integer, Property};
+use ovm::types::{SignedByInput, StateUpdate};
+use plasma_core::data_structure::{Range, Transaction};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
@@ -68,6 +71,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
                 transaction.get_range().get_end(),
             )
             .unwrap();
+        if state_updates.len() == 0 {
+            return Err(Error::from(ErrorKind::InvalidTransaction));
+        }
         let prev_state = &state_updates[0];
         if !prev_state.get_range().is_subrange(&transaction.get_range()) {
             return Err(Error::from(ErrorKind::InvalidTransaction));
@@ -105,5 +111,18 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
 
     pub fn show_queued_state_updates(&self) {
         println!("{:?}", self.block_manager.get_queued_state_updates());
+    }
+
+    pub fn insert_test_ranges(&mut self) {
+        let mut state_db = StateDb::new(&self.range_db);
+        let address = Address::zero();
+        for i in 0..5 {
+            let state_update = StateUpdate::new(
+                Range::new(i * 10, (i + 1) * 10),
+                Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
+                Integer::new(1),
+            );
+            state_db.put_verified_state_update(state_update);
+        }
     }
 }
