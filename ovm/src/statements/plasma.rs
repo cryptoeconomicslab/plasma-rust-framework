@@ -1,9 +1,8 @@
 use crate::types::{
-    BlockRangeQuantifierInput, ForAllSuchThatInput, IncludedAtBlockInput, Integer,
-    IsDeprecatedDeciderInput, Property, PropertyFactory, Quantifier, QuantifierResultItem,
-    StateUpdate,
+    BlockRangeQuantifierInput, ForAllSuchThatInput, Integer, IsDeprecatedDeciderInput, Property,
+    PropertyFactory, Quantifier, QuantifierResultItem, StateUpdate,
 };
-use plasma_core::data_structure::{Range, Transaction};
+use plasma_core::data_structure::Range;
 
 /// Creates plasma checkpoint property
 /// for all b such that b < block_number:

@@ -1,6 +1,6 @@
-use super::core::{Integer, Property};
+use super::core::Integer;
 // TODO: use general verifier.
-use super::super::deciders::SignVerifier;
+// use super::super::deciders::SignVerifier;
 use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};

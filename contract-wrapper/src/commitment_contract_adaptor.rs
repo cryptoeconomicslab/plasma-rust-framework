@@ -1,10 +1,6 @@
 use crate::error::{Error, ErrorKind};
 use bytes::Bytes;
 use ethabi::Contract as ContractABI;
-use ethabi::Token;
-use ethereum_types::U256;
-use ovm::types::core::Property;
-use plasma_core::data_structure::{Range, StateUpdate};
 use web3::contract::{Contract, Options};
 use web3::futures::Future;
 use web3::transports::{EventLoopHandle, Http};

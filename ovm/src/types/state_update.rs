@@ -66,7 +66,7 @@ impl StateUpdate {
         self.params.clone()
     }
 
-    pub fn verify_state_transition(&self, transaction: &Transaction) -> bool {
+    pub fn verify_state_transition(&self, _transaction: &Transaction) -> bool {
         let decider = PropertyExecutor::<CoreDbMemoryImpl>::default();
         let address = self.get_property_address();
         let property = Property::get_generalized_plasma_property(address, self.clone());

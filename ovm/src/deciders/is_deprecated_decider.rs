@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, IsDeprecatedDeciderInput, Property, StateUpdate};
+use crate::types::{Decider, Decision, IsDeprecatedDeciderInput, Property};
 use crate::DecideMixin;
 use plasma_db::traits::kvs::KeyValueStore;
 

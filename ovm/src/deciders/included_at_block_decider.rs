@@ -4,9 +4,7 @@ use crate::property_executor::PropertyExecutor;
 use crate::types::{
     Decider, Decision, ImplicationProofElement, IncludedAtBlockInput, Property, Witness,
 };
-use bytes::Bytes;
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
-use plasma_core::data_structure::abi::Encodable;
 use plasma_db::traits::kvs::KeyValueStore;
 
 /// IncludedAtBlock is decider which decide inclusion of data in merkle interval tree

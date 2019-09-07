@@ -92,11 +92,11 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     }
 
     pub fn send_transaction(&self, transaction: Transaction) {
-        let mut handler = Handle();
+        let handler = Handle();
         let mut client = connect(&self.aggregator_endpoint, handler).unwrap();
         let msg = Message::new("Aggregator".to_string(), transaction.to_abi());
         client.send(msg);
-        client.handle.join();
+        assert!(client.handle.join().is_ok());
     }
 
     /// Handle exit on plasma.
