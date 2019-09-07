@@ -42,7 +42,7 @@ fn main() {
         .lock()
         .unwrap()
         .show_queued_state_updates();
-    if let Ok(server) = spawn_server("127.0.0.1:8080", handle) {
+    if let Ok(server) = spawn_server("127.0.0.1:8080".to_owned(), handle) {
         let _ = server.handle.join();
     }
 }
