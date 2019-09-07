@@ -66,7 +66,10 @@ impl KeyValueStore for CoreDb {
         let mut batch: Writebatch<BaseDbKey> = Writebatch::new();
         for op in operations.iter() {
             match op {
-                Batch::BatchPut { key, value } => batch.put(key.clone(), value),
+                Batch::BatchPut { key, value } => {
+                    println!("leveldb put {:?}", key);
+                    batch.put(key.clone(), value);
+                }
                 Batch::BatchDel { key } => batch.delete(key.clone()),
             }
         }
@@ -81,6 +84,7 @@ impl KeyValueStore for CoreDb {
         start: &BaseDbKey,
         mut f: Box<dyn FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
     ) -> Vec<KeyValue> {
+        println!("leveldb get {:?}, {:?}", prefix, start);
         let read_lock = self.db.read();
         let iter = read_lock.iter(ReadOptions::new());
         let mut result = vec![];

@@ -68,7 +68,7 @@ impl Server {
 /// #[derive(Clone)]
 /// pub struct Handle();
 /// impl ServerHandler for Handle {
-///     fn handle_message(&self, msg: Message, sender: Sender) {
+///     fn handle_message(&mut self, msg: Message, sender: Sender) {
 ///         println!("{:?}", msg)
 ///     }
 /// }

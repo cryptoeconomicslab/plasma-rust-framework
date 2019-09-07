@@ -1,5 +1,6 @@
 use super::core::{Integer, Property, PropertyFactory, Quantifier};
 use super::witness::PlasmaDataBlock;
+use super::StateUpdate;
 use crate::db::Message;
 use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
@@ -193,6 +194,50 @@ impl BlockRangeQuantifierInput {
     }
 }
 
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+pub struct IsDeprecatedDeciderInput {
+    state_update: StateUpdate,
+}
+
+impl IsDeprecatedDeciderInput {
+    pub fn new(state_update: StateUpdate) -> Self {
+        Self { state_update }
+    }
+
+    pub fn get_state_update(&self) -> StateUpdate {
+        self.state_update.clone()
+    }
+}
+
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+pub struct OwnershipDeciderInput {
+    state_update: StateUpdate,
+}
+
+impl OwnershipDeciderInput {
+    // TODO: how to put stateupdate in state_update.property?
+    pub fn new(state_update: StateUpdate) -> Self {
+        Self { state_update }
+    }
+
+    pub fn get_state_update(&self) -> StateUpdate {
+        self.state_update.clone()
+    }
+
+    pub fn get_owner_address(&self) -> Address {
+        //let mut slice: [u8; 20] = Default::default();
+        //slice.copy_from_slice(&self.state_update.get_params()[0..20]);
+        println!("get_owner_address {:?}", self.state_update.get_params());
+        Address::from_slice(&self.state_update.get_params()[0..20])
+    }
+
+    pub fn zero() -> Self {
+        let state_update = StateUpdate::default();
+        Self { state_update }
+    }
+}
+
+/*
 #[cfg(test)]
 mod tests {
 
@@ -231,3 +276,5 @@ mod tests {
         assert_eq!(decoded.get_block_number(), input.get_block_number());
     }
 }
+
+*/

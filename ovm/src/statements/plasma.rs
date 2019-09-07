@@ -1,6 +1,6 @@
 use crate::types::{
-    BlockRangeQuantifierInput, ForAllSuchThatInput, IncludedAtBlockInput, Integer, Property,
-    PropertyFactory, Quantifier, QuantifierResultItem,
+    BlockRangeQuantifierInput, ForAllSuchThatInput, Integer, IsDeprecatedDeciderInput, Property,
+    PropertyFactory, Quantifier, QuantifierResultItem, StateUpdate,
 };
 use plasma_core::data_structure::Range;
 
@@ -25,10 +25,13 @@ pub fn create_coin_range_property(block_number: Integer, range: Range) -> Proper
     Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
         Quantifier::BlockRangeQuantifier(BlockRangeQuantifierInput::new(block_number, range)),
         Some(PropertyFactory::new(Box::new(move |item| {
+            // TODO: fix
+            // IsDeprecatedDecider(IsdeprecatedDeciderInput(state_update))
+            // IsDeprecatedDecider = input.state_update.property.decide()
             if let QuantifierResultItem::PlasmaDataBlock(plasma_data_block) = item {
-                Property::IncludedAtBlockDecider(Box::new(IncludedAtBlockInput::new(
-                    block_number,
-                    plasma_data_block.clone(),
+                println!("create_coin_range_property {:?}", block_number);
+                Property::IsDeprecatedDecider(Box::new(IsDeprecatedDeciderInput::new(
+                    StateUpdate::from(plasma_data_block),
                 )))
             } else {
                 panic!("invalid type in PropertyFactory");
@@ -41,40 +44,56 @@ pub fn create_coin_range_property(block_number: Integer, range: Range) -> Proper
 mod tests {
 
     use super::create_plasma_property;
-    use crate::db::RangeAtBlockDb;
+    use crate::db::{RangeAtBlockDb, TransactionDb};
+    use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
-        IncludedAtBlockInput, Integer, PlasmaDataBlock, PreimageExistsInput, Property, Witness,
+        IncludedAtBlockInput, Integer, OwnershipDeciderInput, PlasmaDataBlock, Property,
+        StateUpdate, Witness,
     };
     use bytes::Bytes;
-    use ethereum_types::H256;
+    use ethereum_types::{Address, H256};
+    use ethsign::SecretKey;
     use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
     use plasma_core::data_structure::abi::Encodable;
-    use plasma_core::data_structure::Range;
+    use plasma_core::data_structure::{Range, Transaction, TransactionParams};
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
     use plasma_db::traits::kvs::KeyValueStore;
 
     fn store_inclusion_witness<KVS: KeyValueStore>(decider: &PropertyExecutor<KVS>) {
         let db = RangeAtBlockDb::new(decider.get_range_db());
+        let tx_db = TransactionDb::new(decider.get_range_db());
         for i in 0..10 {
             let block_number = Integer(i);
-            store_an_inclusion_witness(&db, block_number, i % 2 == 0);
+            store_an_inclusion_witness(&db, &tx_db, block_number, i % 2 == 0);
         }
     }
 
     fn store_an_inclusion_witness<KVS: KeyValueStore>(
         db: &RangeAtBlockDb<KVS>,
+        tx_db: &TransactionDb<KVS>,
         block_number: Integer,
         inclusion: bool,
     ) {
+        let raw_key =
+            hex::decode("c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3")
+                .unwrap();
+        let secret_key = SecretKey::from_raw(&raw_key).unwrap();
+        let alice: Address = secret_key.public().address().into();
         let property =
-            Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(H256::zero())));
+            Property::OwnershipDecider(OwnershipDeciderInput::new(StateUpdate::default()));
         let mut leaves = vec![];
         for i in 0..100 {
+            let state_update = StateUpdate::new(
+                block_number,
+                Range::new(i * 30, i * 30 + 100),
+                property.get_decider_id(),
+                Bytes::from(alice.as_bytes()),
+            );
             leaves.push(MerkleIntervalNode::Leaf {
                 end: i * 30 + 100,
                 data: if inclusion {
-                    Bytes::from(property.to_abi())
+                    Bytes::from(state_update.to_abi())
                 } else {
                     Bytes::from(H256::zero().as_bytes())
                 },
@@ -83,17 +102,33 @@ mod tests {
         let tree = MerkleIntervalTree::generate(&leaves);
         let root = tree.get_root();
         let inclusion_proof = tree.get_inclusion_proof(0, 100);
-        let plasma_data_block: PlasmaDataBlock = PlasmaDataBlock::new(
-            Integer(0),
-            Range::new(0, 100),
-            root.clone(),
-            inclusion,
-            property,
+        if let MerkleIntervalNode::Leaf { data, .. } = &leaves[0] {
+            let plasma_data_block: PlasmaDataBlock = PlasmaDataBlock::new(
+                Integer(0),
+                Range::new(0, 100),
+                root.clone(),
+                inclusion,
+                property.get_decider_id(),
+                block_number,
+                data.clone(),
+            );
+            let witness =
+                Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, plasma_data_block.clone());
+            let input = IncludedAtBlockInput::new(block_number, plasma_data_block.clone());
+            assert!(db.store_witness(&input, &witness).is_ok());
+        }
+        let tx_body =
+            TransactionParams::new(Address::zero(), Range::new(0, 100), Bytes::default()).to_abi();
+        let signature = SignatureVerifier::sign(&secret_key, &Bytes::from(tx_body));
+        tx_db.put_transaction(
+            block_number.0,
+            Transaction::new(
+                Address::zero(),
+                Range::new(0, 100),
+                Bytes::default(),
+                signature,
+            ),
         );
-        let witness =
-            Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, plasma_data_block.clone());
-        let input = IncludedAtBlockInput::new(block_number, plasma_data_block.clone());
-        assert!(db.store_witness(&input, &witness).is_ok());
     }
 
     /// plasma

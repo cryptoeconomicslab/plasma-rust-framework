@@ -10,5 +10,4 @@ pub use self::range::Range;
 pub use self::state_object::StateObject;
 pub use self::state_query::{StateQuery, StateQueryResult};
 pub use self::state_update::StateUpdate;
-pub use self::transaction::Transaction;
-pub use self::transaction::Witness;
+pub use self::transaction::{Transaction, TransactionParams};

@@ -1,16 +1,23 @@
 [package]
-name = "ovm-clients"
+name = "plasma-clients"
 version = "0.1.0"
 authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"
 
 [dependencies]
 bytes = "0.4.12"
+ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
 ethereum-types = "^0.5.2"
 hex = "0.3.1"
 ovm = { path = "../ovm" }
 plasma-core = { path = "../core" }
 plasma-db = { path = "../db" }
+contract-wrapper = { path = "../contract-wrapper" }
+failure = "0.1.5"
+merkle-interval-tree = { path = "../merkle-interval-tree" }
+tiny-keccak = "1.4.2"
+bincode = "*"
+pubsub-messaging = { path = "../pubsub-messaging" }
 
 [dependencies.ethsign]
 version = "0.6.1"

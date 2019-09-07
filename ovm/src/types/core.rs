@@ -1,8 +1,10 @@
 use super::inputs::{
     AndDeciderInput, BlockRangeQuantifierInput, ChannelUpdateSignatureExistsDeciderInput,
     ForAllSuchThatInput, HasLowerNonceInput, IncludedAtBlockInput, IntegerRangeQuantifierInput,
-    NotDeciderInput, OrDeciderInput, PreimageExistsInput, SignedByInput,
+    IsDeprecatedDeciderInput, NotDeciderInput, OrDeciderInput, OwnershipDeciderInput,
+    PreimageExistsInput, SignedByInput,
 };
+use super::state_update::StateUpdate;
 use super::witness::{PlasmaDataBlock, Witness};
 use crate::db::Message;
 use crate::error::Error;
@@ -48,7 +50,7 @@ impl From<Bytes> for Integer {
 lazy_static! {
     static ref DECIDER_LIST: Vec<Address> = {
         let mut list = vec![];
-        for _ in 0..10 {
+        for _ in 0..11 {
             list.push(Address::random())
         }
         list
@@ -75,6 +77,8 @@ pub enum Property {
     // channelId, nonce, participant
     ChannelUpdateSignatureExistsDecider(ChannelUpdateSignatureExistsDeciderInput),
     IncludedAtBlockDecider(Box<IncludedAtBlockInput>),
+    OwnershipDecider(OwnershipDeciderInput),
+    IsDeprecatedDecider(Box<IsDeprecatedDeciderInput>),
 }
 
 #[derive(Clone, Debug)]
@@ -101,6 +105,8 @@ impl Property {
             Property::HasLowerNonceDecider(_) => DECIDER_LIST[6],
             Property::ChannelUpdateSignatureExistsDecider(_) => DECIDER_LIST[7],
             Property::IncludedAtBlockDecider(_) => DECIDER_LIST[8],
+            Property::IsDeprecatedDecider(_) => DECIDER_LIST[9],
+            Property::OwnershipDecider(_) => DECIDER_LIST[10],
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -114,6 +120,8 @@ impl Property {
             Property::HasLowerNonceDecider(input) => input.to_abi(),
             Property::ChannelUpdateSignatureExistsDecider(input) => input.to_abi(),
             Property::IncludedAtBlockDecider(input) => input.to_abi(),
+            Property::IsDeprecatedDecider(input) => input.to_abi(),
+            Property::OwnershipDecider(input) => input.to_abi(),
         }
     }
     fn from_bytes(decider_id: Address, data: &[u8]) -> Result<Self, PlasmaCoreError> {
@@ -139,8 +147,23 @@ impl Property {
         } else if decider_id == DECIDER_LIST[8] {
             IncludedAtBlockInput::from_abi(data)
                 .map(|input| Property::IncludedAtBlockDecider(Box::new(input)))
+        } else if decider_id == DECIDER_LIST[9] {
+            IsDeprecatedDeciderInput::from_abi(data)
+                .map(|input| Property::IsDeprecatedDecider(Box::new(input)))
+        } else if decider_id == DECIDER_LIST[10] {
+            OwnershipDeciderInput::from_abi(data).map(Property::OwnershipDecider)
         } else {
             panic!("unknown decider")
+        }
+    }
+    pub fn get_generalized_plasma_property(
+        decider_id: Address,
+        state_update: StateUpdate,
+    ) -> Property {
+        if decider_id == DECIDER_LIST[10] {
+            Property::OwnershipDecider(OwnershipDeciderInput::new(state_update))
+        } else {
+            panic!("NO GENERALIZED PLASMA PROPERTY MATCHED!!")
         }
     }
 }

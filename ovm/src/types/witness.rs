@@ -1,8 +1,10 @@
-use super::core::{Integer, Property};
+use super::core::Integer;
+// TODO: use general verifier.
+// use super::super::deciders::SignVerifier;
 use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
-use ethereum_types::U256;
+use ethereum_types::{Address, U256};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
@@ -15,7 +17,9 @@ pub struct PlasmaDataBlock {
     updated_range: Range,
     root: Bytes,
     is_included: bool,
-    property: Property,
+    predicate_address: Address,
+    block_number: Integer,
+    data: Bytes,
 }
 
 impl PlasmaDataBlock {
@@ -24,14 +28,18 @@ impl PlasmaDataBlock {
         updated_range: Range,
         root: Bytes,
         is_included: bool,
-        property: Property,
+        predicate_address: Address,
+        block_number: Integer,
+        data: Bytes,
     ) -> Self {
         Self {
             index,
             updated_range,
             root,
             is_included,
-            property,
+            predicate_address,
+            block_number,
+            data,
         }
     }
     pub fn get_index(&self) -> usize {
@@ -40,15 +48,42 @@ impl PlasmaDataBlock {
     pub fn get_updated_range(&self) -> Range {
         self.updated_range
     }
+
+    pub fn set_updated_range(&mut self, range: Range) {
+        self.updated_range = range;
+    }
+
     pub fn get_is_included(&self) -> bool {
         self.is_included
     }
-    pub fn get_property(&self) -> &Property {
-        &self.property
+    pub fn get_decider_id(&self) -> Address {
+        self.predicate_address
     }
     pub fn get_root(&self) -> &Bytes {
         &self.root
     }
+    pub fn get_block_number(&self) -> Integer {
+        self.block_number
+    }
+    pub fn get_data(&self) -> &Bytes {
+        &self.data
+    }
+
+    //    pub fn verify_deprecation(&self, transaction: &Transaction) -> bool {
+    //        if let Property::SignedByDecider(input) = &self.property {
+    //            if SignVerifier::recover(
+    //                transaction.get_signature(),
+    //                &Bytes::from(transaction.to_body_abi()),
+    //            ) == input.get_public_key()
+    //            {
+    //                return true;
+    //            }
+    //            false
+    //        } else {
+    //            // TODO: implement how to verify_deprecation using other.decider
+    //            false
+    //        }
+    //    }
 }
 
 #[allow(clippy::large_enum_variant)]
