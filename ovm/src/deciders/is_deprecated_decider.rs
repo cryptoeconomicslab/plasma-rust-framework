@@ -14,8 +14,9 @@ impl Decider for IsDeprecatedDecider {
     ) -> Result<Decision, Error> {
         let state_update = input.get_state_update();
         let address = state_update.get_property_address();
-//        let property = Property::get_generalized_plasma_property(address, state_update)
-//        let decided = property.decide(decider)
+        let property = Property::get_generalized_plasma_property(address, state_update);
+        let decided = property.decide(decider);
+        assert!(decided.is_ok());
         Ok(Decision::new(true, vec![]))
     }
 }

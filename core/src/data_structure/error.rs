@@ -18,6 +18,8 @@ pub enum ErrorKind {
     Io,
     #[fail(display = "ABI Decode error")]
     AbiDecode,
+    #[fail(display = "Invalid Transaction")]
+    InvalidTransaction,
 }
 
 #[derive(Debug)]

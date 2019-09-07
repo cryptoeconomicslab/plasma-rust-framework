@@ -2,7 +2,7 @@ use crate::property_executor::PropertyExecutor;
 use crate::types::core::{Integer, Property};
 use crate::types::PlasmaDataBlock;
 use crate::DecideMixin;
-use abi_derive::{AbiEncodable, AbiDecodable};
+use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::Address;
@@ -19,14 +19,21 @@ pub struct StateUpdate {
     block_number: Integer,
     range: Range,
     property_address: Address,
+    params: Bytes,
 }
 
 impl StateUpdate {
-    pub fn new(block_number: Integer, range: Range, property_address: Address) -> Self {
+    pub fn new(
+        block_number: Integer,
+        range: Range,
+        property_address: Address,
+        params: Bytes,
+    ) -> Self {
         Self {
             block_number,
             range,
             property_address,
+            params,
         }
     }
 
@@ -55,14 +62,17 @@ impl StateUpdate {
         Bytes::from(&res[..])
     }
 
+    pub fn get_params(&self) -> Bytes {
+        self.params.clone()
+    }
+
     pub fn verify_state_transition(&self, transaction: &Transaction) -> bool {
-//        let decider = PropertyExecutor::<CoreDbMemoryImpl>::default();
-//        let res = self.property.decide(&decider);
-//        match res {
-//            Ok(decision) => decision.get_outcome(),
-//            Err(_) => false,
-//        }
-        false
+        let decider = PropertyExecutor::<CoreDbMemoryImpl>::default();
+        let address = self.get_property_address();
+        let property = Property::get_generalized_plasma_property(address, self.clone());
+        let decided = property.decide(&decider);
+        println!("decided: {:?}", decided);
+        decided.is_ok()
     }
 
     /// validate transaction and state update.
@@ -70,13 +80,17 @@ impl StateUpdate {
         &self,
         transaction: &Transaction,
     ) -> Result<Self, PlasmaCoreError> {
-        // TODO: switch using self.property.
-        // now just transition ownership.
+        if !self.verify_state_transition(transaction) {
+            return Err(PlasmaCoreError::from(
+                PlasmaCoreErrorKind::InvalidTransaction,
+            ));
+        }
 
         Ok(Self {
             block_number: Integer::new(self.block_number.0 + 1),
             range: transaction.get_range().clone(),
             property_address: self.property_address.clone(),
+            params: transaction.get_parameters().clone(),
         })
     }
 }
@@ -87,6 +101,18 @@ impl From<PlasmaDataBlock> for StateUpdate {
             plasma_data_block.get_block_number(),
             plasma_data_block.get_updated_range(),
             plasma_data_block.get_property().clone().get_decider_id(),
+            Bytes::new(), // TODO: save params in PlasmaDataBlock
         )
+    }
+}
+
+impl Default for StateUpdate {
+    fn default() -> Self {
+        Self {
+            block_number: Integer::new(0),
+            range: Range::new(0, 0),
+            property_address: Address::zero(),
+            params: Bytes::new(),
+        }
     }
 }

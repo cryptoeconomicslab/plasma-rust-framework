@@ -1,6 +1,7 @@
 use crate::types::{
-    BlockRangeQuantifierInput, ForAllSuchThatInput, IncludedAtBlockInput, IsDeprecatedDeciderInput, Integer, Property,
-    PropertyFactory, Quantifier, QuantifierResultItem, StateUpdate
+    BlockRangeQuantifierInput, ForAllSuchThatInput, IncludedAtBlockInput, Integer,
+    IsDeprecatedDeciderInput, Property, PropertyFactory, Quantifier, QuantifierResultItem,
+    StateUpdate,
 };
 use plasma_core::data_structure::Range;
 
@@ -30,7 +31,7 @@ pub fn create_coin_range_property(block_number: Integer, range: Range) -> Proper
             // IsDeprecatedDecider = input.state_update.property.decide()
             if let QuantifierResultItem::PlasmaDataBlock(plasma_data_block) = item {
                 Property::IsDeprecatedDecider(Box::new(IsDeprecatedDeciderInput::new(
-                    StateUpdate::from(plasma_data_block)
+                    StateUpdate::from(plasma_data_block),
                 )))
             } else {
                 panic!("invalid type in PropertyFactory");
@@ -94,6 +95,7 @@ mod tests {
             inclusion,
             property,
             root.clone(),
+            Integer(10),
         );
         let exclusion_plasma_data_block: PlasmaDataBlock = PlasmaDataBlock::new(
             Integer(0),
@@ -101,6 +103,7 @@ mod tests {
             false,
             dammy_property,
             root.clone(),
+            Integer(10),
         );
         let witness =
             Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, plasma_data_block.clone());

@@ -46,7 +46,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
 
         PlasmaClient {
             plasma_contract_address,
-            _db: KVS::open("plasma_db"),
+            _db: KVS::open("kvs"),
             secret_key,
             my_address,
             aggregator_endpoint,

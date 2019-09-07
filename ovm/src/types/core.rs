@@ -1,9 +1,10 @@
 use super::inputs::{
     AndDeciderInput, BlockRangeQuantifierInput, ChannelUpdateSignatureExistsDeciderInput,
     ForAllSuchThatInput, HasLowerNonceInput, IncludedAtBlockInput, IntegerRangeQuantifierInput,
-    NotDeciderInput, OrDeciderInput, OwnershipDeciderInput, PreimageExistsInput, SignedByInput,
-    IsDeprecatedDeciderInput
+    IsDeprecatedDeciderInput, NotDeciderInput, OrDeciderInput, OwnershipDeciderInput,
+    PreimageExistsInput, SignedByInput,
 };
+use super::state_update::StateUpdate;
 use super::witness::{PlasmaDataBlock, Witness};
 use crate::db::Message;
 use crate::error::Error;
@@ -76,7 +77,7 @@ pub enum Property {
     // channelId, nonce, participant
     ChannelUpdateSignatureExistsDecider(ChannelUpdateSignatureExistsDeciderInput),
     IncludedAtBlockDecider(Box<IncludedAtBlockInput>),
-    OwnershipDecider(Box<OwnershipDeciderInput>),
+    OwnershipDecider(OwnershipDeciderInput),
     IsDeprecatedDecider(Box<IsDeprecatedDeciderInput>),
 }
 
@@ -150,10 +151,19 @@ impl Property {
             IsDeprecatedDeciderInput::from_abi(data)
                 .map(|input| Property::IsDeprecatedDecider(Box::new(input)))
         } else if decider_id == DECIDER_LIST[10] {
-            OwnershipDeciderInput::from_abi(data)
-                .map(|input| Property::OwnershipDecider(Box::new(input)))
+            OwnershipDeciderInput::from_abi(data).map(|input| Property::OwnershipDecider(input))
         } else {
             panic!("unknown decider")
+        }
+    }
+    pub fn get_generalized_plasma_property(
+        decider_id: Address,
+        state_update: StateUpdate,
+    ) -> Property {
+        if decider_id == DECIDER_LIST[10] {
+            Property::OwnershipDecider(OwnershipDeciderInput::new(state_update))
+        } else {
+            panic!("NO GENERALIZED PLASMA PROPERTY MATCHED!!")
         }
     }
 }

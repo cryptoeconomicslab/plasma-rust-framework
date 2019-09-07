@@ -27,7 +27,7 @@ impl PlasmaDataBlock {
         is_included: bool,
         property: Property,
         root: Bytes,
-        block_number: u64,
+        block_number: Integer,
     ) -> Self {
         Self {
             index,
@@ -35,7 +35,7 @@ impl PlasmaDataBlock {
             is_included,
             property,
             root,
-            block_number: Integer::new(block_number),
+            block_number: block_number,
         }
     }
     pub fn get_index(&self) -> usize {

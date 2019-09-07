@@ -1,8 +1,10 @@
 use crate::db::TransactionDb;
-use crate::error::Error;
+use crate::deciders::signed_by_decider::Verifier;
+use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{Decider, Decision, OwnershipDeciderInput, Property};
 use crate::DecideMixin;
+use bytes::Bytes;
 use plasma_core::data_structure::{StateUpdate, Transaction};
 use plasma_db::traits::kvs::KeyValueStore;
 
@@ -36,14 +38,21 @@ impl Decider for OwnershipDecider {
     ) -> Result<Decision, Error> {
         let db: TransactionDb<T> = TransactionDb::new(decider.get_range_db());
         let state_update = input.get_state_update();
-        let witness =
+        let txs =
             db.get_transactions(state_update.get_block_number().0, state_update.get_range())?;
+        println!("TXS: {:?}", txs);
 
-        // TODO: verify signature.
-        if true {
-            Ok(Decision::new(true, vec![]))
-        } else {
-            panic!("invalid witness");
+        if txs.len() == 0 {
+            return Err(Error::from(ErrorKind::CannotDecide));
         }
+        for tx in txs.iter() {
+            if Verifier::recover(tx.get_signature(), &Bytes::from(tx.to_body_abi()))
+                == input.get_owner_address()
+            {
+                return Ok(Decision::new(true, vec![]));
+            }
+        }
+
+        Ok(Decision::new(false, vec![]))
     }
 }

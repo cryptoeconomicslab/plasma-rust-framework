@@ -22,7 +22,7 @@ impl ServerHandler for Handle {
 }
 
 fn main() {
-    let db = CoreDbMemoryImpl::open("aggregator_db");
+    let db = CoreDbMemoryImpl::open("kvs");
     let range_db = RangeDbImpl::from(db);
     let mut aggregator = PlasmaAggregator::new(
         Address::zero(),

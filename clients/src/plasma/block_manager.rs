@@ -75,29 +75,3 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
         self.current_block_number + 1
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::BlockManager;
-    use bytes::Bytes;
-    use ethereum_types::Address;
-    use ovm::types::{Integer, Property, SignedByInput, StateUpdate};
-    use plasma_core::data_structure::Range;
-    use plasma_db::impls::kvs::memory::CoreDbMemoryImpl;
-
-    #[test]
-    fn test_submit_next_block() {
-        let block_manager = BlockManager::<CoreDbMemoryImpl>::new(Address::zero(), Address::zero());
-        let address: Address = Address::zero();
-        let plasma_data_block = StateUpdate::new(
-            Range::new(0, 100),
-            Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address)),
-            Integer::new(1),
-        );
-
-        block_manager.enqueue_state_update(plasma_data_block);
-        block_manager.submit_next_block();
-        assert!(false);
-    }
-
-}

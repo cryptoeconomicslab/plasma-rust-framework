@@ -1,7 +1,8 @@
 use crate::db::MessageDb;
 use crate::deciders::{
-    AndDecider, ForAllSuchThatDecider, HasLowerNonceDecider, IncludedAtBlockDecider, NotDecider,
-    OrDecider, OwnershipDecider, PreimageExistsDecider, SignedByDecider, IsDeprecatedDecider,
+    AndDecider, ForAllSuchThatDecider, HasLowerNonceDecider, IncludedAtBlockDecider,
+    IsDeprecatedDecider, NotDecider, OrDecider, OwnershipDecider, PreimageExistsDecider,
+    SignedByDecider,
 };
 use crate::error::Error;
 use crate::quantifiers::{

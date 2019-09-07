@@ -6,7 +6,7 @@ use ethereum_types::Address;
 use ethsign::SecretKey;
 use ovm::db::TransactionDb;
 use ovm::types::core::{Integer, Property};
-use ovm::types::{SignedByInput, StateUpdate};
+use ovm::types::{OwnershipDeciderInput, SignedByInput, StateUpdate};
 use plasma_core::data_structure::{Range, Transaction};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -64,6 +64,12 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     // - handle multi prev_states case.
     // - fix decide logic for state transition.
     pub fn ingest_transaction(&mut self, transaction: Transaction) -> Result<(), Error> {
+        let transaction_db = TransactionDb::new(&self.range_db);
+        transaction_db.put_transaction(
+            self.block_manager.get_next_block_number(),
+            transaction.clone(),
+        );
+
         let state_db = StateDb::new(&self.range_db);
         let state_updates = state_db
             .get_verified_state_updates(
@@ -83,9 +89,6 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             if res.is_err() {
                 return Err(Error::from(ErrorKind::InvalidTransaction));
             }
-            let transaction_db = TransactionDb::new(&self.range_db);
-            transaction_db.put_transaction(self.block_manager.get_next_block_number(), transaction);
-
             return Ok(());
         }
         Err(Error::from(ErrorKind::InvalidTransaction))
@@ -116,14 +119,17 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     pub fn insert_test_ranges(&mut self) {
         let mut state_db = StateDb::new(&self.range_db);
         let address = Address::zero();
+        let ownership_decider_id =
+            Property::OwnershipDecider(OwnershipDeciderInput::zero()).get_decider_id();
         for i in 0..5 {
             let state_update = StateUpdate::new(
                 Integer::new(1),
                 Range::new(i * 10, (i + 1) * 10),
-                Property::SignedByDecider(SignedByInput::new(Bytes::from(&b"hi"[..]), address))
-                    .get_decider_id(),
+                ownership_decider_id,
+                Bytes::from(hex::decode("2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e").unwrap()),
             );
             state_db.put_verified_state_update(state_update);
         }
+        println!("{:?}", state_db.get_verified_state_updates(0, 2000));
     }
 }
