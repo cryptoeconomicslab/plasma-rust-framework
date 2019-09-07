@@ -7,7 +7,6 @@ edition = "2018"
 [lib]
 path = "src/lib.rs"
 
-
 [workspace]
 members = [
 	"abi-derive",

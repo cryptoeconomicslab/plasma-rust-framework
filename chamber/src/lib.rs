@@ -1,6 +1,3 @@
-pub mod plasma;
-pub mod state_channel;
-
 #[cfg(test)]
 mod tests {
     #[test]

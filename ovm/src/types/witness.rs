@@ -1,6 +1,7 @@
 use super::core::{Integer, Property};
 // TODO: use general verifier.
 use super::super::deciders::SignVerifier;
+use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::{Address, U256};
@@ -10,13 +11,13 @@ use plasma_core::data_structure::error::{
 };
 use plasma_core::data_structure::{Range, Transaction};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct PlasmaDataBlock {
     index: Integer,
     updated_range: Range,
+    root: Bytes,
     is_included: bool,
     predicate_address: Address,
-    root: Bytes,
     block_number: Integer,
     data: Bytes,
 }
@@ -25,18 +26,18 @@ impl PlasmaDataBlock {
     pub fn new(
         index: Integer,
         updated_range: Range,
+        root: Bytes,
         is_included: bool,
         predicate_address: Address,
-        root: Bytes,
         block_number: Integer,
         data: Bytes,
     ) -> Self {
         Self {
             index,
             updated_range,
+            root,
             is_included,
             predicate_address,
-            root,
             block_number: block_number,
             data,
         }
@@ -83,73 +84,6 @@ impl PlasmaDataBlock {
     //            false
     //        }
     //    }
-}
-
-impl Encodable for PlasmaDataBlock {
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![
-            Token::Tuple(self.updated_range.to_tuple()),
-            Token::Uint(self.index.0.into()),
-            Token::Bytes(self.root.to_vec()),
-            Token::Bool(self.is_included),
-            Token::Address(self.predicate_address),
-            Token::Uint(self.block_number.0.into()),
-            Token::Bytes(self.data.to_vec()),
-        ]
-    }
-}
-
-impl Decodable for PlasmaDataBlock {
-    type Ok = PlasmaDataBlock;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
-        let updated_range = tuple[0].clone().to_tuple();
-        let index = tuple[1].clone().to_uint();
-        let root = tuple[2].clone().to_bytes();
-        let is_included = tuple[3].clone().to_bool();
-        let predicate_address = tuple[4].clone().to_address();
-        let block_number = tuple[5].clone().to_uint();
-        let data = tuple[6].clone().to_bytes();
-        if let (
-            Some(updated_range),
-            Some(index),
-            Some(is_included),
-            Some(predicate_address),
-            Some(root),
-            Some(block_number),
-            Some(data),
-        ) = (
-            updated_range,
-            index,
-            is_included,
-            predicate_address,
-            root,
-            block_number,
-            data,
-        ) {
-            Ok(PlasmaDataBlock {
-                updated_range: Range::from_tuple(&updated_range).unwrap(),
-                index: Integer(index.as_u64()),
-                is_included,
-                predicate_address,
-                root: Bytes::from(root),
-                block_number: Integer::new(block_number.as_u64()),
-                data: Bytes::from(data),
-            })
-        } else {
-            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
-        }
-    }
-    fn get_param_types() -> Vec<ParamType> {
-        vec![
-            ParamType::Tuple(Range::get_param_types()),
-            ParamType::Uint(64),
-            ParamType::Bytes,
-            ParamType::Bool,
-            ParamType::Address,
-            ParamType::Uint(64),
-            ParamType::Bytes,
-        ]
-    }
 }
 
 #[allow(clippy::large_enum_variant)]

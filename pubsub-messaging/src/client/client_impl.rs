@@ -79,12 +79,13 @@ impl Client {
 /// let client = connect("127.0.0.1:8080", handle);
 /// ```
 pub fn connect<T: Handler + Clone + Send + Sync + 'static>(
-    host: &'static str,
+    host: &str,
     handler: T,
 ) -> Result<Client> {
     let (tx, rx) = channel();
+    let endpoint = String::from(host);
     let t = spawn(move || {
-        let url: &str = &format!("ws://{}", host);
+        let url: &str = &format!("ws://{}", endpoint);
         ws_connect(url, |out| Inner {
             handler: handler.clone(),
             ws: out,

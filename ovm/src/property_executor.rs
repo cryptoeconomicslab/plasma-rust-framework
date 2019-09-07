@@ -1,4 +1,3 @@
-use crate::db::MessageDb;
 use crate::deciders::{
     AndDecider, ForAllSuchThatDecider, HasLowerNonceDecider, IncludedAtBlockDecider,
     IsDeprecatedDecider, NotDecider, OrDecider, OwnershipDecider, PreimageExistsDecider,
@@ -32,7 +31,6 @@ where
 /// Core runtime for Property
 pub struct PropertyExecutor<KVS: KeyValueStore> {
     db: KVS,
-    message_db: MessageDb<KVS>,
     range_db: RangeDbImpl<KVS>,
 }
 
@@ -43,7 +41,6 @@ where
     fn default() -> Self {
         PropertyExecutor {
             db: KVS::open("kvs"),
-            message_db: MessageDb::from(KVS::open("message")),
             range_db: RangeDbImpl::from(KVS::open("range")),
         }
     }
@@ -55,9 +52,6 @@ where
 {
     pub fn get_db(&self) -> &KVS {
         &self.db
-    }
-    pub fn get_message_db(&self) -> &MessageDb<KVS> {
-        &self.message_db
     }
     pub fn get_range_db(&self) -> &RangeDbImpl<KVS> {
         &self.range_db
