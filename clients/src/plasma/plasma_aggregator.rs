@@ -6,7 +6,7 @@ use ethereum_types::Address;
 use ethsign::SecretKey;
 use ovm::db::TransactionDb;
 use ovm::types::core::{Integer, Property};
-use ovm::types::{OwnershipDeciderInput, SignedByInput, StateUpdate};
+use ovm::types::{OwnershipDeciderInput, StateUpdate};
 use plasma_core::data_structure::{Range, Transaction};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -118,7 +118,6 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
 
     pub fn insert_test_ranges(&mut self) {
         let mut state_db = StateDb::new(&self.range_db);
-        let address = Address::zero();
         let ownership_decider_id =
             Property::OwnershipDecider(OwnershipDeciderInput::zero()).get_decider_id();
         for i in 0..5 {
@@ -128,7 +127,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
                 ownership_decider_id,
                 Bytes::from(hex::decode("2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e").unwrap()),
             );
-            state_db.put_verified_state_update(state_update);
+            assert!(state_db.put_verified_state_update(state_update).is_ok());
         }
         println!("{:?}", state_db.get_verified_state_updates(0, 2000));
     }

@@ -2,10 +2,8 @@ use crate::db::TransactionDb;
 use crate::deciders::signed_by_decider::Verifier;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, OwnershipDeciderInput, Property};
-use crate::DecideMixin;
+use crate::types::{Decider, Decision, OwnershipDeciderInput};
 use bytes::Bytes;
-use plasma_core::data_structure::{StateUpdate, Transaction};
 use plasma_db::traits::kvs::KeyValueStore;
 
 /// OwnershipInput {

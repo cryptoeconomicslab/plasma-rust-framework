@@ -65,22 +65,20 @@ impl Decider for SignedByDecider {
         input: &SignedByInput,
     ) -> Result<Decision, Error> {
         let db: SignedByDb<T> = SignedByDb::new(decider.get_db());
-        let witness = db.get_witness(input)?;
-        if let Witness::Bytes(signature) = witness {
-            if Verifier::recover(&signature, input.get_message()) != input.get_public_key() {
-                return Err(Error::from(ErrorKind::InvalidPreimage));
-            }
-
-            Ok(Decision::new(
-                true,
-                vec![ImplicationProofElement::new(
-                    Property::SignedByDecider(input.clone()),
-                    Some(Witness::Bytes(signature)),
-                )],
-            ))
-        } else {
-            panic!("invalid witness");
+        let signed_by_message = db.get_witness(input.get_public_key(), input.get_message())?;
+        if Verifier::recover(&signed_by_message.signature, input.get_message())
+            != input.get_public_key()
+        {
+            return Err(Error::from(ErrorKind::InvalidPreimage));
         }
+
+        Ok(Decision::new(
+            true,
+            vec![ImplicationProofElement::new(
+                Property::SignedByDecider(input.clone()),
+                Some(Witness::Bytes(signed_by_message.signature)),
+            )],
+        ))
     }
 }
 
@@ -89,7 +87,7 @@ mod tests {
     use super::Verifier;
     use crate::db::SignedByDb;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decision, Property, SignedByInput, Witness};
+    use crate::types::{Decision, Property, SignedByInput};
     use bytes::Bytes;
     use ethsign::SecretKey;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
@@ -102,12 +100,17 @@ mod tests {
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let message = Bytes::from("message");
         let signature = Verifier::sign(&secret_key, &message);
-        let witness = Witness::Bytes(signature);
-        let input = SignedByInput::new(message, secret_key.public().address().into());
+        let input = SignedByInput::new(message.clone(), secret_key.public().address().into());
         let property = Property::SignedByDecider(input.clone());
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
-        assert!(db.store_witness(&input, &witness).is_ok());
+        assert!(db
+            .store_witness(
+                secret_key.public().address().into(),
+                message.clone(),
+                signature
+            )
+            .is_ok());
         let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }

@@ -4,9 +4,7 @@ use crate::property_executor::PropertyExecutor;
 use crate::types::{
     Decider, Decision, ImplicationProofElement, IncludedAtBlockInput, Property, Witness,
 };
-use bytes::Bytes;
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
-use plasma_core::data_structure::abi::Encodable;
 use plasma_db::traits::kvs::KeyValueStore;
 
 /// IncludedAtBlock is decider which decide inclusion of data in merkle interval tree
@@ -30,7 +28,7 @@ impl Decider for IncludedAtBlockDecider {
             let plasma_data_block = input.get_plasma_data_block();
             let leaf = MerkleIntervalNode::Leaf {
                 end: plasma_data_block.get_updated_range().get_end(),
-                data: Bytes::from(plasma_data_block.get_property().to_abi()),
+                data: plasma_data_block.get_data().clone(),
             };
             let inclusion_bounds_result = MerkleIntervalTree::verify(
                 &leaf,

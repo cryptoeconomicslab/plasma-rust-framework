@@ -29,10 +29,10 @@ impl Range {
         }
     }
     fn overlap(&self, range: &Range) -> bool {
-        (self.start <= range.start && range.start <= self.end)
-            || (range.start < self.start && self.start <= range.end)
+        let over1 = self.start <= range.start && range.start <= self.end;
+        let over2 = range.start < self.start && self.start <= range.end;
+        over1 || over2
     }
-
     pub fn is_subrange(&self, b: &Range) -> bool {
         self.get_start() <= b.get_start() && self.get_end() >= b.get_end()
     }
@@ -51,8 +51,8 @@ impl Range {
     }
     pub fn merge_ranges(ranges: Vec<Range>) -> Vec<Range> {
         ranges.iter().fold(vec![], |vec, range| {
-            if vec.len() == 0 {
-                vec![range.clone()]
+            if vec.is_empty() {
+                vec![*range]
             } else {
                 let mut res = vec![];
                 let mut merged = false;

@@ -19,7 +19,7 @@ tiny-keccak = "1.4.2"
 bincode = "*"
 pubsub-messaging = { path = "../pubsub-messaging" }
 
- [dependencies.ethsign]
+[dependencies.ethsign]
 version = "0.6.1"
 default-features = false
 features = ["pure-rust"]

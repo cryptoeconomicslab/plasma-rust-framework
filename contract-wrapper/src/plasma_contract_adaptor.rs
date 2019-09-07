@@ -50,7 +50,11 @@ impl PlasmaContractAdaptor {
         }
     }
 
-    pub fn withdraw(&self, from: Address, checkpoint: (StateUpdate, Range)) -> Result<H256, Error> {
+    pub fn withdraw(
+        &self,
+        _from: Address,
+        _checkpoint: (StateUpdate, Range),
+    ) -> Result<H256, Error> {
         // TODO: implement
         Ok(H256::zero())
     }

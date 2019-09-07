@@ -109,6 +109,9 @@ fn create_tokens(f: &syn::Field) -> proc_macro2::TokenStream {
     if let syn::Type::Path(path) = &f.ty {
         let type_name = &path.path.segments.first().unwrap().ident;
         match &*type_name.to_string() {
+            "bool" => quote! {
+                Token::Bool(self.#ident)
+            },
             "Bytes" => quote! {
                 Token::Bytes(self.#ident.to_vec())
             },
@@ -136,6 +139,9 @@ fn create_param_type_token_stream(f: &syn::Field) -> proc_macro2::TokenStream {
     if let syn::Type::Path(path) = &f.ty {
         let type_name = &path.path.segments.first().unwrap().ident;
         match &*type_name.to_string() {
+            "bool" => quote! {
+                ethabi::ParamType::Bool
+            },
             "Bytes" => quote! {
                 ethabi::ParamType::Bytes
             },
@@ -165,6 +171,9 @@ fn create_parse_val_token_stream(
     index: usize,
 ) -> proc_macro2::TokenStream {
     match &*type_name.to_string() {
+        "bool" => quote! {
+            let #ident: bool = tuple[#index].clone().to_bool().unwrap();
+        },
         "Bytes" => quote! {
             let #ident = Bytes::from(tuple[#index].clone().to_bytes().unwrap());
         },

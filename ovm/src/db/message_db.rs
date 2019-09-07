@@ -1,130 +1,33 @@
+use crate::error::Error;
 use crate::types::Integer;
+use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
-use ethereum_types::Address;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
-use plasma_core::data_structure::error::{
-    Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
-};
 use plasma_db::traits::kvs::KeyValueStore;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct Message {
     pub channel_id: Bytes,
-    sender: Address,
-    recipient: Address,
     pub nonce: Integer,
-    signers: Vec<Address>,
     message: Bytes,
-    signed_message: Bytes,
 }
 
 impl Message {
-    pub fn new(
-        channel_id: Bytes,
-        sender: Address,
-        recipient: Address,
-        nonce: Integer,
-        message: Bytes,
-    ) -> Self {
+    pub fn new(channel_id: Bytes, nonce: Integer, message: Bytes) -> Self {
         Self {
             channel_id,
-            sender,
-            recipient,
             nonce,
-            signers: vec![],
             message,
-            signed_message: Bytes::from(""),
         }
     }
-    pub fn get_signers(&self) -> &Vec<Address> {
-        &self.signers
-    }
 }
 
-impl Encodable for Message {
-    fn to_abi(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple())
-    }
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![
-            Token::Bytes(self.channel_id.to_vec()),
-            Token::Address(self.sender),
-            Token::Address(self.recipient),
-            Token::Uint(self.nonce.0.into()),
-            Token::Array(self.signers.iter().map(|s| Token::Address(*s)).collect()),
-            Token::Bytes(self.message.to_vec()),
-            Token::Bytes(self.signed_message.to_vec()),
-        ]
-    }
+pub struct MessageDb<'a, KVS> {
+    db: &'a KVS,
 }
 
-impl Decodable for Message {
-    type Ok = Message;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
-        let channel_id = tuple[0].clone().to_bytes();
-        let sender = tuple[1].clone().to_address();
-        let recipient = tuple[2].clone().to_address();
-        let nonce = tuple[3].clone().to_uint();
-        let signers = tuple[4].clone().to_array();
-        let message = tuple[5].clone().to_bytes();
-        let signed_message = tuple[6].clone().to_bytes();
-        if let (
-            Some(channel_id),
-            Some(sender),
-            Some(recipient),
-            Some(nonce),
-            Some(signers),
-            Some(message),
-            Some(signed_message),
-        ) = (
-            channel_id,
-            sender,
-            recipient,
-            nonce,
-            signers,
-            message,
-            signed_message,
-        ) {
-            Ok(Message {
-                channel_id: Bytes::from(channel_id),
-                sender,
-                recipient,
-                nonce: Integer(nonce.as_u64()),
-                signers: signers
-                    .iter()
-                    .map(|s| s.clone().to_address().unwrap())
-                    .collect(),
-                message: Bytes::from(message),
-                signed_message: Bytes::from(signed_message),
-            })
-        } else {
-            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
-        }
-    }
-    fn from_abi(data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        let decoded = ethabi::decode(
-            &[
-                ParamType::Bytes,
-                ParamType::Address,
-                ParamType::Address,
-                ParamType::Uint(256),
-                ParamType::Array(Box::new(ParamType::Address)),
-                ParamType::Bytes,
-                ParamType::Bytes,
-            ],
-            data,
-        )
-        .map_err(|_e| PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
-    }
-}
-
-pub struct MessageDb<KVS> {
-    db: KVS,
-}
-
-impl<KVS> MessageDb<KVS>
+impl<'a, KVS> MessageDb<'a, KVS>
 where
     KVS: KeyValueStore,
 {
@@ -141,26 +44,31 @@ where
             .unwrap()
             .map(|b| Message::from_abi(&b).ok().unwrap())
     }
-    pub fn get_messages_signed_by(
-        &self,
-        signer: Address,
-        _channel_id: Option<Bytes>,
-        _nonce: Option<Integer>,
-    ) -> Vec<Message> {
-        self.db
+    pub fn get_most_recent_message(&self, channel_id: &Bytes) -> Option<Message> {
+        let mut list: Vec<Message> = self
+            .db
+            .bucket(&channel_id.into())
             .iter_all(&Bytes::from("").into(), Box::new(move |_k, _v| true))
             .iter()
             .filter_map(|kv| Message::from_abi(kv.get_value()).ok())
-            .filter(|message| message.get_signers().contains(&signer))
-            .collect()
+            .collect();
+        list.pop()
+    }
+    pub fn store_message(&self, message: &Message) -> Result<(), Error> {
+        let nonce_bytes: Bytes = message.nonce.into();
+        let channel_id: Bytes = message.channel_id.clone();
+        self.db
+            .bucket(&channel_id.into())
+            .put(&nonce_bytes.into(), &message.to_abi())
+            .map_err(Into::into)
     }
 }
 
-impl<KVS> From<KVS> for MessageDb<KVS>
+impl<'a, KVS> From<&'a KVS> for MessageDb<'a, KVS>
 where
     KVS: KeyValueStore,
 {
-    fn from(kvs: KVS) -> Self {
+    fn from(kvs: &'a KVS) -> Self {
         Self { db: kvs }
     }
 }
