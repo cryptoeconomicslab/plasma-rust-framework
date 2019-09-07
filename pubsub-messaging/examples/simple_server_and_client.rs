@@ -26,12 +26,12 @@ impl ClientHandler for ClientHandle {
 
 fn main() {
     let handler = Handle();
-    if let Ok(server) = spawn_server("127.0.0.1:8080", handler) {
+    if let Ok(server) = spawn_server("127.0.0.1:8080".to_owned(), handler) {
         println!("server listening on port 8080!");
 
         let c1 = thread::spawn(|| {
             let handler = ClientHandle();
-            let mut client = connect("127.0.0.1:8080", handler).unwrap();
+            let mut client = connect("127.0.0.1:8080".to_owned(), handler).unwrap();
 
             let t = time::Duration::from_millis(3000);
             thread::sleep(t);
@@ -41,7 +41,7 @@ fn main() {
 
         let c2 = thread::spawn(|| {
             let handler = ClientHandle();
-            let mut client = connect("127.0.0.1:8080", handler).unwrap();
+            let mut client = connect("127.0.0.1:8080".to_owned(), handler).unwrap();
 
             let t = time::Duration::from_millis(5000);
             thread::sleep(t);

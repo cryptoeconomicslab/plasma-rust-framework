@@ -74,12 +74,12 @@ impl Server {
 /// }
 ///
 /// let handler = Handle();
-/// if let Ok(server) = spawn_server("127.0.0.1:8080", handler) {
+/// if let Ok(server) = spawn_server("127.0.0.1:8080".to_owned(), handler) {
 ///     println!("server is listening on port 8080");
 /// }
 /// ```
 pub fn spawn_server<T: Handler + Clone + Send + Sync + 'static>(
-    host: &'static str,
+    host: String,
     handler: T,
 ) -> Result<Server> {
     let (tx, rx) = channel();
@@ -93,7 +93,7 @@ pub fn spawn_server<T: Handler + Clone + Send + Sync + 'static>(
         // TODO: handle result
         let _ = tx.send(ws.broadcaster());
         // TODO: handle result
-        let _ = ws.listen(host);
+        let _ = ws.listen(&host);
     });
 
     if let Ok(sender) = rx.recv() {

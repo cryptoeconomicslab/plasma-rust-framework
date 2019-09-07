@@ -30,14 +30,14 @@ pub struct PlasmaClient<KVS> {
     plasma_contract_address: Address,
     _db: KVS,
     secret_key: SecretKey,
-    aggregator_endpoint: &'static str,
+    aggregator_endpoint: String,
     my_address: Address,
 }
 
 impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     pub fn new(
         plasma_contract_address: Address,
-        aggregator_endpoint: &'static str,
+        aggregator_endpoint: String,
         private_key: &str,
     ) -> Self {
         let raw_key = hex::decode(private_key).unwrap();
@@ -92,7 +92,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
 
     pub fn send_transaction(&self, transaction: Transaction) {
         let handler = Handle();
-        let mut client = connect(&self.aggregator_endpoint, handler).unwrap();
+        let mut client = connect(self.aggregator_endpoint.clone(), handler).unwrap();
         let msg = Message::new("Aggregator".to_string(), transaction.to_abi());
         client.send(msg);
         assert!(client.handle.join().is_ok());
