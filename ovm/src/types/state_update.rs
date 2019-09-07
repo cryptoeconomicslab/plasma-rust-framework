@@ -97,12 +97,7 @@ impl StateUpdate {
 
 impl From<PlasmaDataBlock> for StateUpdate {
     fn from(plasma_data_block: PlasmaDataBlock) -> Self {
-        StateUpdate::new(
-            plasma_data_block.get_block_number(),
-            plasma_data_block.get_updated_range(),
-            plasma_data_block.get_property().clone().get_decider_id(),
-            Bytes::new(), // TODO: save params in PlasmaDataBlock
-        )
+        StateUpdate::from_abi(plasma_data_block.get_data()).unwrap()
     }
 }
 

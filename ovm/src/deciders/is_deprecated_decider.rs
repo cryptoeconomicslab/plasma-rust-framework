@@ -14,6 +14,7 @@ impl Decider for IsDeprecatedDecider {
     ) -> Result<Decision, Error> {
         let state_update = input.get_state_update();
         let address = state_update.get_property_address();
+        println!("IsDeprecatedDecider {:?}", state_update);
         let property = Property::get_generalized_plasma_property(address, state_update);
         let decided = property.decide(decider);
         assert!(decided.is_ok());
