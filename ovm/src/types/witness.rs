@@ -17,6 +17,7 @@ pub struct PlasmaDataBlock {
     is_included: bool,
     property: Property,
     root: Bytes,
+    block_number: Integer,
 }
 
 impl PlasmaDataBlock {
@@ -26,6 +27,7 @@ impl PlasmaDataBlock {
         is_included: bool,
         property: Property,
         root: Bytes,
+        block_number: u64,
     ) -> Self {
         Self {
             index,
@@ -33,6 +35,7 @@ impl PlasmaDataBlock {
             is_included,
             property,
             root,
+            block_number: Integer::new(block_number),
         }
     }
     pub fn get_index(&self) -> usize {
@@ -55,33 +58,25 @@ impl PlasmaDataBlock {
     pub fn get_root(&self) -> &Bytes {
         &self.root
     }
-    pub fn transition(&self, transaction: &Transaction) -> Self {
-        // FIXME
-        // write property updating logic
-        Self {
-            index: Integer::new(transaction.get_range().get_start()),
-            updated_range: transaction.get_range().clone(),
-            is_included: false,
-            property: self.property.clone(),
-            root: Bytes::from(&b""[..]),
-        }
+    pub fn get_block_number(&self) -> Integer {
+        self.block_number
     }
 
-    pub fn verify_deprecation(&self, transaction: &Transaction) -> bool {
-        if let Property::SignedByDecider(input) = &self.property {
-            if SignVerifier::recover(
-                transaction.get_signature(),
-                &Bytes::from(transaction.to_body_abi()),
-            ) == input.get_public_key()
-            {
-                return true;
-            }
-            false
-        } else {
-            // TODO: implement how to verify_deprecation using other.decider
-            false
-        }
-    }
+    //    pub fn verify_deprecation(&self, transaction: &Transaction) -> bool {
+    //        if let Property::SignedByDecider(input) = &self.property {
+    //            if SignVerifier::recover(
+    //                transaction.get_signature(),
+    //                &Bytes::from(transaction.to_body_abi()),
+    //            ) == input.get_public_key()
+    //            {
+    //                return true;
+    //            }
+    //            false
+    //        } else {
+    //            // TODO: implement how to verify_deprecation using other.decider
+    //            false
+    //        }
+    //    }
 }
 
 impl Encodable for PlasmaDataBlock {
@@ -92,6 +87,7 @@ impl Encodable for PlasmaDataBlock {
             Token::Bytes(self.root.to_vec()),
             Token::Bool(self.is_included),
             Token::Tuple(self.property.to_tuple()),
+            Token::Uint(self.block_number.0.into()),
         ]
     }
 }
@@ -104,15 +100,29 @@ impl Decodable for PlasmaDataBlock {
         let root = tuple[2].clone().to_bytes();
         let is_included = tuple[3].clone().to_bool();
         let property = tuple[4].clone().to_tuple();
-        if let (Some(updated_range), Some(index), Some(is_included), Some(property), Some(root)) =
-            (updated_range, index, is_included, property, root)
-        {
+        let block_number = tuple[5].clone().to_uint();
+        if let (
+            Some(updated_range),
+            Some(index),
+            Some(is_included),
+            Some(property),
+            Some(root),
+            Some(block_number),
+        ) = (
+            updated_range,
+            index,
+            is_included,
+            property,
+            root,
+            block_number,
+        ) {
             Ok(PlasmaDataBlock {
                 updated_range: Range::from_tuple(&updated_range).unwrap(),
                 index: Integer(index.as_u64()),
                 is_included,
                 property: Property::from_tuple(&property).unwrap(),
                 root: Bytes::from(root),
+                block_number: Integer::new(block_number.as_u64()),
             })
         } else {
             Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
@@ -125,6 +135,7 @@ impl Decodable for PlasmaDataBlock {
             ParamType::Bytes,
             ParamType::Bool,
             ParamType::Tuple(Property::get_param_types()),
+            ParamType::Uint(64),
         ]
     }
 }

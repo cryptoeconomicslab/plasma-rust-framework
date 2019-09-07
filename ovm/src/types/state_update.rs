@@ -1,5 +1,6 @@
 use crate::property_executor::PropertyExecutor;
 use crate::types::core::{Integer, Property};
+use crate::types::PlasmaDataBlock;
 use crate::DecideMixin;
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
@@ -111,5 +112,15 @@ impl Decodable for StateUpdate {
             ParamType::Tuple(Range::get_param_types()),
             ParamType::Tuple(Property::get_param_types()),
         ]
+    }
+}
+
+impl From<PlasmaDataBlock> for StateUpdate {
+    fn from(plasma_data_block: PlasmaDataBlock) -> Self {
+        StateUpdate::new(
+            plasma_data_block.get_updated_range(),
+            plasma_data_block.get_property().clone(),
+            plasma_data_block.get_block_number(),
+        )
     }
 }
