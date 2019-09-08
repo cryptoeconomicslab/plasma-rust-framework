@@ -8,6 +8,9 @@ use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::traits::rangestore::RangeStore;
 use plasma_db::RangeDbImpl;
 
+const MIN_RANGE: u64 = 0;
+const MAX_RANGE: u64 = std::u64::MAX;
+
 pub struct StateDb<'a, KVS: KeyValueStore> {
     db: &'a RangeDbImpl<KVS>,
 }
@@ -15,6 +18,10 @@ pub struct StateDb<'a, KVS: KeyValueStore> {
 impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
     pub fn new(range_db: &'a RangeDbImpl<KVS>) -> Self {
         StateDb { db: range_db }
+    }
+
+    pub fn get_all_state_updates(&self) -> Result<Vec<StateUpdate>, Error> {
+        self.get_verified_state_updates(MIN_RANGE, MAX_RANGE)
     }
 
     pub fn get_verified_state_updates(
