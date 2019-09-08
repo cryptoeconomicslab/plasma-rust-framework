@@ -2,8 +2,9 @@ use super::abi::{Decodable, Encodable};
 use super::error::{Error, ErrorKind};
 use ethabi::Token;
 use std::cmp::{max, min};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Range {
     start: u64,
     end: u64,

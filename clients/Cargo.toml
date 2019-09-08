@@ -12,7 +12,6 @@ ethereum-types = "^0.5.2"
 hex = "0.3.1"
 ovm = { path = "../ovm" }
 plasma-core = { path = "../core" }
-plasma-db = { path = "../db" }
 contract-wrapper = { path = "../contract-wrapper" }
 failure = "0.1.5"
 merkle-interval-tree = { path = "../merkle-interval-tree" }
@@ -24,3 +23,7 @@ pubsub-messaging = { path = "../pubsub-messaging" }
 version = "0.6.1"
 default-features = false
 features = ["pure-rust"]
+
+[dependencies.plasma-db]
+path = "../db"
+features = ["require-leveldb"]

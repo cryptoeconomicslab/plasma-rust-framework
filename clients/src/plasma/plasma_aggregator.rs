@@ -67,7 +67,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             transaction.clone(),
         );
 
-        let state_db = StateDb::new(&self.range_db);
+        let mut state_db = StateDb::new(&self.range_db);
         let state_updates = state_db
             .get_verified_state_updates(
                 transaction.get_range().get_start(),
@@ -82,7 +82,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             return Err(Error::from(ErrorKind::InvalidTransaction));
         }
         if let Ok(next_state) = prev_state.execute_state_transition(&transaction) {
-            let res = self.block_manager.enqueue_state_update(next_state);
+            let res = self.block_manager.enqueue_state_update(next_state.clone());
+            // todo: remove later
+            state_db.put_verified_state_update(next_state);
             if res.is_err() {
                 return Err(Error::from(ErrorKind::InvalidTransaction));
             }
@@ -119,10 +121,10 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             Property::OwnershipDecider(OwnershipDeciderInput::zero()).get_decider_id();
         for i in 0..5 {
             let state_update = StateUpdate::new(
-                Integer::new(1),
                 Range::new(i * 10, (i + 1) * 10),
                 ownership_decider_id,
                 Bytes::from(hex::decode("2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e").unwrap()),
+                Integer::new(1),
             );
             assert!(state_db.put_verified_state_update(state_update).is_ok());
         }

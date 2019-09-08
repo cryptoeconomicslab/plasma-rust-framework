@@ -24,7 +24,7 @@ impl ServerHandler for Handle {
         let state_updates = StateUpdateList::new(agg.get_all_state_updates());
         println!("STATE_UPDATES: {:?}", state_updates);
 
-        let message = Message::new("BROADCAST".to_owned(), state_updates.to_abi().to_vec());
+        let message = Message::new("BROADCAST".to_owned(), state_updates.serialize());
 
         let msg = WsMessage::Binary(serialize(&message).unwrap());
         let _ = sender.broadcast(msg);
@@ -32,7 +32,7 @@ impl ServerHandler for Handle {
 }
 
 fn main() {
-    let db = CoreDbMemoryImpl::open("kvs");
+    let db = CoreDbMemoryImpl::open("aggregator");
     let range_db = RangeDbImpl::from(db);
     let mut aggregator = PlasmaAggregator::new(
         Address::zero(),

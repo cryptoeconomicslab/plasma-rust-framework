@@ -11,3 +11,4 @@ ethereum-types = "^0.5.2"
 failure = "0.1.5"
 num-traits = { version = "0.2.8", default-features = false }
 tiny-keccak = "1.4.2"
+serde = { version = "1.0", features = ["derive"] }

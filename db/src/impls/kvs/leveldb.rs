@@ -9,7 +9,7 @@ use leveldb::iterator::Iterable;
 use leveldb::iterator::LevelDBIterator;
 use leveldb::options::{Options, ReadOptions, WriteOptions};
 use parking_lot::RwLock;
-use tempdir::TempDir;
+use std::path::Path;
 
 impl Key for BaseDbKey {
     fn from_u8(key: &[u8]) -> BaseDbKey {
@@ -22,17 +22,20 @@ impl Key for BaseDbKey {
 }
 
 pub struct CoreDb {
+    dbname: String,
     db: RwLock<Database<BaseDbKey>>,
 }
 
 impl DatabaseTrait for CoreDb {
     fn open(dbname: &str) -> Self {
-        let tempdir = TempDir::new(dbname).unwrap();
-        let path = tempdir.path();
+        // let tempdir = TempDir::new(dbname).unwrap();
+        // let path = tempdir.path();
+        let path = Path::new("./tmp/");
 
         let mut options = Options::new();
         options.create_if_missing = true;
         Self {
+            dbname: String::from(dbname),
             db: RwLock::new(Database::open(path, options).unwrap()),
         }
     }
@@ -67,7 +70,7 @@ impl KeyValueStore for CoreDb {
         for op in operations.iter() {
             match op {
                 Batch::BatchPut { key, value } => {
-                    println!("leveldb put {:?}", key);
+                    //                    println!("leveldb put {:?}", self.dbname);
                     batch.put(key.clone(), value);
                 }
                 Batch::BatchDel { key } => batch.delete(key.clone()),
@@ -84,7 +87,7 @@ impl KeyValueStore for CoreDb {
         start: &BaseDbKey,
         mut f: Box<dyn FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
     ) -> Vec<KeyValue> {
-        println!("leveldb get {:?}, {:?}", prefix, start);
+        //        println!("leveldb get {:?}", self.dbname);
         let read_lock = self.db.read();
         let iter = read_lock.iter(ReadOptions::new());
         let mut result = vec![];

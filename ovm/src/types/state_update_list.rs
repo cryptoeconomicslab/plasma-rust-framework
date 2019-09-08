@@ -2,42 +2,28 @@ use super::StateUpdate;
 use ethabi::{ParamType, Token};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::Error as PlasmaCoreError;
+use serde::{Deserialize, Serialize};
+use bincode::{deserialize, serialize};
 
 #[derive(Clone, Debug)]
-pub struct StateUpdateList {
-    state_updates: Vec<StateUpdate>,
+pub struct StateUpdateList 
+{
+    pub state_updates: Vec<StateUpdate>,
 }
 
 impl StateUpdateList {
     pub fn new(state_updates: Vec<StateUpdate>) -> Self {
-        Self { state_updates }
+        Self {
+            state_updates
+        }
     }
-}
+    pub fn serialize(&self) -> Vec<u8> {
+        let bytes: Vec<Vec<u8>> = self.state_updates.iter().map(|s| s.to_abi().to_vec()).collect();
+        serialize(&bytes).unwrap()
+    }
+    pub fn deserialize(message: Vec<u8>) -> Self {
+        let deserialized: Vec<Vec<u8>> = deserialize(&message).unwrap();
+        StateUpdateList::new(deserialized.iter().map(|s| StateUpdate::from_abi(&s).unwrap()).collect())
+    }
 
-impl Encodable for StateUpdateList {
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![Token::Array(
-            self.state_updates
-                .iter()
-                .map(|s| Token::Tuple(s.to_tuple()))
-                .collect(),
-        )]
-    }
-}
-
-impl Decodable for StateUpdateList {
-    type Ok = StateUpdateList;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
-        let state_updates = tuple[0].clone().to_array();
-        let state_update_list: Vec<StateUpdate> = state_updates
-            .iter()
-            .filter_map(|s| StateUpdate::from_tuple(s).ok())
-            .collect();
-        Ok(StateUpdateList::new(state_update_list))
-    }
-    fn get_param_types() -> Vec<ParamType> {
-        vec![ParamType::Array(Box::new(ParamType::Tuple(
-            StateUpdate::get_param_types(),
-        )))]
-    }
 }

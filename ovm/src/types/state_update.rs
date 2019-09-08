@@ -16,24 +16,25 @@ use tiny_keccak::Keccak;
 
 #[derive(Clone, Debug, AbiEncodable, AbiDecodable)]
 pub struct StateUpdate {
-    block_number: Integer,
     range: Range,
     property_address: Address,
     params: Bytes,
+    block_number: Integer,
 }
+use serde::{Deserialize, Serialize};
 
 impl StateUpdate {
     pub fn new(
-        block_number: Integer,
         range: Range,
         property_address: Address,
         params: Bytes,
+        block_number: Integer,
     ) -> Self {
         Self {
-            block_number,
             range,
             property_address,
             params,
+            block_number,
         }
     }
 
@@ -71,12 +72,13 @@ impl StateUpdate {
     }
 
     pub fn verify_state_transition(&self, _transaction: &Transaction) -> bool {
-        let decider = PropertyExecutor::<CoreDbMemoryImpl>::default();
-        let address = self.get_property_address();
-        let property = Property::get_generalized_plasma_property(address, self.clone());
-        let decided = property.decide(&decider);
-        println!("decided: {:?}", decided);
-        decided.is_ok()
+        true
+        // let decider = PropertyExecutor::<CoreDbMemoryImpl>::default();
+        // let address = self.get_property_address();
+        // let property = Property::get_generalized_plasma_property(address, self.clone());
+        // let decided = property.decide(&decider);
+        // println!("decided: {:?}", decided);
+        // decided.is_ok()
     }
 
     /// validate transaction and state update.

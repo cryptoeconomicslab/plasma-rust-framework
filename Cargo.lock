@@ -1112,6 +1112,7 @@ name = "ovm"
 version = "0.1.0"
 dependencies = [
  "abi-derive 0.1.0",
+ "bincode 1.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethabi 7.0.0 (git+https://github.com/cryptoeconomicslab/ethabi?branch=tuple-support-v7.0.0)",
  "ethereum-types 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1122,6 +1123,7 @@ dependencies = [
  "merkle-interval-tree 0.1.0",
  "plasma-core 0.1.0",
  "plasma-db 0.1.0",
+ "serde 1.0.91 (registry+https://github.com/rust-lang/crates.io-index)",
  "tiny-keccak 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1241,6 +1243,7 @@ dependencies = [
  "ethereum-types 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.91 (registry+https://github.com/rust-lang/crates.io-index)",
  "tiny-keccak 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

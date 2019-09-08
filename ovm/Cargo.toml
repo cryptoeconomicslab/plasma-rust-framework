@@ -16,6 +16,8 @@ tiny-keccak = "1.4.2"
 plasma-core = { path = "../core" }
 plasma-db = { path = "../db" }
 merkle-interval-tree = { path = "../merkle-interval-tree" }
+serde = { version = "1.0", features = ["derive"] }
+bincode = "*"
 
 [dependencies.ethsign]
 version = "0.6.1"
