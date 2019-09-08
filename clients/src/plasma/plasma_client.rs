@@ -1,4 +1,5 @@
 use super::plasma_block::PlasmaBlock;
+use super::state_db::StateDb;
 use bytes::Bytes;
 use contract_wrapper::plasma_contract_adaptor::PlasmaContractAdaptor;
 use ethabi::Contract as ContractABI;
@@ -7,9 +8,11 @@ use ethsign::SecretKey;
 use ovm::deciders::SignVerifier;
 use ovm::statements::create_plasma_property;
 use ovm::types::core::Property;
-use ovm::types::Integer;
+use ovm::types::{Integer, StateUpdate};
 use plasma_core::data_structure::abi::Encodable;
-use plasma_core::data_structure::{Range, StateUpdate, Transaction, TransactionParams};
+use plasma_core::data_structure::{Range, Transaction, TransactionParams};
+use plasma_db::error::Error as PlasmaDbError;
+use plasma_db::impls::kvs::RangeDbImpl;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use pubsub_messaging::{connect, ClientHandler, Message, Sender};
@@ -28,7 +31,7 @@ impl ClientHandler for Handle {
 /// Plasma Client on OVM.
 pub struct PlasmaClient<KVS> {
     plasma_contract_address: Address,
-    _db: KVS,
+    range_db: RangeDbImpl<KVS>,
     secret_key: SecretKey,
     aggregator_endpoint: String,
     my_address: Address,
@@ -43,10 +46,12 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let raw_key = hex::decode(private_key).unwrap();
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let my_address: Address = secret_key.public().address().into();
+        let kvs = KVS::open("kvs");
+        let range_db = RangeDbImpl::from(kvs);
 
         PlasmaClient {
             plasma_contract_address,
-            _db: KVS::open("kvs"),
+            range_db,
             secret_key,
             my_address,
             aggregator_endpoint,
@@ -126,4 +131,18 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     /// Handle BlockSubmitted Event from aggregator
     /// check new state update and verify, store them.
     pub fn handle_new_block(&self, _block: PlasmaBlock) {}
+
+    pub fn get_state_updates(&self) -> Vec<StateUpdate> {
+        let mut state_db = StateDb::new(self.range_db);
+        state_db.get_verified_state_updates().unwrap_or(vec![])
+    }
+
+    fn update_state_updates(&self, state_updates: Vec<StateUpdate>) {
+        let mut state_db = StateDb::new(self.range_db);
+        let state_updates = state_db.get_verified_state_updates().unwrap_or(vec![]);
+
+        for s in state_updates.iter() {
+            state_db.put_verified_state_update(s);
+        }
+    }
 }

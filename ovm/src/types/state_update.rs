@@ -66,6 +66,10 @@ impl StateUpdate {
         self.params.clone()
     }
 
+    pub fn get_amount(&self) -> u64 {
+        self.range.get_end() - self.range.get_start()
+    }
+
     pub fn verify_state_transition(&self, _transaction: &Transaction) -> bool {
         let decider = PropertyExecutor::<CoreDbMemoryImpl>::default();
         let address = self.get_property_address();
