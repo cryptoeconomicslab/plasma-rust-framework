@@ -130,6 +130,6 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
 
     pub fn get_all_state_updates(&self) -> Vec<StateUpdate> {
         let state_db = StateDb::new(&self.range_db);
-        state_db.get_all_state_updates().unwrap_or(vec![])
+        state_db.get_all_state_updates().unwrap_or_else(|_| vec![])
     }
 }

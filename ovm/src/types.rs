@@ -2,6 +2,7 @@ pub mod core;
 pub mod decision_value;
 pub mod inputs;
 pub mod state_update;
+pub mod state_update_list;
 pub mod witness;
 
 pub use self::core::{
@@ -16,4 +17,5 @@ pub use self::inputs::{
     PreimageExistsInput, SignedByInput,
 };
 pub use self::state_update::StateUpdate;
+pub use self::state_update_list::StateUpdateList;
 pub use self::witness::{PlasmaDataBlock, Witness};

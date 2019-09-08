@@ -1,11 +1,14 @@
+use bincode::serialize;
 use ethereum_types::Address;
+use ovm::types::StateUpdateList;
 use plasma_clients::plasma::PlasmaAggregator;
 use plasma_core::data_structure::abi::Decodable;
+use plasma_core::data_structure::abi::Encodable;
 use plasma_core::data_structure::Transaction;
 use plasma_db::impls::kvs::CoreDbMemoryImpl;
 use plasma_db::impls::rangedb::RangeDbImpl;
 use plasma_db::traits::db::DatabaseTrait;
-use pubsub_messaging::{spawn_server, Message, Sender, ServerHandler};
+use pubsub_messaging::{spawn_server, Message, Sender, ServerHandler, WsMessage};
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
@@ -14,10 +17,17 @@ struct Handle {
 }
 
 impl ServerHandler for Handle {
-    fn handle_message(&mut self, msg: Message, _sender: Sender) {
+    fn handle_message(&mut self, msg: Message, sender: Sender) {
         let mut agg = self.plasma_aggregator.lock().unwrap();
         let _ = agg.ingest_transaction(Transaction::from_abi(&msg.message).unwrap());
-        agg.show_queued_state_updates();
+
+        let state_updates = StateUpdateList::new(agg.get_all_state_updates());
+        println!("STATE_UPDATES: {:?}", state_updates);
+
+        let message = Message::new("BROADCAST".to_owned(), state_updates.to_abi().to_vec());
+
+        let msg = WsMessage::Binary(serialize(&message).unwrap());
+        let _ = sender.broadcast(msg);
     }
 }
 
