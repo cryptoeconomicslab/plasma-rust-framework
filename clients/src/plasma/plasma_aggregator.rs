@@ -126,6 +126,10 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             );
             assert!(state_db.put_verified_state_update(state_update).is_ok());
         }
-        println!("{:?}", state_db.get_verified_state_updates(0, 2000));
+    }
+
+    pub fn get_all_state_updates(&self) -> Vec<StateUpdate> {
+        let state_db = StateDb::new(&self.range_db);
+        state_db.get_all_state_updates().unwrap_or(vec![])
     }
 }
