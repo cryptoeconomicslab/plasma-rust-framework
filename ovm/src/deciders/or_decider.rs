@@ -57,7 +57,7 @@ mod tests {
     use crate::property_executor::PropertyExecutor;
     use crate::types::{Decision, NotDeciderInput, OrDeciderInput, PreimageExistsInput, Property};
     use bytes::Bytes;
-    use plasma_db::impls::kvs::CoreDbLevelDbImpl;
+    use plasma_db::impls::kvs::CoreDbMemoryImpl;
 
     #[test]
     fn test_decide() {
@@ -76,7 +76,7 @@ mod tests {
             Property::NotDecider(Box::new(NotDeciderInput::new(right))),
         );
         let or_decider = Property::OrDecider(Box::new(input.clone()));
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         assert!(db.store_witness(left_hash, &left_witness).is_ok());
         assert!(db.store_witness(right_hash, &right_witness).is_ok());

@@ -50,7 +50,7 @@ mod tests {
     use crate::property_executor::PropertyExecutor;
     use crate::types::{AndDeciderInput, Decision, PreimageExistsInput, Property};
     use bytes::Bytes;
-    use plasma_db::impls::kvs::CoreDbLevelDbImpl;
+    use plasma_db::impls::kvs::CoreDbMemoryImpl;
 
     #[test]
     fn test_decide() {
@@ -62,7 +62,7 @@ mod tests {
         let right = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(right_hash)));
         let input = AndDeciderInput::new(left, right);
         let and_decider = Property::AndDecider(Box::new(input.clone()));
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         assert!(db.store_witness(left_hash, &left_preimage).is_ok());
         assert!(db.store_witness(right_hash, &right_preimage).is_ok());

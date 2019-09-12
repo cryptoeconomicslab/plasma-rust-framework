@@ -22,3 +22,6 @@ node_modules
 
 # vscode
 .vscode
+
+# db
+.plasma_db

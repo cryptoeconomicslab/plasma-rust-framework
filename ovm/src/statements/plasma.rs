@@ -54,7 +54,7 @@ mod tests {
     use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
     use plasma_core::data_structure::abi::Encodable;
     use plasma_core::data_structure::{Range, Transaction, TransactionParams};
-    use plasma_db::impls::kvs::CoreDbLevelDbImpl;
+    use plasma_db::impls::kvs::CoreDbMemoryImpl;
     use plasma_db::traits::kvs::KeyValueStore;
 
     fn store_inclusion_witness<KVS: KeyValueStore>(decider: &PropertyExecutor<KVS>) {
@@ -133,7 +133,7 @@ mod tests {
         let block_number = Integer(10);
         let range = Range::new(0, 100);
         let checkpoint_property = create_plasma_property(block_number, range);
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         store_inclusion_witness(&decider);
         let result = decider.decide(&checkpoint_property);
         assert!(result.is_ok());

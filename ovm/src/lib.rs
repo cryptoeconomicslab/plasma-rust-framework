@@ -29,7 +29,7 @@ mod tests {
     use ethsign::SecretKey;
     use plasma_core::data_structure::abi::Encodable;
     use plasma_core::data_structure::Range;
-    use plasma_db::impls::kvs::CoreDbLevelDbImpl;
+    use plasma_db::impls::kvs::CoreDbMemoryImpl;
     use plasma_db::traits::kvs::KeyValueStore;
 
     fn store_preimage<KVS: KeyValueStore>(decider: &PropertyExecutor<KVS>) {
@@ -63,7 +63,7 @@ mod tests {
                 }
             }))),
         )));
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         store_preimage(&decider);
         let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
@@ -85,7 +85,7 @@ mod tests {
                 }
             }))),
         )));
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let decided_result = decider.decide(&property);
         assert_eq!(decided_result.is_ok(), false);
     }
@@ -111,7 +111,7 @@ mod tests {
                 }
             }))),
         )));
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         store_preimage(&decider);
         let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
@@ -135,7 +135,7 @@ mod tests {
         let message = Bytes::from(channel_message.to_abi());
         let signature = SignVerifier::sign(&secret_key_bob, &message);
         let property = create_state_channel_property(alice, bob, channel_message.clone());
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
         assert!(db.store_witness(bob, message, signature).is_ok());
         let decided: Decision = decider.decide(&property).unwrap();
@@ -148,7 +148,7 @@ mod tests {
         let block_number = Integer(10);
         let range = Range::new(0, 100);
         let checkpoint_property = create_plasma_property(block_number, range);
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let result = decider.decide(&checkpoint_property);
         // faid to decide because no local decision
         assert!(result.is_err());

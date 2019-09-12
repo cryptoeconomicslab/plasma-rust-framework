@@ -94,7 +94,7 @@ mod tests {
         Decider, Decision, ForAllSuchThatInput, Integer, IntegerRangeQuantifierInput,
         PreimageExistsInput, Property, PropertyFactory, Quantifier, QuantifierResultItem,
     };
-    use plasma_db::impls::kvs::CoreDbLevelDbImpl;
+    use plasma_db::impls::kvs::CoreDbMemoryImpl;
 
     #[test]
     fn test_decide() {
@@ -110,7 +110,7 @@ mod tests {
                 }
             }))),
         );
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         for i in 5..20 {
             let integer = Integer(i);

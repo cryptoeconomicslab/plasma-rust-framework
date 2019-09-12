@@ -9,6 +9,7 @@ use leveldb::iterator::Iterable;
 use leveldb::iterator::LevelDBIterator;
 use leveldb::options::{Options, ReadOptions, WriteOptions};
 use parking_lot::RwLock;
+use std::path::Path;
 use tempdir::TempDir;
 
 impl Key for BaseDbKey {
@@ -25,16 +26,24 @@ pub struct CoreDb {
     db: RwLock<Database<BaseDbKey>>,
 }
 
+impl CoreDb {
+    pub fn open_with_tempdir(dbname: &str) -> Self {
+        let tempdir = TempDir::new(dbname).unwrap();
+        Self::open_with_path(tempdir.path())
+    }
+    pub fn open_with_path(path: &Path) -> Self {
+        let mut leveldb_options = Options::new();
+        leveldb_options.create_if_missing = true;
+        Self {
+            db: RwLock::new(Database::open(path, leveldb_options).unwrap()),
+        }
+    }
+}
+
 impl DatabaseTrait for CoreDb {
     fn open(dbname: &str) -> Self {
-        let tempdir = TempDir::new(dbname).unwrap();
-        let path = tempdir.path();
-
-        let mut options = Options::new();
-        options.create_if_missing = true;
-        Self {
-            db: RwLock::new(Database::open(path, options).unwrap()),
-        }
+        let path = Path::new("./.plasma_db").join(dbname);
+        Self::open_with_path(path.as_path())
     }
     fn close(&self) {}
 }
@@ -67,7 +76,6 @@ impl KeyValueStore for CoreDb {
         for op in operations.iter() {
             match op {
                 Batch::BatchPut { key, value } => {
-                    println!("leveldb put {:?}", key);
                     batch.put(key.clone(), value);
                 }
                 Batch::BatchDel { key } => batch.delete(key.clone()),
@@ -84,7 +92,6 @@ impl KeyValueStore for CoreDb {
         start: &BaseDbKey,
         mut f: Box<dyn FnMut(&BaseDbKey, &Vec<u8>) -> bool>,
     ) -> Vec<KeyValue> {
-        println!("leveldb get {:?}, {:?}", prefix, start);
         let read_lock = self.db.read();
         let iter = read_lock.iter(ReadOptions::new());
         let mut result = vec![];
@@ -132,12 +139,11 @@ impl KeyValueStore for CoreDb {
 #[cfg(test)]
 mod tests {
     use super::CoreDb;
-    use crate::traits::db::DatabaseTrait;
     use crate::traits::kvs::{Bucket, KeyValueStore};
 
     #[test]
     fn test_bucket() {
-        let core_db = CoreDb::open("test");
+        let core_db = CoreDb::open_with_tempdir("test");
         let root: Bucket = core_db.root();
         let bucket: Bucket = root.bucket(&b"a"[..].into());
         assert_eq!(bucket.put(&b"b"[..].into(), &b"value"[..]).is_ok(), true);
@@ -148,7 +154,7 @@ mod tests {
 
     #[test]
     fn test_iter() {
-        let core_db = CoreDb::open("test");
+        let core_db = CoreDb::open_with_tempdir("test");
         let root: Bucket = core_db.root();
         let bucket_a: Bucket = root.bucket(&"a".into());
         let bucket_b: Bucket = root.bucket(&"b".into());

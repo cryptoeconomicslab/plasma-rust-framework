@@ -90,7 +90,7 @@ mod tests {
     use crate::types::{Decision, Property, SignedByInput};
     use bytes::Bytes;
     use ethsign::SecretKey;
-    use plasma_db::impls::kvs::CoreDbLevelDbImpl;
+    use plasma_db::impls::kvs::CoreDbMemoryImpl;
 
     #[test]
     fn test_decide() {
@@ -102,7 +102,7 @@ mod tests {
         let signature = Verifier::sign(&secret_key, &message);
         let input = SignedByInput::new(message.clone(), secret_key.public().address().into());
         let property = Property::SignedByDecider(input.clone());
-        let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
         assert!(db
             .store_witness(
