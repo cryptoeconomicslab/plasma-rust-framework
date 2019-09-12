@@ -55,9 +55,7 @@ mod tests {
     use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{
-        Decision, NotDeciderInput, OrDeciderInput, PreimageExistsInput, Property, Witness,
-    };
+    use crate::types::{Decision, NotDeciderInput, OrDeciderInput, PreimageExistsInput, Property};
     use bytes::Bytes;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
@@ -68,11 +66,11 @@ mod tests {
         let left = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
             Verifier::static_hash(&Bytes::from("left")),
         )));
-        let left_witness = Witness::Bytes(Bytes::from("left"));
+        let left_witness = Bytes::from("left");
         let right = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
             Verifier::static_hash(&Bytes::from("right")),
         )));
-        let right_witness = Witness::Bytes(Bytes::from("right"));
+        let right_witness = Bytes::from("right");
         let input = OrDeciderInput::new(
             left,
             Property::NotDecider(Box::new(NotDeciderInput::new(right))),

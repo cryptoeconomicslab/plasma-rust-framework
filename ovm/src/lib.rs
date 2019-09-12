@@ -22,7 +22,7 @@ mod tests {
     use crate::statements::{create_plasma_property, create_state_channel_property};
     use crate::types::{
         Decision, ForAllSuchThatInput, Integer, IntegerRangeQuantifierInput, PreimageExistsInput,
-        Property, PropertyFactory, Quantifier, QuantifierResultItem, Witness,
+        Property, PropertyFactory, Quantifier, QuantifierResultItem,
     };
     use bytes::Bytes;
     use ethereum_types::Address;
@@ -37,10 +37,7 @@ mod tests {
         for i in 0..10 {
             let integer = Integer(i);
             assert!(db
-                .store_witness(
-                    Verifier::static_hash(&integer.into()),
-                    &Witness::Bytes(integer.into())
-                )
+                .store_witness(Verifier::static_hash(&integer.into()), &integer.into())
                 .is_ok());
         }
     }

@@ -47,10 +47,7 @@ mod tests {
     use crate::db::{RangeAtBlockDb, TransactionDb};
     use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{
-        IncludedAtBlockInput, Integer, OwnershipDeciderInput, PlasmaDataBlock, Property,
-        StateUpdate, Witness,
-    };
+    use crate::types::{Integer, OwnershipDeciderInput, PlasmaDataBlock, Property, StateUpdate};
     use bytes::Bytes;
     use ethereum_types::{Address, H256};
     use ethsign::SecretKey;
@@ -112,10 +109,9 @@ mod tests {
                 block_number,
                 data.clone(),
             );
-            let witness =
-                Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, plasma_data_block.clone());
-            let input = IncludedAtBlockInput::new(block_number, plasma_data_block.clone());
-            assert!(db.store_witness(&input, &witness).is_ok());
+            assert!(db
+                .store_witness(inclusion_proof, plasma_data_block.clone())
+                .is_ok());
         }
         let tx_body =
             TransactionParams::new(Address::zero(), Range::new(0, 100), Bytes::default()).to_abi();

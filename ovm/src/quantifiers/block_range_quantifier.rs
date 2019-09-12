@@ -1,6 +1,7 @@
+use crate::db::RangeAtBlockRecord;
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
-    BlockRangeQuantifierInput, PlasmaDataBlock, QuantifierResult, QuantifierResultItem, Witness,
+    BlockRangeQuantifierInput, PlasmaDataBlock, QuantifierResult, QuantifierResultItem,
 };
 use bytes::Bytes;
 use ethereum_types::H256;
@@ -52,21 +53,15 @@ impl BlockRangeQuantifier {
         let mut full_range_included: bool = sum == (range.get_end() - range.get_start());
         let plasma_data_blocks: Vec<PlasmaDataBlock> = result
             .iter()
-            .map(|r| Witness::from_abi(r.get_value()).unwrap())
-            .filter_map(move |w| {
-                if let Witness::IncludedInIntervalTreeAtBlock(inclusion_proof, plasma_data_block) =
-                    w
-                {
-                    if plasma_data_block.get_is_included() {
-                        Some(plasma_data_block.clone())
-                    } else {
-                        if !Self::verify_exclusion(&plasma_data_block, &inclusion_proof) {
-                            full_range_included = false
-                        }
-                        None
-                    }
+            .map(|r| RangeAtBlockRecord::from_abi(r.get_value()).unwrap())
+            .filter_map(move |record| {
+                if record.plasma_data_block.get_is_included() {
+                    Some(record.plasma_data_block.clone())
                 } else {
-                    panic!("invalid witness")
+                    if !Self::verify_exclusion(&record.plasma_data_block, &record.inclusion_proof) {
+                        full_range_included = false
+                    }
+                    None
                 }
             })
             .collect();

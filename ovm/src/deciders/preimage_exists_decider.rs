@@ -1,9 +1,7 @@
 use crate::db::HashPreimageDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{
-    Decider, Decision, ImplicationProofElement, PreimageExistsInput, Property, Witness,
-};
+use crate::types::{Decider, Decision, ImplicationProofElement, PreimageExistsInput, Property};
 use bytes::Bytes;
 use ethereum_types::H256;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -42,21 +40,17 @@ impl Decider for PreimageExistsDecider {
     ) -> Result<Decision, Error> {
         let key = input.get_hash();
         let db: HashPreimageDb<T> = HashPreimageDb::new(decider.get_db());
-        let witness = db.get_witness(key)?;
-        if let Witness::Bytes(preimage) = witness {
-            if Verifier::hash(&preimage) != input.get_hash() {
-                return Err(Error::from(ErrorKind::InvalidPreimage));
-            }
-            Ok(Decision::new(
-                true,
-                vec![ImplicationProofElement::new(
-                    Property::PreimageExistsDecider(Box::new(input.clone())),
-                    Some(Witness::Bytes(preimage)),
-                )],
-            ))
-        } else {
-            panic!("invalid witness")
+        let preimage_record = db.get_witness(key)?;
+        if Verifier::hash(&preimage_record.preimage) != input.get_hash() {
+            return Err(Error::from(ErrorKind::InvalidPreimage));
         }
+        Ok(Decision::new(
+            true,
+            vec![ImplicationProofElement::new(
+                Property::PreimageExistsDecider(Box::new(input.clone())),
+                Some(preimage_record.preimage),
+            )],
+        ))
     }
 }
 
@@ -65,7 +59,7 @@ mod tests {
     use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decision, PreimageExistsInput, Property, Witness};
+    use crate::types::{Decision, PreimageExistsInput, Property};
     use bytes::Bytes;
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
@@ -75,10 +69,9 @@ mod tests {
         let hash = Verifier::static_hash(&preimage);
         let input = PreimageExistsInput::new(hash);
         let property = Property::PreimageExistsDecider(Box::new(input.clone()));
-        let witness = Witness::Bytes(preimage);
         let decider: PropertyExecutor<CoreDbLevelDbImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
-        assert!(db.store_witness(hash, &witness).is_ok());
+        assert!(db.store_witness(hash, &preimage).is_ok());
         let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
