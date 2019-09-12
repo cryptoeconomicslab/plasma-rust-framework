@@ -5,12 +5,12 @@ use bytes::Bytes;
 use ethereum_types::Address;
 use ethsign::SecretKey;
 use ovm::db::TransactionDb;
+use ovm::property_executor::PropertyExecutor;
 use ovm::types::core::{Integer, Property};
 use ovm::types::{OwnershipDeciderInput, StateUpdate};
 use plasma_core::data_structure::{Range, Transaction};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
-use plasma_db::RangeDbImpl;
 
 pub struct PlasmaAggregator<KVS: KeyValueStore> {
     aggregator_address: Address,
@@ -20,7 +20,7 @@ pub struct PlasmaAggregator<KVS: KeyValueStore> {
     _raw_key: Vec<u8>,
     _my_address: Address,
     block_manager: BlockManager<KVS>,
-    range_db: RangeDbImpl<KVS>,
+    decider: PropertyExecutor<KVS>,
     //_secret_key: SecretKey,
     //    state_update_queue:
 }
@@ -31,7 +31,6 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         plasma_contract_address: Address,
         commitment_contract_address: Address,
         private_key: &str,
-        range_db: RangeDbImpl<KVS>,
     ) -> Self {
         let raw_key = hex::decode(private_key).unwrap();
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
@@ -46,7 +45,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             //_secret_key: secret_key,
             _my_address: my_address,
             block_manager,
-            range_db,
+            decider: Default::default(),
         }
     }
 
@@ -61,13 +60,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     // - handle multi prev_states case.
     // - fix decide logic for state transition.
     pub fn ingest_transaction(&mut self, transaction: Transaction) -> Result<(), Error> {
-        let transaction_db = TransactionDb::new(&self.range_db);
-        transaction_db.put_transaction(
-            self.block_manager.get_next_block_number(),
-            transaction.clone(),
-        );
-
-        let state_db = StateDb::new(&self.range_db);
+        let transaction_db = TransactionDb::new(self.decider.get_range_db());
+        let next_block_number = self.block_manager.get_next_block_number();
+        let state_db = StateDb::new(self.decider.get_range_db());
         let state_updates = state_db
             .get_verified_state_updates(
                 transaction.get_range().get_start(),
@@ -78,10 +73,15 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             return Err(Error::from(ErrorKind::InvalidTransaction));
         }
         let prev_state = &state_updates[0];
+        transaction_db.put_transaction(prev_state.get_block_number().0, transaction.clone());
         if !prev_state.get_range().is_subrange(&transaction.get_range()) {
             return Err(Error::from(ErrorKind::InvalidTransaction));
         }
-        if let Ok(next_state) = prev_state.execute_state_transition(&transaction) {
+        if let Ok(next_state) = prev_state.execute_state_transition(
+            &self.decider,
+            &transaction,
+            Integer(next_block_number),
+        ) {
             let res = self.block_manager.enqueue_state_update(next_state);
             if res.is_err() {
                 return Err(Error::from(ErrorKind::InvalidTransaction));
@@ -114,7 +114,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     }
 
     pub fn insert_test_ranges(&mut self) {
-        let mut state_db = StateDb::new(&self.range_db);
+        let mut state_db = StateDb::new(self.decider.get_range_db());
         let ownership_decider_id =
             Property::OwnershipDecider(OwnershipDeciderInput::zero()).get_decider_id();
         for i in 0..5 {
@@ -129,7 +129,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     }
 
     pub fn get_all_state_updates(&self) -> Vec<StateUpdate> {
-        let state_db = StateDb::new(&self.range_db);
+        let state_db = StateDb::new(self.decider.get_range_db());
         state_db.get_all_state_updates().unwrap_or_else(|_| vec![])
     }
 }
