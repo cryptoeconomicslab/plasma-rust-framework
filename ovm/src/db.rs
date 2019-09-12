@@ -8,6 +8,6 @@ pub mod transaction_db;
 pub use self::channel_db::{Channel, ChannelDb};
 pub use self::hash_preimage_db::HashPreimageDb;
 pub use self::message_db::{Message, MessageDb};
-pub use self::range_at_block_db::RangeAtBlockDb;
+pub use self::range_at_block_db::{RangeAtBlockDb, RangeAtBlockRecord};
 pub use self::signed_by_db::SignedByDb;
 pub use self::transaction_db::TransactionDb;

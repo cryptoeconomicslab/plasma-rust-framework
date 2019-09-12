@@ -1,7 +1,7 @@
 use crate::db::SignedByDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, Property, SignedByInput, Witness};
+use crate::types::{Decider, Decision, ImplicationProofElement, Property, SignedByInput};
 use bytes::Bytes;
 use ethereum_types::{Address, H256};
 use ethsign::{SecretKey, Signature};
@@ -76,7 +76,7 @@ impl Decider for SignedByDecider {
             true,
             vec![ImplicationProofElement::new(
                 Property::SignedByDecider(input.clone()),
-                Some(Witness::Bytes(signed_by_message.signature)),
+                Some(signed_by_message.signature),
             )],
         ))
     }

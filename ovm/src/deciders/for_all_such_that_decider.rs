@@ -92,7 +92,7 @@ mod tests {
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
         Decider, Decision, ForAllSuchThatInput, Integer, IntegerRangeQuantifierInput,
-        PreimageExistsInput, Property, PropertyFactory, Quantifier, QuantifierResultItem, Witness,
+        PreimageExistsInput, Property, PropertyFactory, Quantifier, QuantifierResultItem,
     };
     use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 
@@ -115,10 +115,7 @@ mod tests {
         for i in 5..20 {
             let integer = Integer(i);
             assert!(db
-                .store_witness(
-                    Verifier::static_hash(&integer.into()),
-                    &Witness::Bytes(integer.into())
-                )
+                .store_witness(Verifier::static_hash(&integer.into()), &integer.into())
                 .is_ok());
         }
         let decided: Decision = ForAllSuchThatDecider::decide(&decider, &input).unwrap();

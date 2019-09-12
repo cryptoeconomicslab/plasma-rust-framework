@@ -279,7 +279,7 @@ impl From<ImplicationProofElement> for Token {
         Token::Tuple(vec![
             element.implication.into(),
             Token::Bytes(match element.implication_witness {
-                Some(v) => v.to_abi(),
+                Some(v) => v.to_vec(),
                 None => vec![],
             }),
         ])
