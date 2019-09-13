@@ -1,5 +1,6 @@
 pub mod core;
 pub mod decision_value;
+pub mod input_type;
 pub mod inputs;
 pub mod plasma_data_block;
 pub mod state_update;
@@ -10,6 +11,7 @@ pub use self::core::{
     QuantifierResult, QuantifierResultItem,
 };
 pub use self::decision_value::DecisionValue;
+pub use self::input_type::InputType;
 pub use self::inputs::{
     AndDeciderInput, BlockRangeQuantifierInput, ChannelUpdateSignatureExistsDeciderInput,
     ForAllSuchThatInput, HasLowerNonceInput, IncludedAtBlockInput, IntegerRangeQuantifierInput,
