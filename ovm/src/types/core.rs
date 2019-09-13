@@ -4,8 +4,8 @@ use super::inputs::{
     IsDeprecatedDeciderInput, NotDeciderInput, OrDeciderInput, OwnershipDeciderInput,
     PreimageExistsInput, SignedByInput,
 };
+use super::plasma_data_block::PlasmaDataBlock;
 use super::state_update::StateUpdate;
-use super::witness::{PlasmaDataBlock, Witness};
 use crate::db::Message;
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
@@ -262,11 +262,11 @@ impl Decodable for Quantifier {
 #[derive(Clone, Debug)]
 pub struct ImplicationProofElement {
     implication: Property,
-    implication_witness: Option<Witness>,
+    implication_witness: Option<Bytes>,
 }
 
 impl ImplicationProofElement {
-    pub fn new(implication: Property, implication_witness: Option<Witness>) -> Self {
+    pub fn new(implication: Property, implication_witness: Option<Bytes>) -> Self {
         ImplicationProofElement {
             implication,
             implication_witness,

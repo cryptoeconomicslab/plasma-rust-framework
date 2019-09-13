@@ -65,22 +65,4 @@ impl PlasmaDataBlock {
     pub fn get_data(&self) -> &Bytes {
         &self.data
     }
-
-    //    pub fn verify_deprecation(&self, transaction: &Transaction) -> bool {
-    //        if let Property::SignedByDecider(input) = &self.property {
-    //            if SignVerifier::recover(
-    //                transaction.get_signature(),
-    //                &Bytes::from(transaction.to_body_abi()),
-    //            ) == input.get_public_key()
-    //            {
-    //                return true;
-    //            }
-    //            false
-    //        } else {
-    //            // TODO: implement how to verify_deprecation using other.decider
-    //            false
-    //        }
-    //    }
 }
-
-pub type Witness = Bytes;

@@ -1,4 +1,3 @@
-use crate::types::Witness;
 use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
@@ -11,13 +10,13 @@ pub struct DecisionValue {
 }
 
 impl DecisionValue {
-    pub fn new(decision: bool, witness: Witness) -> Self {
+    pub fn new(decision: bool, witness: Bytes) -> Self {
         Self { decision, witness }
     }
     pub fn get_decision(&self) -> bool {
         self.decision
     }
-    pub fn get_witness(&self) -> &Witness {
+    pub fn get_witness(&self) -> &Bytes {
         &self.witness
     }
 }

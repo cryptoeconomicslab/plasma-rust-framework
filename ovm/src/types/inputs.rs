@@ -1,5 +1,5 @@
 use super::core::{Integer, Property, PropertyFactory, Quantifier};
-use super::witness::PlasmaDataBlock;
+use super::plasma_data_block::PlasmaDataBlock;
 use super::StateUpdate;
 use crate::db::Message;
 use abi_derive::{AbiDecodable, AbiEncodable};
