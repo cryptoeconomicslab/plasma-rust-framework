@@ -127,7 +127,7 @@ mod tests {
                 Address::zero(),
                 Range::new(0, 100),
                 Bytes::default(),
-                signature,
+                vec![signature],
             ),
         );
     }

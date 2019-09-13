@@ -84,7 +84,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
 
         let signature =
             SignVerifier::sign(&self.secret_key, &Bytes::from(transaction_params.to_abi()));
-        Transaction::from_params(transaction_params, signature)
+        Transaction::from_params(transaction_params, vec![signature])
     }
 
     /// Start exit on plasma. return exit property

@@ -90,7 +90,7 @@ pub struct Transaction {
     plasma_contract_address: Address,
     range: Range,
     parameters: Bytes,
-    signature: Bytes,
+    signatures: Vec<Bytes>,
 }
 
 impl Transaction {
@@ -103,22 +103,25 @@ impl Transaction {
         plasma_contract_address: Address,
         range: Range,
         parameters: Bytes,
-        signature: Bytes,
+        signatures: Vec<Bytes>,
     ) -> Transaction {
         Transaction {
             plasma_contract_address,
             range,
             parameters,
-            signature,
+            signatures,
         }
     }
 
-    pub fn from_params(transaction_params: TransactionParams, signature: Bytes) -> Transaction {
+    pub fn from_params(
+        transaction_params: TransactionParams,
+        signatures: Vec<Bytes>,
+    ) -> Transaction {
         Transaction::new(
             transaction_params.plasma_contract_address,
             transaction_params.range,
             transaction_params.parameters,
-            signature,
+            signatures,
         )
     }
 
@@ -160,8 +163,8 @@ impl Transaction {
     pub fn get_plasma_contract_address(&self) -> Address {
         self.plasma_contract_address
     }
-    pub fn get_signature(&self) -> &Bytes {
-        &self.signature
+    pub fn get_signatures(&self) -> &Vec<Bytes> {
+        &self.signatures
     }
 }
 
@@ -176,7 +179,12 @@ impl Encodable for Transaction {
             Token::Address(self.plasma_contract_address),
             Token::Tuple(self.range.to_tuple()),
             Token::Bytes(self.parameters.to_vec()),
-            Token::Bytes(self.signature.to_vec()),
+            Token::Array(
+                self.signatures
+                    .iter()
+                    .map(|s| Token::Bytes(s.to_vec()))
+                    .collect(),
+            ),
         ]
     }
 }
@@ -187,15 +195,18 @@ impl Decodable for Transaction {
         let plasma_contract_address = tuple[0].clone().to_address();
         let range = tuple[1].clone().to_tuple();
         let parameters = tuple[2].clone().to_bytes();
-        let signature = tuple[3].clone().to_bytes();
-        if let (Some(plasma_contract_address), Some(range), Some(parameters), Some(signature)) =
-            (plasma_contract_address, range, parameters, signature)
+        let signatures = tuple[3].clone().to_array();
+        if let (Some(plasma_contract_address), Some(range), Some(parameters), Some(signatures)) =
+            (plasma_contract_address, range, parameters, signatures)
         {
             Ok(Transaction::new(
                 plasma_contract_address,
                 Range::from_tuple(&range).ok().unwrap(),
                 Bytes::from(parameters),
-                Bytes::from(signature),
+                signatures
+                    .iter()
+                    .map(|s| Bytes::from(s.clone().to_bytes().unwrap()))
+                    .collect(),
             ))
         } else {
             Err(Error::from(ErrorKind::AbiDecode))
@@ -215,7 +226,7 @@ impl Decodable for Transaction {
                     ethabi::ParamType::Uint(8),
                 ]),
                 ethabi::ParamType::Bytes,
-                ethabi::ParamType::Bytes,
+                ethabi::ParamType::Array(Box::new(ethabi::ParamType::Bytes)),
             ],
             data,
         )
@@ -239,7 +250,7 @@ mod tests {
             Address::zero(),
             Range::new(0, 100),
             parameters_bytes,
-            signature_bytes,
+            vec![signature_bytes],
         );
         let encoded = transaction.to_abi();
         let decoded: Transaction = Transaction::from_abi(&encoded).unwrap();

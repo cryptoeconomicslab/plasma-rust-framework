@@ -4,32 +4,13 @@ use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{Decider, Decision, Integer, OwnershipDeciderInput, StateUpdate};
 use bytes::Bytes;
+use ethereum_types::Address;
 use plasma_core::data_structure::Transaction;
 use plasma_db::traits::kvs::KeyValueStore;
 
-/// OwnershipInput {
-///     state_update: StateUpdate,
-///     owner: Address,
-/// }
-///
-/// 1. verify there exists transaction with prev_state owner's signature.
-/// 2. prev_state's block_number is less than origin_block_number
-/// 3. ensure post_state's range is same as transaction's range.
-/// 4. transaction.parameters.new_state is same as post_state.state
+pub struct PaymentChannelOnPlasmaDecider {}
 
-pub struct OwnershipDecider {}
-
-/// OwnershipDecider property construction
-/// Transaction have property which is
-/// Input = {
-///     state_update: StateUpdate,
-///     owner: Address,
-/// }
-/// property.input have to have owner address.
-/// StateUpdate have owner address in property.input
-/// Use SignedByDecider's address.
-
-impl Decider for OwnershipDecider {
+impl Decider for PaymentChannelOnPlasmaDecider {
     type Input = OwnershipDeciderInput;
     fn decide<T: KeyValueStore>(
         decider: &PropertyExecutor<T>,
@@ -39,14 +20,14 @@ impl Decider for OwnershipDecider {
         let state_update = input.get_state_update();
         let txs =
             db.get_transactions(state_update.get_block_number().0, state_update.get_range())?;
-        println!("TXS: {:?}", txs);
-
         if txs.is_empty() {
             return Err(Error::from(ErrorKind::CannotDecide));
         }
         for tx in txs.iter() {
             if Verifier::recover(&tx.get_signatures()[0], &Bytes::from(tx.to_body_abi()))
-                == input.get_owner_address()
+                == PaymentChannelOnPlasmaDecider::get_owner_address(input)
+                && Verifier::recover(&tx.get_signatures()[1], &Bytes::from(tx.to_body_abi()))
+                    == PaymentChannelOnPlasmaDecider::get_participant_address(input)
             {
                 return Ok(Decision::new(true, vec![]));
             }
@@ -56,7 +37,13 @@ impl Decider for OwnershipDecider {
     }
 }
 
-impl OwnershipDecider {
+impl PaymentChannelOnPlasmaDecider {
+    pub fn get_owner_address(input: &OwnershipDeciderInput) -> Address {
+        Address::from_slice(&input.get_state_update().get_params()[0..20])
+    }
+    pub fn get_participant_address(input: &OwnershipDeciderInput) -> Address {
+        Address::from_slice(&input.get_state_update().get_params()[32..52])
+    }
     pub fn execute_state_transition(
         prev_state: &StateUpdate,
         transaction: &Transaction,
