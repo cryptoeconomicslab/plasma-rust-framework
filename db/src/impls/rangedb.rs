@@ -1,5 +1,3 @@
-extern crate tempdir;
-
 use crate::error::{Error, ErrorKind};
 use crate::range::Range;
 use crate::traits::kvs::{BaseDbKey, Batch, Bucket, KeyValueStore};
