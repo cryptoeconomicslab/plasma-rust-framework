@@ -1,23 +1,18 @@
-use super::inputs::{
-    AndDeciderInput, BlockRangeQuantifierInput, ChannelUpdateSignatureExistsDeciderInput,
-    ForAllSuchThatInput, HasLowerNonceInput, IncludedAtBlockInput, IntegerRangeQuantifierInput,
-    IsDeprecatedDeciderInput, NotDeciderInput, OrDeciderInput, OwnershipDeciderInput,
-    PreimageExistsInput, SignedByInput,
-};
 use super::plasma_data_block::PlasmaDataBlock;
 use super::state_update::StateUpdate;
 use crate::db::Message;
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
+use crate::types::InputType;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use ethabi::{ParamType, Token};
-use ethereum_types::Address;
+use ethereum_types::{Address, H256};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
 };
+use plasma_core::data_structure::Range;
 use plasma_db::traits::kvs::KeyValueStore;
-use std::sync::Arc;
 
 pub type DeciderId = Address;
 pub type QuantifierId = Address;
@@ -47,132 +42,29 @@ impl From<Bytes> for Integer {
     }
 }
 
-lazy_static! {
-    static ref DECIDER_LIST: Vec<Address> = {
-        let mut list = vec![];
-        for _ in 0..11 {
-            list.push(Address::random())
-        }
-        list
-    };
-}
-
 /// The property which will be decided by Decider
-#[derive(Clone, Debug)]
-pub enum Property {
-    // left, left_witness, right, right_witness
-    AndDecider(Box<AndDeciderInput>),
-    // property, witness
-    NotDecider(Box<NotDeciderInput>),
-    // quantifier, quantifier_parameters, property_factory, witness_factory?
-    ForAllSuchThatDecider(Box<ForAllSuchThatInput>),
-    // hash
-    PreimageExistsDecider(Box<PreimageExistsInput>),
-    // message, public_key
-    SignedByDecider(SignedByInput),
-    // left, right
-    OrDecider(Box<OrDeciderInput>),
-    // message, nonce
-    HasLowerNonceDecider(HasLowerNonceInput),
-    // channelId, nonce, participant
-    ChannelUpdateSignatureExistsDecider(ChannelUpdateSignatureExistsDeciderInput),
-    IncludedAtBlockDecider(Box<IncludedAtBlockInput>),
-    OwnershipDecider(OwnershipDeciderInput),
-    IsDeprecatedDecider(Box<IsDeprecatedDeciderInput>),
-}
-
-#[derive(Clone, Debug)]
-pub enum Quantifier {
-    // start to end
-    IntegerRangeQuantifier(IntegerRangeQuantifierInput),
-    // 0 to upperBound
-    NonnegativeIntegerLessThanQuantifier(Integer),
-    // signer
-    SignedByQuantifier(Address),
-    // blocknumber and range
-    BlockRangeQuantifier(BlockRangeQuantifierInput),
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Property {
+    pub decider: Address,
+    pub inputs: Vec<InputType>,
 }
 
 impl Property {
-    pub fn get_decider_id(&self) -> DeciderId {
-        match self {
-            Property::AndDecider(_) => DECIDER_LIST[0],
-            Property::OrDecider(_) => DECIDER_LIST[1],
-            Property::ForAllSuchThatDecider(_) => DECIDER_LIST[2],
-            Property::NotDecider(_) => DECIDER_LIST[3],
-            Property::PreimageExistsDecider(_) => DECIDER_LIST[4],
-            Property::SignedByDecider(_) => DECIDER_LIST[5],
-            Property::HasLowerNonceDecider(_) => DECIDER_LIST[6],
-            Property::ChannelUpdateSignatureExistsDecider(_) => DECIDER_LIST[7],
-            Property::IncludedAtBlockDecider(_) => DECIDER_LIST[8],
-            Property::IsDeprecatedDecider(_) => DECIDER_LIST[9],
-            Property::OwnershipDecider(_) => DECIDER_LIST[10],
-        }
-    }
-    pub fn to_bytes(&self) -> Vec<u8> {
-        match self {
-            Property::AndDecider(input) => input.to_abi(),
-            Property::OrDecider(input) => input.to_abi(),
-            Property::ForAllSuchThatDecider(input) => input.to_abi(),
-            Property::NotDecider(input) => input.to_abi(),
-            Property::PreimageExistsDecider(input) => input.to_abi(),
-            Property::SignedByDecider(input) => input.to_abi(),
-            Property::HasLowerNonceDecider(input) => input.to_abi(),
-            Property::ChannelUpdateSignatureExistsDecider(input) => input.to_abi(),
-            Property::IncludedAtBlockDecider(input) => input.to_abi(),
-            Property::IsDeprecatedDecider(input) => input.to_abi(),
-            Property::OwnershipDecider(input) => input.to_abi(),
-        }
-    }
-    fn from_bytes(decider_id: Address, data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        if decider_id == DECIDER_LIST[0] {
-            AndDeciderInput::from_abi(data).map(|input| Property::AndDecider(Box::new(input)))
-        } else if decider_id == DECIDER_LIST[1] {
-            OrDeciderInput::from_abi(data).map(|input| Property::OrDecider(Box::new(input)))
-        } else if decider_id == DECIDER_LIST[2] {
-            ForAllSuchThatInput::from_abi(data)
-                .map(|input| Property::ForAllSuchThatDecider(Box::new(input)))
-        } else if decider_id == DECIDER_LIST[3] {
-            NotDeciderInput::from_abi(data).map(|input| Property::NotDecider(Box::new(input)))
-        } else if decider_id == DECIDER_LIST[4] {
-            PreimageExistsInput::from_abi(data)
-                .map(|input| Property::PreimageExistsDecider(Box::new(input)))
-        } else if decider_id == DECIDER_LIST[5] {
-            SignedByInput::from_abi(data).map(Property::SignedByDecider)
-        } else if decider_id == DECIDER_LIST[6] {
-            HasLowerNonceInput::from_abi(data).map(Property::HasLowerNonceDecider)
-        } else if decider_id == DECIDER_LIST[7] {
-            ChannelUpdateSignatureExistsDeciderInput::from_abi(data)
-                .map(Property::ChannelUpdateSignatureExistsDecider)
-        } else if decider_id == DECIDER_LIST[8] {
-            IncludedAtBlockInput::from_abi(data)
-                .map(|input| Property::IncludedAtBlockDecider(Box::new(input)))
-        } else if decider_id == DECIDER_LIST[9] {
-            IsDeprecatedDeciderInput::from_abi(data)
-                .map(|input| Property::IsDeprecatedDecider(Box::new(input)))
-        } else if decider_id == DECIDER_LIST[10] {
-            OwnershipDeciderInput::from_abi(data).map(Property::OwnershipDecider)
-        } else {
-            panic!("unknown decider")
-        }
-    }
-    pub fn get_generalized_plasma_property(
-        decider_id: Address,
-        state_update: StateUpdate,
-    ) -> Property {
-        if decider_id == DECIDER_LIST[10] {
-            Property::OwnershipDecider(OwnershipDeciderInput::new(state_update))
-        } else {
-            panic!("NO GENERALIZED PLASMA PROPERTY MATCHED!!")
-        }
+    pub fn new(decider: Address, inputs: Vec<InputType>) -> Self {
+        Self { decider, inputs }
     }
 }
 
 impl Encodable for Property {
     fn to_tuple(&self) -> Vec<Token> {
         vec![
-            Token::Address(self.get_decider_id()),
-            Token::Bytes(self.to_bytes()),
+            Token::Address(self.decider),
+            Token::Array(
+                self.inputs
+                    .iter()
+                    .map(|i| Token::Bytes(i.to_abi()))
+                    .collect(),
+            ),
         ]
     }
 }
@@ -181,9 +73,15 @@ impl Decodable for Property {
     type Ok = Property;
     fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
         let decider_id = tuple[0].clone().to_address();
-        let input_data = tuple[1].clone().to_bytes();
-        if let (Some(decider_id), Some(input_data)) = (decider_id, input_data) {
-            Ok(Property::from_bytes(decider_id, &input_data).unwrap())
+        let inputs = tuple[1].clone().to_array();
+        if let (Some(decider_id), Some(inputs)) = (decider_id, inputs) {
+            Ok(Property {
+                decider: decider_id,
+                inputs: inputs
+                    .iter()
+                    .map(|i| InputType::from_abi(&i.clone().to_bytes().unwrap()).unwrap())
+                    .collect(),
+            })
         } else {
             Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
         }
@@ -196,65 +94,6 @@ impl Decodable for Property {
 impl From<Property> for Token {
     fn from(property: Property) -> Token {
         Token::Tuple(property.to_tuple())
-    }
-}
-
-impl Quantifier {
-    pub fn get_id(&self) -> u64 {
-        match self {
-            Quantifier::IntegerRangeQuantifier(_) => 0,
-            Quantifier::NonnegativeIntegerLessThanQuantifier(_) => 1,
-            Quantifier::SignedByQuantifier(_) => 2,
-            Quantifier::BlockRangeQuantifier(_) => 3,
-        }
-    }
-    pub fn to_bytes(&self) -> Vec<u8> {
-        match self {
-            Quantifier::IntegerRangeQuantifier(input) => input.to_abi(),
-            Quantifier::NonnegativeIntegerLessThanQuantifier(input) => Bytes::from(*input).to_vec(),
-            Quantifier::SignedByQuantifier(input) => input.as_bytes().to_vec(),
-            Quantifier::BlockRangeQuantifier(input) => input.to_abi(),
-        }
-    }
-    fn from_bytes(id: u64, data: &[u8]) -> Result<Self, PlasmaCoreError> {
-        if id == 0 {
-            IntegerRangeQuantifierInput::from_abi(data).map(Quantifier::IntegerRangeQuantifier)
-        } else if id == 1 {
-            Ok(Quantifier::NonnegativeIntegerLessThanQuantifier(
-                Integer::from(Bytes::from(data)),
-            ))
-        } else if id == 2 {
-            Ok(Quantifier::SignedByQuantifier(Address::from_slice(data)))
-        } else if id == 3 {
-            BlockRangeQuantifierInput::from_abi(data).map(Quantifier::BlockRangeQuantifier)
-        } else {
-            panic!("unknown decider")
-        }
-    }
-}
-
-impl Encodable for Quantifier {
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![
-            Token::Uint(self.get_id().into()),
-            Token::Bytes(self.to_bytes()),
-        ]
-    }
-}
-
-impl Decodable for Quantifier {
-    type Ok = Quantifier;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
-        let id = tuple[0].clone().to_uint();
-        let input_data = tuple[1].clone().to_bytes();
-        if let (Some(id), Some(input_data)) = (id, input_data) {
-            Ok(Quantifier::from_bytes(id.as_u64(), &input_data).unwrap())
-        } else {
-            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
-        }
-    }
-    fn get_param_types() -> Vec<ethabi::ParamType> {
-        vec![ethabi::ParamType::Uint(256), ethabi::ParamType::Bytes]
     }
 }
 
@@ -308,40 +147,91 @@ impl Decision {
     }
 }
 
-#[derive(Clone)]
-pub struct PropertyFactory(Arc<dyn Fn(QuantifierResultItem) -> Property>);
-
-impl PropertyFactory {
-    pub fn new(handler: Box<dyn Fn(QuantifierResultItem) -> Property>) -> Self {
-        PropertyFactory(Arc::new(handler))
-    }
-    pub fn call(&self, item: QuantifierResultItem) -> Property {
-        self.0(item)
-    }
-}
-
-impl std::fmt::Debug for PropertyFactory {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "PropertyFactory")
-    }
-}
-
 pub trait Decider {
-    type Input;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &Self::Input,
+        decider: &mut PropertyExecutor<T>,
+        input: &Vec<InputType>,
     ) -> Result<Decision, Error>;
 }
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug)]
 pub enum QuantifierResultItem {
+    Address(Address),
     Integer(Integer),
     Bytes(Bytes),
     Message(Message),
     Property(Property),
     PlasmaDataBlock(PlasmaDataBlock),
+    StateUpdate(StateUpdate),
+    Range(Range),
+    H256(H256),
+}
+
+impl QuantifierResultItem {
+    pub fn to_bytes(&self) -> Bytes {
+        if let QuantifierResultItem::Bytes(bytes) = self {
+            bytes.clone()
+        } else {
+            panic!("QuantifierResultItem isn't Bytes!")
+        }
+    }
+    pub fn to_integer(&self) -> Integer {
+        if let QuantifierResultItem::Integer(integer) = self {
+            *integer
+        } else {
+            panic!("QuantifierResultItem isn't Integer!")
+        }
+    }
+    pub fn to_address(&self) -> Address {
+        if let QuantifierResultItem::Address(address) = self {
+            *address
+        } else {
+            panic!("QuantifierResultItem isn't Address!")
+        }
+    }
+    pub fn to_h256(&self) -> H256 {
+        if let QuantifierResultItem::H256(h256) = self {
+            *h256
+        } else {
+            panic!("QuantifierResultItem isn't H256!")
+        }
+    }
+    pub fn to_range(&self) -> Range {
+        if let QuantifierResultItem::Range(range) = self {
+            *range
+        } else {
+            panic!("QuantifierResultItem isn't Range!")
+        }
+    }
+    pub fn to_property(&self) -> Property {
+        if let QuantifierResultItem::Property(property) = self {
+            property.clone()
+        } else {
+            panic!("QuantifierResultItem isn't Property!")
+        }
+    }
+    pub fn to_message(&self) -> Message {
+        if let QuantifierResultItem::Message(message) = self {
+            message.clone()
+        } else {
+            panic!("QuantifierResultItem isn't Message!")
+        }
+    }
+    pub fn to_plasma_data_block(&self) -> PlasmaDataBlock {
+        if let QuantifierResultItem::PlasmaDataBlock(plasma_data_block) = self {
+            plasma_data_block.clone()
+        } else {
+            panic!("QuantifierResultItem isn't PlasmaDataBlock!")
+        }
+    }
+    pub fn to_state_update(&self) -> StateUpdate {
+        if let QuantifierResultItem::StateUpdate(state_update) = self {
+            state_update.clone()
+        } else {
+            panic!("QuantifierResultItem isn't StateUpdate!")
+        }
+    }
 }
 
 pub struct QuantifierResult {
@@ -363,7 +253,7 @@ impl QuantifierResult {
         self.all_results_quantified
     }
 }
-
+/*
 #[cfg(test)]
 mod tests {
 
@@ -385,3 +275,4 @@ mod tests {
         }
     }
 }
+*/

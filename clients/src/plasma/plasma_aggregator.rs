@@ -6,8 +6,9 @@ use ethereum_types::Address;
 use ethsign::SecretKey;
 use ovm::db::TransactionDb;
 use ovm::property_executor::PropertyExecutor;
-use ovm::types::core::{Integer, Property};
-use ovm::types::{OwnershipDeciderInput, StateUpdate};
+use ovm::types::StateUpdate;
+use ovm::types::{InputType, Integer, Property};
+use ovm::DeciderManager;
 use plasma_core::data_structure::{Range, Transaction};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -78,7 +79,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             return Err(Error::from(ErrorKind::InvalidTransaction));
         }
         if let Ok(next_state) = prev_state.execute_state_transition(
-            &self.decider,
+            &mut self.decider,
             &transaction,
             Integer(next_block_number),
         ) {
@@ -115,14 +116,20 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
 
     pub fn insert_test_ranges(&mut self) {
         let mut state_db = StateDb::new(self.decider.get_range_db());
-        let ownership_decider_id =
-            Property::OwnershipDecider(OwnershipDeciderInput::zero()).get_decider_id();
+        let ownership_decider_id = DeciderManager::get_decider_address(9);
         for i in 0..5 {
             let state_update = StateUpdate::new(
                 Integer::new(1),
                 Range::new(i * 10, (i + 1) * 10),
-                ownership_decider_id,
-                Bytes::from(hex::decode("2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e").unwrap()),
+                Property::new(
+                    ownership_decider_id,
+                    vec![
+                        InputType::Placeholder(Bytes::from("state_update")),
+                        InputType::ConstantAddress(Address::from_slice(
+                            &hex::decode("2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e").unwrap(),
+                        )),
+                    ],
+                ),
             );
             assert!(state_db.put_verified_state_update(state_update).is_ok());
         }

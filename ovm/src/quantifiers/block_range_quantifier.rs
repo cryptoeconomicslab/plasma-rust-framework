@@ -1,8 +1,6 @@
 use crate::db::RangeAtBlockRecord;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{
-    BlockRangeQuantifierInput, PlasmaDataBlock, QuantifierResult, QuantifierResultItem,
-};
+use crate::types::{InputType, PlasmaDataBlock, QuantifierResult, QuantifierResultItem};
 use bytes::Bytes;
 use ethereum_types::H256;
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
@@ -34,16 +32,17 @@ impl BlockRangeQuantifier {
     }
     pub fn get_all_quantified<KVS>(
         decider: &PropertyExecutor<KVS>,
-        input: &BlockRangeQuantifierInput,
+        inputs: &Vec<InputType>,
     ) -> QuantifierResult
     where
         KVS: KeyValueStore,
     {
-        let range = input.coin_range;
+        let block_number = decider.get_variable(&inputs[0]).to_integer();
+        let range = decider.get_variable(&inputs[1]).to_range();
         let result = decider
             .get_range_db()
             .bucket(&Bytes::from("range_at_block"))
-            .bucket(&input.block_number.into())
+            .bucket(&block_number.into())
             .get(range.get_start(), range.get_end())
             .unwrap();
         let sum = result
@@ -68,7 +67,7 @@ impl BlockRangeQuantifier {
         QuantifierResult::new(
             plasma_data_blocks
                 .iter()
-                .map(|p| QuantifierResultItem::PlasmaDataBlock(p.clone()))
+                .map(|p| QuantifierResultItem::StateUpdate(p.clone().into()))
                 .collect(),
             full_range_included,
         )

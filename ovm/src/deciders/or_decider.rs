@@ -1,7 +1,7 @@
 use crate::error::{Error, ErrorKind};
-use crate::property_executor::DecideMixin;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, OrDeciderInput};
+use crate::types::{Decider, Decision, InputType};
+use crate::{DecideMixin, DeciderManager};
 use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct OrDecider {}
@@ -19,13 +19,14 @@ impl Default for OrDecider {
 }
 
 impl Decider for OrDecider {
-    type Input = OrDeciderInput;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &OrDeciderInput,
+        decider: &mut PropertyExecutor<T>,
+        inputs: &Vec<InputType>,
     ) -> Result<Decision, Error> {
-        let left_decision = input.get_left().decide(decider);
-        let right_decision = input.get_right().decide(decider);
+        let left = decider.get_variable(&inputs[0]).to_property();
+        let right = decider.get_variable(&inputs[1]).to_property();
+        let left_decision = left.decide(decider);
+        let right_decision = right.decide(decider);
         if let Ok(left_decision) = &left_decision {
             if left_decision.get_outcome() {
                 return Ok(left_decision.clone());
@@ -50,12 +51,13 @@ impl Decider for OrDecider {
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decision, NotDeciderInput, OrDeciderInput, PreimageExistsInput, Property};
+    use crate::types::{Decision, Property};
     use bytes::Bytes;
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
 
@@ -84,3 +86,4 @@ mod tests {
         assert_eq!(decided.get_outcome(), true);
     }
 }
+*/

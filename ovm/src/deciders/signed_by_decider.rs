@@ -1,7 +1,8 @@
 use crate::db::SignedByDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, Property, SignedByInput};
+use crate::types::{Decider, Decision, ImplicationProofElement, InputType, Property};
+use crate::{DecideMixin, DeciderManager};
 use bytes::Bytes;
 use ethereum_types::{Address, H256};
 use ethsign::{SecretKey, Signature};
@@ -59,29 +60,29 @@ impl Default for SignedByDecider {
 }
 
 impl Decider for SignedByDecider {
-    type Input = SignedByInput;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &SignedByInput,
+        decider: &mut PropertyExecutor<T>,
+        inputs: &Vec<InputType>,
     ) -> Result<Decision, Error> {
+        let public_key = decider.get_variable(&inputs[0]).to_address();
+        let message = decider.get_variable(&inputs[1]).to_bytes();
         let db: SignedByDb<T> = SignedByDb::new(decider.get_db());
-        let signed_by_message = db.get_witness(input.get_public_key(), input.get_message())?;
-        if Verifier::recover(&signed_by_message.signature, input.get_message())
-            != input.get_public_key()
-        {
+        let signed_by_message = db.get_witness(public_key, &message)?;
+        if Verifier::recover(&signed_by_message.signature, &message) != public_key {
             return Err(Error::from(ErrorKind::InvalidPreimage));
         }
 
         Ok(Decision::new(
             true,
             vec![ImplicationProofElement::new(
-                Property::SignedByDecider(input.clone()),
+                DeciderManager::signed_by_decider(inputs.clone()),
                 Some(signed_by_message.signature),
             )],
         ))
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use super::Verifier;
@@ -115,3 +116,4 @@ mod tests {
         assert_eq!(decided.get_outcome(), true);
     }
 }
+*/

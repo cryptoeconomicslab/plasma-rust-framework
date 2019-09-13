@@ -1,11 +1,9 @@
 use crate::db::Message;
-use crate::types::{
-    AndDeciderInput, ForAllSuchThatInput, HasLowerNonceInput, Integer, Property, PropertyFactory,
-    Quantifier, QuantifierResultItem, SignedByInput,
-};
+use crate::types::{InputType, Integer, Property};
+use crate::DeciderManager;
 use bytes::Bytes;
 use ethereum_types::Address;
-use plasma_core::data_structure::abi::{Decodable, Encodable};
+use plasma_core::data_structure::abi::Encodable;
 
 pub fn create_state_channel_property(
     my_address: Address,
@@ -13,25 +11,17 @@ pub fn create_state_channel_property(
     latest_message: Message,
 ) -> Property {
     let upper_nonce = Integer(latest_message.nonce.0 + 1);
-    let left_property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-        Quantifier::SignedByQuantifier(my_address),
-        Some(PropertyFactory::new(Box::new(move |item| {
-            if let QuantifierResultItem::Bytes(message) = item {
-                Property::HasLowerNonceDecider(HasLowerNonceInput::new(
-                    Message::from_abi(&message).unwrap(),
-                    upper_nonce,
-                ))
-            } else {
-                panic!("invalid type in PropertyFactory");
-            }
-        }))),
-    )));
-    let right_property = Property::SignedByDecider(SignedByInput::new(
-        Bytes::from(latest_message.to_abi()),
-        counter_party_address,
-    ));
-    Property::AndDecider(Box::new(AndDeciderInput::new(
-        left_property,
-        right_property,
-    )))
+    let left_property = DeciderManager::for_all_such_that_decider(
+        DeciderManager::q_signed_by(vec![InputType::ConstantAddress(my_address)]),
+        Bytes::from("message"),
+        DeciderManager::has_lower_nonce_decider(vec![
+            InputType::Placeholder(Bytes::from("message")),
+            InputType::ConstantInteger(upper_nonce),
+        ]),
+    );
+    let right_property = DeciderManager::signed_by_decider(vec![
+        InputType::ConstantBytes(Bytes::from(latest_message.to_abi())),
+        InputType::ConstantAddress(counter_party_address),
+    ]);
+    DeciderManager::and_decider(left_property, right_property)
 }

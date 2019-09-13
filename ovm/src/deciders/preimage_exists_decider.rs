@@ -1,7 +1,8 @@
 use crate::db::HashPreimageDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, PreimageExistsInput, Property};
+use crate::types::{Decider, Decision, ImplicationProofElement, InputType, Property};
+use crate::{DecideMixin, DeciderManager};
 use bytes::Bytes;
 use ethereum_types::H256;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -33,27 +34,28 @@ impl Default for PreimageExistsDecider {
 }
 
 impl Decider for PreimageExistsDecider {
-    type Input = PreimageExistsInput;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &PreimageExistsInput,
+        decider: &mut PropertyExecutor<T>,
+        inputs: &Vec<InputType>,
     ) -> Result<Decision, Error> {
-        let key = input.get_hash();
+        let hash = decider.get_variable(&inputs[0]).to_h256();
+        let key = hash;
         let db: HashPreimageDb<T> = HashPreimageDb::new(decider.get_db());
         let preimage_record = db.get_witness(key)?;
-        if Verifier::hash(&preimage_record.preimage) != input.get_hash() {
+        if Verifier::hash(&preimage_record.preimage) != hash {
             return Err(Error::from(ErrorKind::InvalidPreimage));
         }
         Ok(Decision::new(
             true,
             vec![ImplicationProofElement::new(
-                Property::PreimageExistsDecider(Box::new(input.clone())),
+                DeciderManager::preimage_exists_decider(inputs.clone()),
                 Some(preimage_record.preimage),
             )],
         ))
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use crate::db::HashPreimageDb;
@@ -76,3 +78,4 @@ mod tests {
         assert_eq!(decided.get_outcome(), true);
     }
 }
+*/

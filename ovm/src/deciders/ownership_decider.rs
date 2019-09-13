@@ -2,8 +2,10 @@ use crate::db::TransactionDb;
 use crate::deciders::signed_by_decider::Verifier;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, Integer, OwnershipDeciderInput, StateUpdate};
+use crate::types::{Decider, Decision, InputType, Integer, Property, StateUpdate};
 use bytes::Bytes;
+use ethereum_types::Address;
+use plasma_core::data_structure::abi::Decodable;
 use plasma_core::data_structure::Transaction;
 use plasma_db::traits::kvs::KeyValueStore;
 
@@ -30,13 +32,13 @@ pub struct OwnershipDecider {}
 /// Use SignedByDecider's address.
 
 impl Decider for OwnershipDecider {
-    type Input = OwnershipDeciderInput;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &OwnershipDeciderInput,
+        decider: &mut PropertyExecutor<T>,
+        inputs: &Vec<InputType>,
     ) -> Result<Decision, Error> {
+        let state_update = decider.get_variable(&inputs[0]).to_state_update();
+        let owner = decider.get_variable(&inputs[1]).to_address();
         let db: TransactionDb<T> = TransactionDb::new(decider.get_range_db());
-        let state_update = input.get_state_update();
         let txs =
             db.get_transactions(state_update.get_block_number().0, state_update.get_range())?;
         println!("TXS: {:?}", txs);
@@ -45,9 +47,7 @@ impl Decider for OwnershipDecider {
             return Err(Error::from(ErrorKind::CannotDecide));
         }
         for tx in txs.iter() {
-            if Verifier::recover(tx.get_signature(), &Bytes::from(tx.to_body_abi()))
-                == input.get_owner_address()
-            {
+            if Verifier::recover(tx.get_signature(), &Bytes::from(tx.to_body_abi())) == owner {
                 return Ok(Decision::new(true, vec![]));
             }
         }
@@ -65,8 +65,7 @@ impl OwnershipDecider {
         StateUpdate::new(
             next_block_number,
             transaction.get_range(),
-            prev_state.get_property_address(),
-            transaction.get_parameters().clone(),
+            Property::from_abi(transaction.get_parameters()).unwrap(),
         )
     }
 }

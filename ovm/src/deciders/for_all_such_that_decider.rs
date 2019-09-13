@@ -1,9 +1,9 @@
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{
-    Decider, Decision, ForAllSuchThatInput, ImplicationProofElement, Property, QuantifierResult,
+    Decider, Decision, ImplicationProofElement, InputType, Property, QuantifierResult,
 };
-use crate::DecideMixin;
+use crate::{DecideMixin, DeciderManager};
 use plasma_db::traits::kvs::KeyValueStore;
 
 /// ForAllSuchThatDecider decides for all quantified results by PropertyFactory and WitnessFactory
@@ -11,7 +11,7 @@ pub struct ForAllSuchThatDecider {}
 
 impl ForAllSuchThatDecider {
     fn get_decision(
-        input: &ForAllSuchThatInput,
+        inputs: &Vec<InputType>,
         false_decision: Decision,
         true_decisions: Vec<Decision>,
         undecided: bool,
@@ -20,7 +20,7 @@ impl ForAllSuchThatDecider {
             return Err(Error::from(ErrorKind::Undecided));
         }
         let mut justification = vec![ImplicationProofElement::new(
-            Property::ForAllSuchThatDecider(Box::new(input.clone())),
+            DeciderManager::for_all_such_that_decider_raw(inputs),
             None,
         )];
         if false_decision.get_outcome() {
@@ -42,28 +42,22 @@ impl Default for ForAllSuchThatDecider {
 }
 
 impl Decider for ForAllSuchThatDecider {
-    type Input = ForAllSuchThatInput;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &ForAllSuchThatInput,
+        decider: &mut PropertyExecutor<T>,
+        inputs: &Vec<InputType>,
     ) -> Result<Decision, Error> {
-        let quantifier_result: QuantifierResult =
-            decider.get_all_quantified(input.get_quantifier());
+        let quantifier = decider.get_variable(&inputs[0]).to_property();
+        let placeholder = decider.get_variable(&inputs[1]).to_bytes();
+        let property = decider.get_variable(&inputs[2]).to_property();
+
+        let quantifier_result: QuantifierResult = decider.get_all_quantified(&quantifier);
 
         let mut any_undecided: bool = false;
         let mut false_decision: Decision = Decision::new(false, vec![]);
         let mut true_decisions: Vec<Decision> = vec![];
         for res in quantifier_result.get_results() {
-            let prop: Property = input
-                .get_property_factory()
-                .clone()
-                .unwrap()
-                .call(res.clone());
-            let _no_cache = false;
-            let decision_result = prop.decide(
-                decider,
-                // no_cache,
-            );
+            decider.set_variable(placeholder.clone(), res.clone());
+            let decision_result = property.decide(decider);
             if let Ok(decision) = decision_result {
                 if !decision.get_outcome() {
                     false_decision = decision;
@@ -76,7 +70,7 @@ impl Decider for ForAllSuchThatDecider {
         }
 
         Self::get_decision(
-            input,
+            inputs,
             false_decision,
             true_decisions,
             any_undecided || !quantifier_result.get_all_results_quantified(),
@@ -84,6 +78,7 @@ impl Decider for ForAllSuchThatDecider {
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use super::ForAllSuchThatDecider;
@@ -91,8 +86,7 @@ mod tests {
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
     use crate::types::{
-        Decider, Decision, ForAllSuchThatInput, Integer, IntegerRangeQuantifierInput,
-        PreimageExistsInput, Property, PropertyFactory, Quantifier, QuantifierResultItem,
+        Decider, Decision, Integer, PreimageExistsInput, Property, QuantifierResultItem,
     };
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
 
@@ -122,3 +116,4 @@ mod tests {
         assert_eq!(decided.get_outcome(), true);
     }
 }
+*/

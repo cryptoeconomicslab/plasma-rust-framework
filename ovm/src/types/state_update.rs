@@ -19,22 +19,15 @@ use tiny_keccak::Keccak;
 pub struct StateUpdate {
     block_number: Integer,
     range: Range,
-    property_address: Address,
-    params: Bytes,
+    property: Property,
 }
 
 impl StateUpdate {
-    pub fn new(
-        block_number: Integer,
-        range: Range,
-        property_address: Address,
-        params: Bytes,
-    ) -> Self {
+    pub fn new(block_number: Integer, range: Range, property: Property) -> Self {
         Self {
             block_number,
             range,
-            property_address,
-            params,
+            property,
         }
     }
 
@@ -46,8 +39,8 @@ impl StateUpdate {
         self.range = range
     }
 
-    pub fn get_property_address(&self) -> Address {
-        self.property_address
+    pub fn get_property(&self) -> &Property {
+        &self.property
     }
 
     pub fn get_block_number(&self) -> Integer {
@@ -63,29 +56,24 @@ impl StateUpdate {
         Bytes::from(&res[..])
     }
 
-    pub fn get_params(&self) -> Bytes {
-        self.params.clone()
-    }
-
     pub fn get_amount(&self) -> u64 {
         self.range.get_end() - self.range.get_start()
     }
 
     pub fn verify_state_transition<T: KeyValueStore>(
         &self,
-        decider: &PropertyExecutor<T>,
+        decider: &mut PropertyExecutor<T>,
         _transaction: &Transaction,
     ) -> bool {
-        let address = self.get_property_address();
-        let property = Property::get_generalized_plasma_property(address, self.clone());
-        let decided = property.decide(&decider);
+        let property = self.get_property();
+        let decided = property.decide(decider);
         decided.is_ok()
     }
 
     /// validate transaction and state update.
     pub fn execute_state_transition<T: KeyValueStore>(
         &self,
-        decider: &PropertyExecutor<T>,
+        decider: &mut PropertyExecutor<T>,
         transaction: &Transaction,
         next_block_number: Integer,
     ) -> Result<Self, PlasmaCoreError> {
@@ -104,16 +92,5 @@ impl StateUpdate {
 impl From<PlasmaDataBlock> for StateUpdate {
     fn from(plasma_data_block: PlasmaDataBlock) -> Self {
         StateUpdate::from_abi(plasma_data_block.get_data()).unwrap()
-    }
-}
-
-impl Default for StateUpdate {
-    fn default() -> Self {
-        Self {
-            block_number: Integer::new(0),
-            range: Range::new(0, 0),
-            property_address: Address::zero(),
-            params: Bytes::new(),
-        }
     }
 }

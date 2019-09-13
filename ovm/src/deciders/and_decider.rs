@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{AndDeciderInput, Decider, Decision};
+use crate::types::{Decider, Decision, InputType};
 use crate::DecideMixin;
 use plasma_db::traits::kvs::KeyValueStore;
 
@@ -19,13 +19,14 @@ impl Default for AndDecider {
 }
 
 impl Decider for AndDecider {
-    type Input = AndDeciderInput;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &AndDeciderInput,
+        decider: &mut PropertyExecutor<T>,
+        inputs: &Vec<InputType>,
     ) -> Result<Decision, Error> {
-        let left_decision = input.get_left().decide(decider)?;
-        let right_decision = input.get_right().decide(decider)?;
+        let left = decider.get_variable(&inputs[0]).to_property();
+        let right = decider.get_variable(&inputs[1]).to_property();
+        let left_decision = left.decide(decider)?;
+        let right_decision = right.decide(decider)?;
         if !left_decision.get_outcome() {
             return Ok(left_decision);
         }
@@ -48,7 +49,8 @@ mod tests {
     use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{AndDeciderInput, Decision, PreimageExistsInput, Property};
+    use crate::types::{Decision, InputType};
+    use crate::DeciderManager;
     use bytes::Bytes;
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
 
@@ -58,11 +60,12 @@ mod tests {
         let left_hash = Verifier::static_hash(&left_preimage);
         let right_preimage = Bytes::from("right");
         let right_hash = Verifier::static_hash(&right_preimage);
-        let left = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(left_hash)));
-        let right = Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(right_hash)));
-        let input = AndDeciderInput::new(left, right);
-        let and_decider = Property::AndDecider(Box::new(input.clone()));
-        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let left =
+            DeciderManager::preimage_exists_decider(vec![InputType::ConstantH256(left_hash)]);
+        let right =
+            DeciderManager::preimage_exists_decider(vec![InputType::ConstantH256(right_hash)]);
+        let and_decider = DeciderManager::and_decider(left, right);
+        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         assert!(db.store_witness(left_hash, &left_preimage).is_ok());
         assert!(db.store_witness(right_hash, &right_preimage).is_ok());

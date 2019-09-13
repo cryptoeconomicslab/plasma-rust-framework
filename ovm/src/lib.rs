@@ -10,8 +10,9 @@ pub mod statements;
 pub mod types;
 pub mod utils;
 
-pub use self::property_executor::DecideMixin;
+pub use self::property_executor::{DecideMixin, DeciderManager};
 
+/*
 #[cfg(test)]
 mod tests {
 
@@ -154,3 +155,4 @@ mod tests {
         assert!(result.is_err());
     }
 }
+*/

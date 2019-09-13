@@ -1,7 +1,6 @@
-use crate::types::{
-    BlockRangeQuantifierInput, ForAllSuchThatInput, Integer, IsDeprecatedDeciderInput, Property,
-    PropertyFactory, Quantifier, QuantifierResultItem, StateUpdate,
-};
+use crate::types::{InputType, Integer, Property};
+use crate::DeciderManager;
+use bytes::Bytes;
 use plasma_core::data_structure::Range;
 
 /// Creates plasma checkpoint property
@@ -9,37 +8,23 @@ use plasma_core::data_structure::Range;
 ///   for all p such that included in block(b):
 ///      Or(b, Included(p), Excluded(b, p))
 pub fn create_plasma_property(specified_block_number: Integer, range: Range) -> Property {
-    Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-        Quantifier::NonnegativeIntegerLessThanQuantifier(specified_block_number),
-        Some(PropertyFactory::new(Box::new(move |item| {
-            if let QuantifierResultItem::Integer(block_number) = item {
-                create_coin_range_property(block_number, range)
-            } else {
-                panic!("invalid type in PropertyFactory");
-            }
-        }))),
-    )))
+    DeciderManager::for_all_such_that_decider(
+        DeciderManager::q_uint(vec![InputType::ConstantInteger(specified_block_number)]),
+        Bytes::from("block"),
+        DeciderManager::for_all_such_that_decider(
+            DeciderManager::q_range(vec![
+                InputType::Placeholder(Bytes::from("block")),
+                InputType::ConstantRange(range),
+            ]),
+            Bytes::from("state_update"),
+            DeciderManager::is_deprecated(vec![InputType::Placeholder(Bytes::from(
+                "state_update",
+            ))]),
+        ),
+    )
 }
 
-pub fn create_coin_range_property(block_number: Integer, range: Range) -> Property {
-    Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-        Quantifier::BlockRangeQuantifier(BlockRangeQuantifierInput::new(block_number, range)),
-        Some(PropertyFactory::new(Box::new(move |item| {
-            // TODO: fix
-            // IsDeprecatedDecider(IsdeprecatedDeciderInput(state_update))
-            // IsDeprecatedDecider = input.state_update.property.decide()
-            if let QuantifierResultItem::PlasmaDataBlock(plasma_data_block) = item {
-                println!("create_coin_range_property {:?}", block_number);
-                Property::IsDeprecatedDecider(Box::new(IsDeprecatedDeciderInput::new(
-                    StateUpdate::from(plasma_data_block),
-                )))
-            } else {
-                panic!("invalid type in PropertyFactory");
-            }
-        }))),
-    )))
-}
-
+/*
 #[cfg(test)]
 mod tests {
 
@@ -144,3 +129,4 @@ mod tests {
         assert!(result.is_ok());
     }
 }
+*/

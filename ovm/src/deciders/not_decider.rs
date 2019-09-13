@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, NotDeciderInput, Property};
-use crate::DecideMixin;
+use crate::types::{Decider, Decision, ImplicationProofElement, InputType};
+use crate::{DecideMixin, DeciderManager};
 use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct NotDecider {}
@@ -19,18 +19,18 @@ impl Default for NotDecider {
 }
 
 impl Decider for NotDecider {
-    type Input = NotDeciderInput;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &NotDeciderInput,
+        decider: &mut PropertyExecutor<T>,
+        inputs: &Vec<InputType>,
     ) -> Result<Decision, Error> {
-        let decision = input.get_property().decide(decider)?;
+        let property = decider.get_variable(&inputs[0]).to_property();
+        let decision = property.decide(decider)?;
 
         Ok(Decision::new(
             !decision.get_outcome(),
             [
                 &vec![ImplicationProofElement::new(
-                    Property::NotDecider(Box::new(input.clone())),
+                    DeciderManager::not_decider(property),
                     None,
                 )][..],
                 &decision.get_implication_proof()[..],

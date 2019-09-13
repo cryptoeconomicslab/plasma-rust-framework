@@ -1,4 +1,5 @@
-use crate::types::Integer;
+use crate::db::message_db::Message;
+use crate::types::{Integer, Property};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::{Address, H256};
@@ -16,6 +17,8 @@ pub enum InputType {
     ConstantH256(H256),
     ConstantInteger(Integer),
     ConstantRange(Range),
+    ConstantProperty(Property),
+    ConstantMessage(Message),
 }
 
 impl InputType {
@@ -48,6 +51,12 @@ impl Encodable for InputType {
             InputType::ConstantRange(range) => {
                 vec![Token::Uint(5.into()), Token::Bytes(range.to_abi())]
             }
+            InputType::ConstantProperty(property) => {
+                vec![Token::Uint(6.into()), Token::Bytes(property.to_abi())]
+            }
+            InputType::ConstantMessage(message) => {
+                vec![Token::Uint(7.into()), Token::Bytes(message.to_abi())]
+            }
         }
     }
 }
@@ -69,8 +78,14 @@ impl Decodable for InputType {
                 Ok(InputType::ConstantH256(H256::from_slice(&bytes)))
             } else if id_num == 4 {
                 Ok(InputType::ConstantInteger(Bytes::from(bytes).into()))
-            } else {
+            } else if id_num == 5 {
                 Range::from_abi(&bytes).map(InputType::ConstantRange)
+            } else if id_num == 6 {
+                Property::from_abi(&bytes).map(InputType::ConstantProperty)
+            } else if id_num == 7 {
+                Message::from_abi(&bytes).map(InputType::ConstantMessage)
+            } else {
+                panic!("")
             }
         } else {
             Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
