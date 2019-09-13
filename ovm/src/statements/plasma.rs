@@ -80,6 +80,7 @@ mod tests {
         let property =
             Property::OwnershipDecider(OwnershipDeciderInput::new(StateUpdate::default()));
         let mut leaves = vec![];
+        let mut first_state_update_opt: Option<StateUpdate> = None;
         for i in 0..100 {
             let state_update = StateUpdate::new(
                 block_number,
@@ -87,6 +88,9 @@ mod tests {
                 property.get_decider_id(),
                 Bytes::from(alice.as_bytes()),
             );
+            if i == 0 {
+                first_state_update_opt = Some(state_update.clone());
+            }
             leaves.push(MerkleIntervalNode::Leaf {
                 end: i * 30 + 100,
                 data: if inclusion {
@@ -116,8 +120,9 @@ mod tests {
         let tx_body =
             TransactionParams::new(Address::zero(), Range::new(0, 100), Bytes::default()).to_abi();
         let signature = SignatureVerifier::sign(&secret_key, &Bytes::from(tx_body));
+        let first_state_update = first_state_update_opt.unwrap();
         tx_db.put_transaction(
-            block_number.0,
+            first_state_update.get_block_number().0,
             Transaction::new(
                 Address::zero(),
                 Range::new(0, 100),

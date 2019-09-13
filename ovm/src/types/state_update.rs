@@ -1,3 +1,4 @@
+use crate::deciders::OwnershipDecider;
 use crate::property_executor::PropertyExecutor;
 use crate::types::core::{Integer, Property};
 use crate::types::PlasmaDataBlock;
@@ -11,7 +12,7 @@ use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
 };
 use plasma_core::data_structure::{Range, Transaction};
-use plasma_db::impls::kvs::CoreDbMemoryImpl;
+use plasma_db::traits::kvs::KeyValueStore;
 use tiny_keccak::Keccak;
 
 #[derive(Clone, Debug, AbiEncodable, AbiDecodable)]
@@ -70,32 +71,33 @@ impl StateUpdate {
         self.range.get_end() - self.range.get_start()
     }
 
-    pub fn verify_state_transition(&self, _transaction: &Transaction) -> bool {
-        let decider = PropertyExecutor::<CoreDbMemoryImpl>::default();
+    pub fn verify_state_transition<T: KeyValueStore>(
+        &self,
+        decider: &PropertyExecutor<T>,
+        _transaction: &Transaction,
+    ) -> bool {
         let address = self.get_property_address();
         let property = Property::get_generalized_plasma_property(address, self.clone());
         let decided = property.decide(&decider);
-        println!("decided: {:?}", decided);
         decided.is_ok()
     }
 
     /// validate transaction and state update.
-    pub fn execute_state_transition(
+    pub fn execute_state_transition<T: KeyValueStore>(
         &self,
+        decider: &PropertyExecutor<T>,
         transaction: &Transaction,
+        next_block_number: Integer,
     ) -> Result<Self, PlasmaCoreError> {
-        if !self.verify_state_transition(transaction) {
+        let next_state =
+            OwnershipDecider::execute_state_transition(self, transaction, next_block_number);
+        if !self.verify_state_transition(decider, transaction) {
             return Err(PlasmaCoreError::from(
                 PlasmaCoreErrorKind::InvalidTransaction,
             ));
         }
 
-        Ok(Self {
-            block_number: Integer::new(self.block_number.0 + 1),
-            range: transaction.get_range(),
-            property_address: self.property_address,
-            params: transaction.get_parameters().clone(),
-        })
+        Ok(next_state)
     }
 }
 
