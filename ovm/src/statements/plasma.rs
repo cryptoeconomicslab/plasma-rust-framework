@@ -12,7 +12,7 @@ pub fn create_plasma_property(specified_block_number: Integer, range: Range) -> 
         DeciderManager::q_uint(vec![InputType::ConstantInteger(specified_block_number)]),
         Bytes::from("block"),
         DeciderManager::for_all_such_that_decider(
-            DeciderManager::q_range(vec![
+            DeciderManager::q_block(vec![
                 InputType::Placeholder(Bytes::from("block")),
                 InputType::ConstantRange(range),
             ]),
@@ -24,7 +24,6 @@ pub fn create_plasma_property(specified_block_number: Integer, range: Range) -> 
     )
 }
 
-/*
 #[cfg(test)]
 mod tests {
 
@@ -32,7 +31,8 @@ mod tests {
     use crate::db::{RangeAtBlockDb, TransactionDb};
     use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Integer, OwnershipDeciderInput, PlasmaDataBlock, Property, StateUpdate};
+    use crate::types::{InputType, Integer, PlasmaDataBlock, StateUpdate};
+    use crate::DeciderManager;
     use bytes::Bytes;
     use ethereum_types::{Address, H256};
     use ethsign::SecretKey;
@@ -62,16 +62,17 @@ mod tests {
                 .unwrap();
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let alice: Address = secret_key.public().address().into();
-        let property =
-            Property::OwnershipDecider(OwnershipDeciderInput::new(StateUpdate::default()));
+        let property = DeciderManager::ownership(vec![
+            InputType::Placeholder(Bytes::from("state_update")),
+            InputType::ConstantAddress(alice),
+        ]);
         let mut leaves = vec![];
         let mut first_state_update_opt: Option<StateUpdate> = None;
         for i in 0..100 {
             let state_update = StateUpdate::new(
                 block_number,
                 Range::new(i * 30, i * 30 + 100),
-                property.get_decider_id(),
-                Bytes::from(alice.as_bytes()),
+                property.clone(),
             );
             if i == 0 {
                 first_state_update_opt = Some(state_update.clone());
@@ -94,7 +95,6 @@ mod tests {
                 Range::new(0, 100),
                 root.clone(),
                 inclusion,
-                property.get_decider_id(),
                 block_number,
                 data.clone(),
             );
@@ -123,10 +123,9 @@ mod tests {
         let block_number = Integer(10);
         let range = Range::new(0, 100);
         let checkpoint_property = create_plasma_property(block_number, range);
-        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         store_inclusion_witness(&decider);
         let result = decider.decide(&checkpoint_property);
         assert!(result.is_ok());
     }
 }
-*/

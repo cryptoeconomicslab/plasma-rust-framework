@@ -87,7 +87,10 @@ impl Decodable for Property {
         }
     }
     fn get_param_types() -> Vec<ParamType> {
-        vec![ParamType::Address, ParamType::Bytes]
+        vec![
+            ParamType::Address,
+            ParamType::Array(Box::new(ParamType::Bytes)),
+        ]
     }
 }
 
@@ -150,7 +153,7 @@ impl Decision {
 pub trait Decider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        input: &Vec<InputType>,
+        inputs: &[InputType],
     ) -> Result<Decision, Error>;
 }
 
@@ -253,26 +256,22 @@ impl QuantifierResult {
         self.all_results_quantified
     }
 }
-/*
+
 #[cfg(test)]
 mod tests {
 
     use super::Property;
-    use crate::types::PreimageExistsInput;
+    use crate::types::InputType;
+    use crate::DeciderManager;
     use ethereum_types::H256;
     use plasma_core::data_structure::abi::{Decodable, Encodable};
 
     #[test]
     fn test_encode_and_decode_property() {
         let property =
-            Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(H256::zero())));
+            DeciderManager::preimage_exists_decider(vec![InputType::ConstantH256(H256::zero())]);
         let encoded = property.to_abi();
         let decoded = Property::from_abi(&encoded).unwrap();
-        if let Property::PreimageExistsDecider(input) = decoded {
-            assert_eq!(input, Box::new(PreimageExistsInput::new(H256::zero())));
-        } else {
-            panic!()
-        }
+        assert_eq!(decoded, property);
     }
 }
-*/

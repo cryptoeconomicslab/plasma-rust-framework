@@ -1,8 +1,8 @@
 use crate::db::HashPreimageDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, InputType, Property};
-use crate::{DecideMixin, DeciderManager};
+use crate::types::{Decider, Decision, ImplicationProofElement, InputType};
+use crate::DeciderManager;
 use bytes::Bytes;
 use ethereum_types::H256;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -36,7 +36,7 @@ impl Default for PreimageExistsDecider {
 impl Decider for PreimageExistsDecider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        inputs: &Vec<InputType>,
+        inputs: &[InputType],
     ) -> Result<Decision, Error> {
         let hash = decider.get_variable(&inputs[0]).to_h256();
         let key = hash;
@@ -48,20 +48,20 @@ impl Decider for PreimageExistsDecider {
         Ok(Decision::new(
             true,
             vec![ImplicationProofElement::new(
-                DeciderManager::preimage_exists_decider(inputs.clone()),
+                DeciderManager::preimage_exists_decider(inputs.to_vec()),
                 Some(preimage_record.preimage),
             )],
         ))
     }
 }
 
-/*
 #[cfg(test)]
 mod tests {
     use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decision, PreimageExistsInput, Property};
+    use crate::types::{Decision, InputType};
+    use crate::DeciderManager;
     use bytes::Bytes;
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
 
@@ -69,13 +69,11 @@ mod tests {
     fn test_decide() {
         let preimage = Bytes::from("left");
         let hash = Verifier::static_hash(&preimage);
-        let input = PreimageExistsInput::new(hash);
-        let property = Property::PreimageExistsDecider(Box::new(input.clone()));
-        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let property = DeciderManager::preimage_exists_decider(vec![InputType::ConstantH256(hash)]);
+        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         assert!(db.store_witness(hash, &preimage).is_ok());
         let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
 }
-*/

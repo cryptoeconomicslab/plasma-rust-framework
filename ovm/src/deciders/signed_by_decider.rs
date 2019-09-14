@@ -1,8 +1,8 @@
 use crate::db::SignedByDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, InputType, Property};
-use crate::{DecideMixin, DeciderManager};
+use crate::types::{Decider, Decision, ImplicationProofElement, InputType};
+use crate::DeciderManager;
 use bytes::Bytes;
 use ethereum_types::{Address, H256};
 use ethsign::{SecretKey, Signature};
@@ -62,7 +62,7 @@ impl Default for SignedByDecider {
 impl Decider for SignedByDecider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        inputs: &Vec<InputType>,
+        inputs: &[InputType],
     ) -> Result<Decision, Error> {
         let public_key = decider.get_variable(&inputs[0]).to_address();
         let message = decider.get_variable(&inputs[1]).to_bytes();
@@ -75,20 +75,20 @@ impl Decider for SignedByDecider {
         Ok(Decision::new(
             true,
             vec![ImplicationProofElement::new(
-                DeciderManager::signed_by_decider(inputs.clone()),
+                DeciderManager::signed_by_decider(inputs.to_vec()),
                 Some(signed_by_message.signature),
             )],
         ))
     }
 }
 
-/*
 #[cfg(test)]
 mod tests {
     use super::Verifier;
     use crate::db::SignedByDb;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decision, Property, SignedByInput};
+    use crate::types::{Decision, InputType};
+    use crate::DeciderManager;
     use bytes::Bytes;
     use ethsign::SecretKey;
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
@@ -101,9 +101,11 @@ mod tests {
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let message = Bytes::from("message");
         let signature = Verifier::sign(&secret_key, &message);
-        let input = SignedByInput::new(message.clone(), secret_key.public().address().into());
-        let property = Property::SignedByDecider(input.clone());
-        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let property = DeciderManager::signed_by_decider(vec![
+            InputType::ConstantAddress(secret_key.public().address().into()),
+            InputType::ConstantBytes(message.clone()),
+        ]);
+        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
         assert!(db
             .store_witness(
@@ -116,4 +118,3 @@ mod tests {
         assert_eq!(decided.get_outcome(), true);
     }
 }
-*/

@@ -1,8 +1,6 @@
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{
-    Decider, Decision, ImplicationProofElement, InputType, Property, QuantifierResult,
-};
+use crate::types::{Decider, Decision, ImplicationProofElement, InputType, QuantifierResult};
 use crate::{DecideMixin, DeciderManager};
 use plasma_db::traits::kvs::KeyValueStore;
 
@@ -11,7 +9,7 @@ pub struct ForAllSuchThatDecider {}
 
 impl ForAllSuchThatDecider {
     fn get_decision(
-        inputs: &Vec<InputType>,
+        inputs: &[InputType],
         false_decision: Decision,
         true_decisions: Vec<Decision>,
         undecided: bool,
@@ -44,7 +42,7 @@ impl Default for ForAllSuchThatDecider {
 impl Decider for ForAllSuchThatDecider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        inputs: &Vec<InputType>,
+        inputs: &[InputType],
     ) -> Result<Decision, Error> {
         let quantifier = decider.get_variable(&inputs[0]).to_property();
         let placeholder = decider.get_variable(&inputs[1]).to_bytes();
@@ -78,33 +76,32 @@ impl Decider for ForAllSuchThatDecider {
     }
 }
 
-/*
 #[cfg(test)]
 mod tests {
     use super::ForAllSuchThatDecider;
     use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{
-        Decider, Decision, Integer, PreimageExistsInput, Property, QuantifierResultItem,
-    };
+    use crate::types::{Decider, Decision, InputType, Integer};
+    use crate::DeciderManager;
+    use bytes::Bytes;
+    use plasma_core::data_structure::Range;
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
 
     #[test]
     fn test_decide() {
-        let input = ForAllSuchThatInput::new(
-            Quantifier::IntegerRangeQuantifier(IntegerRangeQuantifierInput::new(5, 20)),
-            Some(PropertyFactory::new(Box::new(|item| {
-                if let QuantifierResultItem::Integer(number) = item {
-                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-                        Verifier::static_hash(&number.into()),
-                    )))
-                } else {
-                    panic!("invalid type of item");
-                }
-            }))),
+        let property = DeciderManager::for_all_such_that_decider(
+            DeciderManager::q_range(vec![InputType::ConstantRange(Range::new(5, 20))]),
+            Bytes::from("n"),
+            DeciderManager::for_all_such_that_decider(
+                DeciderManager::q_hash(vec![InputType::Placeholder(Bytes::from("n"))]),
+                Bytes::from("h"),
+                DeciderManager::preimage_exists_decider(vec![InputType::Placeholder(Bytes::from(
+                    "h",
+                ))]),
+            ),
         );
-        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         for i in 5..20 {
             let integer = Integer(i);
@@ -112,8 +109,8 @@ mod tests {
                 .store_witness(Verifier::static_hash(&integer.into()), &integer.into())
                 .is_ok());
         }
-        let decided: Decision = ForAllSuchThatDecider::decide(&decider, &input).unwrap();
+        let decided: Decision =
+            ForAllSuchThatDecider::decide(&mut decider, &property.inputs).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
 }
-*/

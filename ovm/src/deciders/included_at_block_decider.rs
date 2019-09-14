@@ -1,8 +1,8 @@
 use crate::db::RangeAtBlockDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, InputType, Property};
-use crate::{DecideMixin, DeciderManager};
+use crate::types::{Decider, Decision, ImplicationProofElement, InputType};
+use crate::DeciderManager;
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
 use plasma_db::traits::kvs::KeyValueStore;
 
@@ -18,7 +18,7 @@ impl Default for IncludedAtBlockDecider {
 impl Decider for IncludedAtBlockDecider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        inputs: &Vec<InputType>,
+        inputs: &[InputType],
     ) -> Result<Decision, Error> {
         let block_number = decider.get_variable(&inputs[0]).to_integer();
         let plasma_data_block = decider.get_variable(&inputs[0]).to_plasma_data_block();
@@ -41,7 +41,7 @@ impl Decider for IncludedAtBlockDecider {
         Ok(Decision::new(
             true,
             vec![ImplicationProofElement::new(
-                DeciderManager::included_at_block_decider(inputs.clone()),
+                DeciderManager::included_at_block_decider(inputs.to_vec()),
                 Some(range_at_block_record.inclusion_proof.clone()),
             )],
         ))

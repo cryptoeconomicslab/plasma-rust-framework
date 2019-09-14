@@ -2,7 +2,6 @@ extern crate serde;
 
 use contract_wrapper::universal_decision_contract_adaptor::UniversalDecisionContractAdaptor;
 use ethabi::Contract as ContractABI;
-use ovm::types::core::Property;
 use ovm::types::InputType;
 use ovm::DeciderManager;
 use std::fs::File;

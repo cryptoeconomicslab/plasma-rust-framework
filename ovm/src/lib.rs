@@ -12,7 +12,6 @@ pub mod utils;
 
 pub use self::property_executor::{DecideMixin, DeciderManager};
 
-/*
 #[cfg(test)]
 mod tests {
 
@@ -21,10 +20,8 @@ mod tests {
     use crate::deciders::SignVerifier;
     use crate::property_executor::PropertyExecutor;
     use crate::statements::{create_plasma_property, create_state_channel_property};
-    use crate::types::{
-        Decision, ForAllSuchThatInput, Integer, IntegerRangeQuantifierInput, PreimageExistsInput,
-        Property, PropertyFactory, Quantifier, QuantifierResultItem,
-    };
+    use crate::types::{Decision, InputType, Integer};
+    use crate::DeciderManager;
     use bytes::Bytes;
     use ethereum_types::Address;
     use ethsign::SecretKey;
@@ -52,19 +49,18 @@ mod tests {
     ///
     #[test]
     fn test_decide_range_and_preimage() {
-        let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-            Quantifier::IntegerRangeQuantifier(IntegerRangeQuantifierInput::new(0, 10)),
-            Some(PropertyFactory::new(Box::new(|item| {
-                if let QuantifierResultItem::Integer(number) = item {
-                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-                        Verifier::static_hash(&number.into()),
-                    )))
-                } else {
-                    panic!("invalid type in PropertyFactory");
-                }
-            }))),
-        )));
-        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let property = DeciderManager::for_all_such_that_decider(
+            DeciderManager::q_range(vec![InputType::ConstantRange(Range::new(0, 10))]),
+            Bytes::from("n"),
+            DeciderManager::for_all_such_that_decider(
+                DeciderManager::q_hash(vec![InputType::Placeholder(Bytes::from("n"))]),
+                Bytes::from("h"),
+                DeciderManager::preimage_exists_decider(vec![InputType::Placeholder(Bytes::from(
+                    "h",
+                ))]),
+            ),
+        );
+        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         store_preimage(&decider);
         let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
@@ -74,19 +70,18 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_fail_to_decide_range_and_preimage() {
-        let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-            Quantifier::IntegerRangeQuantifier(IntegerRangeQuantifierInput::new(0, 10)),
-            Some(PropertyFactory::new(Box::new(|item| {
-                if let QuantifierResultItem::Integer(number) = item {
-                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-                        Verifier::static_hash(&number.into()),
-                    )))
-                } else {
-                    panic!("invalid type in PropertyFactory");
-                }
-            }))),
-        )));
-        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let property = DeciderManager::for_all_such_that_decider(
+            DeciderManager::q_range(vec![InputType::ConstantRange(Range::new(0, 10))]),
+            Bytes::from("n"),
+            DeciderManager::for_all_such_that_decider(
+                DeciderManager::q_hash(vec![InputType::Placeholder(Bytes::from("n"))]),
+                Bytes::from("h"),
+                DeciderManager::preimage_exists_decider(vec![InputType::Placeholder(Bytes::from(
+                    "h",
+                ))]),
+            ),
+        );
+        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let decided_result = decider.decide(&property);
         assert_eq!(decided_result.is_ok(), false);
     }
@@ -100,19 +95,18 @@ mod tests {
     ///
     #[test]
     fn test_decide_less_than_and_preimage() {
-        let property = Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-            Quantifier::NonnegativeIntegerLessThanQuantifier(Integer(10)),
-            Some(PropertyFactory::new(Box::new(|item| {
-                if let QuantifierResultItem::Integer(number) = item {
-                    Property::PreimageExistsDecider(Box::new(PreimageExistsInput::new(
-                        Verifier::static_hash(&number.into()),
-                    )))
-                } else {
-                    panic!("invalid type in PropertyFactory");
-                }
-            }))),
-        )));
-        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let property = DeciderManager::for_all_such_that_decider(
+            DeciderManager::q_uint(vec![InputType::ConstantInteger(Integer(10))]),
+            Bytes::from("n"),
+            DeciderManager::for_all_such_that_decider(
+                DeciderManager::q_hash(vec![InputType::Placeholder(Bytes::from("n"))]),
+                Bytes::from("h"),
+                DeciderManager::preimage_exists_decider(vec![InputType::Placeholder(Bytes::from(
+                    "h",
+                ))]),
+            ),
+        );
+        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         store_preimage(&decider);
         let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
@@ -136,7 +130,7 @@ mod tests {
         let message = Bytes::from(channel_message.to_abi());
         let signature = SignVerifier::sign(&secret_key_bob, &message);
         let property = create_state_channel_property(alice, bob, channel_message.clone());
-        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
         assert!(db.store_witness(bob, message, signature).is_ok());
         let decided: Decision = decider.decide(&property).unwrap();
@@ -149,10 +143,9 @@ mod tests {
         let block_number = Integer(10);
         let range = Range::new(0, 100);
         let checkpoint_property = create_plasma_property(block_number, range);
-        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let result = decider.decide(&checkpoint_property);
         // faid to decide because no local decision
         assert!(result.is_err());
     }
 }
-*/

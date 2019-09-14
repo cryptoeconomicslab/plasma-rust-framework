@@ -20,7 +20,7 @@ impl Default for IntegerRangeQuantifier {
 impl IntegerRangeQuantifier {
     pub fn get_all_quantified<KVS: KeyValueStore>(
         decider: &PropertyExecutor<KVS>,
-        inputs: &Vec<InputType>,
+        inputs: &[InputType],
     ) -> QuantifierResult {
         let range = decider.get_variable(&inputs[0]).to_range();
         // let integer_range_parameters = IntegerRangeParameters::from_abi(&parameters).unwrap();
@@ -43,7 +43,7 @@ impl Default for NonnegativeIntegerLessThanQuantifier {
 impl NonnegativeIntegerLessThanQuantifier {
     pub fn get_all_quantified<KVS: KeyValueStore>(
         decider: &PropertyExecutor<KVS>,
-        inputs: &Vec<InputType>,
+        inputs: &[InputType],
     ) -> QuantifierResult {
         let upper_bound = decider.get_variable(&inputs[0]).to_integer();
         if upper_bound < Integer(0) {

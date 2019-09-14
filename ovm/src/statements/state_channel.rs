@@ -20,8 +20,8 @@ pub fn create_state_channel_property(
         ]),
     );
     let right_property = DeciderManager::signed_by_decider(vec![
-        InputType::ConstantBytes(Bytes::from(latest_message.to_abi())),
         InputType::ConstantAddress(counter_party_address),
+        InputType::ConstantBytes(Bytes::from(latest_message.to_abi())),
     ]);
     DeciderManager::and_decider(left_property, right_property)
 }

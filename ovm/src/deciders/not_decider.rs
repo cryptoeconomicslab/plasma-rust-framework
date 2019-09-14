@@ -21,7 +21,7 @@ impl Default for NotDecider {
 impl Decider for NotDecider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        inputs: &Vec<InputType>,
+        inputs: &[InputType],
     ) -> Result<Decision, Error> {
         let property = decider.get_variable(&inputs[0]).to_property();
         let decision = property.decide(decider)?;

@@ -14,7 +14,7 @@ impl Default for SignedByQuantifier {
 impl SignedByQuantifier {
     pub fn get_all_quantified<KVS>(
         decider: &PropertyExecutor<KVS>,
-        inputs: &Vec<InputType>,
+        inputs: &[InputType],
     ) -> QuantifierResult
     where
         KVS: KeyValueStore,

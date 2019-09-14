@@ -1,4 +1,3 @@
-use crate::db::message_db::Message;
 use crate::deciders::{
     AndDecider, ForAllSuchThatDecider, HasLowerNonceDecider, IncludedAtBlockDecider,
     IsDeprecatedDecider, NotDecider, OrDecider, OwnershipDecider, PreimageExistsDecider,
@@ -6,16 +5,15 @@ use crate::deciders::{
 };
 use crate::error::Error;
 use crate::quantifiers::{
-    BlockRangeQuantifier, IntegerRangeQuantifier, NonnegativeIntegerLessThanQuantifier,
-    SignedByQuantifier,
+    BlockRangeQuantifier, HashQuantifier, IntegerRangeQuantifier,
+    NonnegativeIntegerLessThanQuantifier, SignedByQuantifier,
 };
 use crate::types::{
-    Decider, Decision, InputType, Integer, Property, QuantifierResult, QuantifierResultItem,
+    Decider, Decision, InputType, Property, QuantifierResult, QuantifierResultItem,
 };
 
 use bytes::Bytes;
-use ethereum_types::{Address, H256};
-use plasma_core::data_structure::Range;
+use ethereum_types::Address;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
@@ -72,14 +70,14 @@ impl DeciderManager {
         placeholder: Bytes,
         property: Property,
     ) -> Property {
-        Self::for_all_such_that_decider_raw(&vec![
+        Self::for_all_such_that_decider_raw(&[
             InputType::ConstantProperty(quantifier),
             InputType::ConstantBytes(placeholder),
             InputType::ConstantProperty(property),
         ])
     }
-    pub fn for_all_such_that_decider_raw(inputs: &Vec<InputType>) -> Property {
-        Property::new(Self::get_decider_address(4), inputs.clone())
+    pub fn for_all_such_that_decider_raw(inputs: &[InputType]) -> Property {
+        Property::new(Self::get_decider_address(3), inputs.to_vec())
     }
     pub fn signed_by_decider(inputs: Vec<InputType>) -> Property {
         Property::new(Self::get_decider_address(5), inputs)
@@ -89,6 +87,9 @@ impl DeciderManager {
     }
     pub fn is_deprecated(inputs: Vec<InputType>) -> Property {
         Property::new(Self::get_decider_address(8), inputs)
+    }
+    pub fn ownership(inputs: Vec<InputType>) -> Property {
+        Property::new(Self::get_decider_address(9), inputs)
     }
     pub fn q_range(inputs: Vec<InputType>) -> Property {
         Property::new(Self::get_decider_address(10), inputs)
@@ -101,6 +102,9 @@ impl DeciderManager {
     }
     pub fn q_signed_by(inputs: Vec<InputType>) -> Property {
         Property::new(Self::get_decider_address(13), inputs)
+    }
+    pub fn q_hash(inputs: Vec<InputType>) -> Property {
+        Property::new(Self::get_decider_address(14), inputs)
     }
 }
 
@@ -207,6 +211,8 @@ where
             BlockRangeQuantifier::get_all_quantified(self, &property.inputs)
         } else if decider_id == DECIDER_LIST[13] {
             SignedByQuantifier::get_all_quantified(self, &property.inputs)
+        } else if decider_id == DECIDER_LIST[14] {
+            HashQuantifier::get_all_quantified(self, &property.inputs)
         } else {
             panic!("unknown quantifier")
         }

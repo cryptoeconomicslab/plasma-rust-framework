@@ -4,7 +4,6 @@ use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{Decider, Decision, InputType, Integer, Property, StateUpdate};
 use bytes::Bytes;
-use ethereum_types::Address;
 use plasma_core::data_structure::abi::Decodable;
 use plasma_core::data_structure::Transaction;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -34,7 +33,7 @@ pub struct OwnershipDecider {}
 impl Decider for OwnershipDecider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        inputs: &Vec<InputType>,
+        inputs: &[InputType],
     ) -> Result<Decision, Error> {
         let state_update = decider.get_variable(&inputs[0]).to_state_update();
         let owner = decider.get_variable(&inputs[1]).to_address();
@@ -58,7 +57,7 @@ impl Decider for OwnershipDecider {
 
 impl OwnershipDecider {
     pub fn execute_state_transition(
-        prev_state: &StateUpdate,
+        _prev_state: &StateUpdate,
         transaction: &Transaction,
         next_block_number: Integer,
     ) -> StateUpdate {
