@@ -1,6 +1,6 @@
 use crate::deciders::OwnershipDecider;
 use crate::property_executor::PropertyExecutor;
-use crate::types::core::{Integer, Property};
+use crate::types::core::{Integer, Property, QuantifierResultItem};
 use crate::types::PlasmaDataBlock;
 use crate::DecideMixin;
 use abi_derive::{AbiDecodable, AbiEncodable};
@@ -65,6 +65,10 @@ impl StateUpdate {
         _transaction: &Transaction,
     ) -> bool {
         let property = self.get_property();
+        decider.set_variable(
+            Bytes::from("state_update"),
+            QuantifierResultItem::StateUpdate(self.clone()),
+        );
         let decided = property.decide(decider);
         decided.is_ok()
     }
