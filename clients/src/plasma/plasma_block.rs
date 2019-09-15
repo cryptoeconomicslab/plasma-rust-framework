@@ -1,3 +1,4 @@
+use super::error::{Error, ErrorKind};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
@@ -55,9 +56,9 @@ impl PlasmaBlock {
         }
     }
 
-    pub fn merkelize(&mut self) -> bool {
+    pub fn merkelize(&mut self) -> Result<Bytes, Error> {
         if self.state_updates.is_empty() {
-            return false;
+            return Err(Error::from(ErrorKind::MerkelizingError));
         }
         let mut leaves = vec![];
         for s in self.state_updates.iter() {
@@ -69,7 +70,11 @@ impl PlasmaBlock {
 
         let tree = MerkleIntervalTree::generate(&leaves);
         self.tree = Some(tree);
-        true
+        if let Some(root) = self.get_root() {
+            Ok(root)
+        } else {
+            Err(Error::from(ErrorKind::MerkelizingError))
+        }
     }
 }
 

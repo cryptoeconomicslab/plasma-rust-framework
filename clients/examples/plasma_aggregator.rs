@@ -48,8 +48,11 @@ impl Stream for Handle {
         try_ready!(self.interval.poll().map_err(|_| ()));
         println!("start to submit merkle root");
         let agg = self.plasma_aggregator.lock().unwrap();
-        agg.submit_next_block();
-        Ok(Async::Ready(Some(())))
+        if agg.submit_next_block().is_ok() {
+            Ok(Async::Ready(Some(())))
+        } else {
+            Ok(Async::NotReady)
+        }
     }
 }
 

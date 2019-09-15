@@ -91,10 +91,10 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         Err(Error::from(ErrorKind::InvalidTransaction))
     }
 
-    pub fn submit_next_block(&self) {
+    pub fn submit_next_block(&self) -> Result<(), Error> {
         // dequeue all state_update stored in range db
         // generate block using that data.
-        self.block_manager.submit_next_block();
+        self.block_manager.submit_next_block()
     }
 
     pub fn get_aggregator_addres(&self) -> Address {

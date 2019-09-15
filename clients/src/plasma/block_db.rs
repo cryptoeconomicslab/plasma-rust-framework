@@ -1,8 +1,8 @@
+use super::error::Error;
 use super::plasma_block::PlasmaBlock;
 use bytes::Bytes;
 use ovm::types::StateUpdate;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
-use plasma_db::error::Error;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::traits::rangestore::RangeStore;
 use plasma_db::RangeDbImpl;
@@ -22,11 +22,10 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
     pub fn enqueue_state_update(&self, state_update: StateUpdate) -> Result<(), Error> {
         let range = state_update.get_range();
 
-        self.db.bucket(&Bytes::from(&"plasma_block_db"[..])).put(
-            range.get_start(),
-            range.get_end(),
-            &state_update.to_abi(),
-        )?;
+        self.db
+            .bucket(&Bytes::from(&"plasma_block_db"[..]))
+            .put(range.get_start(), range.get_end(), &state_update.to_abi())
+            .map_err::<Error, _>(Into::into)?;
         Ok(())
     }
 

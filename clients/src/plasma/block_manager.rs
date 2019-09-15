@@ -1,10 +1,10 @@
 use super::block_db::BlockDb;
+use super::error::Error;
 use super::plasma_block::PlasmaBlock;
 use contract_wrapper::commitment_contract_adaptor::CommitmentContractAdaptor;
 use ethabi::Contract as ContractABI;
 use ethereum_types::Address;
 use ovm::types::StateUpdate;
-use plasma_db::error::Error;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
@@ -38,25 +38,22 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
 
     pub fn enqueue_state_update(&self, state_update: StateUpdate) -> Result<(), Error> {
         let block_db = BlockDb::from(&self.db);
-        block_db.enqueue_state_update(state_update)
+        block_db
+            .enqueue_state_update(state_update)
+            .map_err::<Error, _>(Into::into)
     }
 
     /// generate block from queued state updates
     /// save block in block_db, submit to CommitmentContract
     /// return generated block
-    pub fn submit_next_block(&self) {
+    pub fn submit_next_block(&self) -> Result<(), Error> {
         let block_db = BlockDb::from(&self.db);
-        let result = block_db.get_pending_state_updates();
-        if result.is_err() {
-            return;
-        }
-        let state_updates = result.unwrap();
+        let state_updates = block_db
+            .get_pending_state_updates()
+            .map_err::<Error, _>(Into::into)?;
         let mut block = PlasmaBlock::new(self.get_next_block_number(), state_updates);
 
-        if !block.merkelize() {
-            return;
-        }
-        let root = block.get_root().unwrap();
+        let root = block.merkelize()?;
 
         // send root hash to commitment contract
         let f = File::open("CommitmentContract.json").unwrap();
@@ -71,6 +68,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
         let _ = contract.submit_block(self.aggregator_address, root);
 
         let _ = block_db.save_block(&block);
+        Ok(())
     }
 
     pub fn get_next_block_number(&self) -> u64 {

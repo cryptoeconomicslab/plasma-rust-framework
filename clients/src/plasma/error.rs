@@ -1,5 +1,6 @@
 use ethabi::Error as AbiDecodeError;
 use failure::{Backtrace, Context, Fail};
+use plasma_db::error::Error as PlasmaDbError;
 use std::fmt;
 use std::fmt::Display;
 use std::io::Error as IoError;
@@ -10,8 +11,12 @@ pub enum ErrorKind {
     Io,
     #[fail(display = "ABI Decode error")]
     AbiDecode,
+    #[fail(display = "Db Error")]
+    PlasmaDbError,
     #[fail(display = "Invalid Transaction")]
     InvalidTransaction,
+    #[fail(display = "Merkelizing Error")]
+    MerkelizingError,
 }
 
 #[derive(Debug)]
@@ -71,6 +76,14 @@ impl From<AbiDecodeError> for Error {
     fn from(_error: AbiDecodeError) -> Error {
         Error {
             inner: Context::from(ErrorKind::AbiDecode),
+        }
+    }
+}
+
+impl From<PlasmaDbError> for Error {
+    fn from(_error: PlasmaDbError) -> Error {
+        Error {
+            inner: Context::from(ErrorKind::PlasmaDbError),
         }
     }
 }
