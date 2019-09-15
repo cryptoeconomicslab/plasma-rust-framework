@@ -9,7 +9,7 @@ use crate::quantifiers::{
     NonnegativeIntegerLessThanQuantifier, SignedByQuantifier,
 };
 use crate::types::{
-    Decider, Decision, InputType, Property, QuantifierResult, QuantifierResultItem,
+    Decider, Decision, Property, PropertyInput, QuantifierResult, QuantifierResultItem,
 };
 
 use bytes::Bytes;
@@ -35,15 +35,15 @@ impl DeciderManager {
     pub fn get_decider_address(i: usize) -> Address {
         DECIDER_LIST[i]
     }
-    pub fn preimage_exists_decider(inputs: Vec<InputType>) -> Property {
+    pub fn preimage_exists_decider(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(2), inputs)
     }
     pub fn and_decider(left: Property, right: Property) -> Property {
         Property::new(
             Self::get_decider_address(0),
             vec![
-                InputType::ConstantProperty(left),
-                InputType::ConstantProperty(right),
+                PropertyInput::ConstantProperty(left),
+                PropertyInput::ConstantProperty(right),
             ],
         )
     }
@@ -51,18 +51,18 @@ impl DeciderManager {
         Property::new(
             Self::get_decider_address(4),
             vec![
-                InputType::ConstantProperty(left),
-                InputType::ConstantProperty(right),
+                PropertyInput::ConstantProperty(left),
+                PropertyInput::ConstantProperty(right),
             ],
         )
     }
     pub fn not_decider(p: Property) -> Property {
         Property::new(
             Self::get_decider_address(1),
-            vec![InputType::ConstantProperty(p)],
+            vec![PropertyInput::ConstantProperty(p)],
         )
     }
-    pub fn has_lower_nonce_decider(inputs: Vec<InputType>) -> Property {
+    pub fn has_lower_nonce_decider(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(6), inputs)
     }
     pub fn for_all_such_that_decider(
@@ -71,39 +71,39 @@ impl DeciderManager {
         property: Property,
     ) -> Property {
         Self::for_all_such_that_decider_raw(&[
-            InputType::ConstantProperty(quantifier),
-            InputType::ConstantBytes(placeholder),
-            InputType::ConstantProperty(property),
+            PropertyInput::ConstantProperty(quantifier),
+            PropertyInput::ConstantBytes(placeholder),
+            PropertyInput::ConstantProperty(property),
         ])
     }
-    pub fn for_all_such_that_decider_raw(inputs: &[InputType]) -> Property {
+    pub fn for_all_such_that_decider_raw(inputs: &[PropertyInput]) -> Property {
         Property::new(Self::get_decider_address(3), inputs.to_vec())
     }
-    pub fn signed_by_decider(inputs: Vec<InputType>) -> Property {
+    pub fn signed_by_decider(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(5), inputs)
     }
-    pub fn included_at_block_decider(inputs: Vec<InputType>) -> Property {
+    pub fn included_at_block_decider(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(7), inputs)
     }
-    pub fn is_deprecated(inputs: Vec<InputType>) -> Property {
+    pub fn is_deprecated(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(8), inputs)
     }
-    pub fn ownership(inputs: Vec<InputType>) -> Property {
+    pub fn ownership(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(9), inputs)
     }
-    pub fn q_range(inputs: Vec<InputType>) -> Property {
+    pub fn q_range(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(10), inputs)
     }
-    pub fn q_uint(inputs: Vec<InputType>) -> Property {
+    pub fn q_uint(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(11), inputs)
     }
-    pub fn q_block(inputs: Vec<InputType>) -> Property {
+    pub fn q_block(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(12), inputs)
     }
-    pub fn q_signed_by(inputs: Vec<InputType>) -> Property {
+    pub fn q_signed_by(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(13), inputs)
     }
-    pub fn q_hash(inputs: Vec<InputType>) -> Property {
+    pub fn q_hash(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(14), inputs)
     }
 }
@@ -155,24 +155,26 @@ where
     pub fn set_variable(&mut self, placeholder: Bytes, result: QuantifierResultItem) {
         self.variables.lock().unwrap().insert(placeholder, result);
     }
-    pub fn get_variable(&self, placeholder: &InputType) -> QuantifierResultItem {
+    pub fn get_variable(&self, placeholder: &PropertyInput) -> QuantifierResultItem {
         match placeholder {
-            InputType::Placeholder(placeholder) => self
+            PropertyInput::Placeholder(placeholder) => self
                 .variables
                 .lock()
                 .unwrap()
                 .get(placeholder)
                 .unwrap()
                 .clone(),
-            InputType::ConstantAddress(constant) => QuantifierResultItem::Address(*constant),
-            InputType::ConstantBytes(constant) => QuantifierResultItem::Bytes(constant.clone()),
-            InputType::ConstantH256(constant) => QuantifierResultItem::H256(*constant),
-            InputType::ConstantInteger(constant) => QuantifierResultItem::Integer(*constant),
-            InputType::ConstantRange(constant) => QuantifierResultItem::Range(*constant),
-            InputType::ConstantProperty(constant) => {
+            PropertyInput::ConstantAddress(constant) => QuantifierResultItem::Address(*constant),
+            PropertyInput::ConstantBytes(constant) => QuantifierResultItem::Bytes(constant.clone()),
+            PropertyInput::ConstantH256(constant) => QuantifierResultItem::H256(*constant),
+            PropertyInput::ConstantInteger(constant) => QuantifierResultItem::Integer(*constant),
+            PropertyInput::ConstantRange(constant) => QuantifierResultItem::Range(*constant),
+            PropertyInput::ConstantProperty(constant) => {
                 QuantifierResultItem::Property(constant.clone())
             }
-            InputType::ConstantMessage(constant) => QuantifierResultItem::Message(constant.clone()),
+            PropertyInput::ConstantMessage(constant) => {
+                QuantifierResultItem::Message(constant.clone())
+            }
         }
     }
     pub fn decide(&mut self, property: &Property) -> Result<Decision, Error> {

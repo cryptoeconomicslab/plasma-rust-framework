@@ -1,6 +1,6 @@
 use crate::db::SignedByDb;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{InputType, QuantifierResult, QuantifierResultItem};
+use crate::types::{PropertyInput, QuantifierResult, QuantifierResultItem};
 use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct SignedByQuantifier {}
@@ -14,7 +14,7 @@ impl Default for SignedByQuantifier {
 impl SignedByQuantifier {
     pub fn get_all_quantified<KVS>(
         decider: &PropertyExecutor<KVS>,
-        inputs: &[InputType],
+        inputs: &[PropertyInput],
     ) -> QuantifierResult
     where
         KVS: KeyValueStore,

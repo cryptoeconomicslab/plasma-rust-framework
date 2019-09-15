@@ -1,6 +1,6 @@
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, InputType};
+use crate::types::{Decider, Decision, ImplicationProofElement, PropertyInput};
 use crate::{DecideMixin, DeciderManager};
 use plasma_db::traits::kvs::KeyValueStore;
 
@@ -21,7 +21,7 @@ impl Default for NotDecider {
 impl Decider for NotDecider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        inputs: &[InputType],
+        inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let property = decider.get_variable(&inputs[0]).to_property();
         let decision = property.decide(decider)?;

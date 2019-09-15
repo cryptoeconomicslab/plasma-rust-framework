@@ -2,7 +2,7 @@ extern crate serde;
 
 use contract_wrapper::universal_decision_contract_adaptor::UniversalDecisionContractAdaptor;
 use ethabi::Contract as ContractABI;
-use ovm::types::InputType;
+use ovm::types::PropertyInput;
 use ovm::DeciderManager;
 use std::fs::File;
 use std::io::BufReader;
@@ -21,8 +21,8 @@ fn main() {
 
     let from: Address = "ce397e30544d737195a341291675ec1ecaf19b13".parse().unwrap();
     let property = DeciderManager::signed_by_decider(vec![
-        InputType::ConstantBytes(b"012345678"[..].into()),
-        InputType::ConstantAddress("1a50faDFab6b21AaaED82bb17A541993304786E7".parse().unwrap()),
+        PropertyInput::ConstantBytes(b"012345678"[..].into()),
+        PropertyInput::ConstantAddress("1a50faDFab6b21AaaED82bb17A541993304786E7".parse().unwrap()),
     ]);
 
     if let Ok(res) = contract.claim_property(from, property.clone()) {

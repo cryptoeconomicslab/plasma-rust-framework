@@ -1,6 +1,6 @@
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, InputType};
+use crate::types::{Decider, Decision, PropertyInput};
 use crate::DecideMixin;
 use plasma_db::traits::kvs::KeyValueStore;
 
@@ -21,7 +21,7 @@ impl Default for OrDecider {
 impl Decider for OrDecider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        inputs: &[InputType],
+        inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let left = decider.get_variable(&inputs[0]).to_property();
         let right = decider.get_variable(&inputs[1]).to_property();
@@ -56,7 +56,7 @@ mod tests {
     use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decision, InputType};
+    use crate::types::{Decision, PropertyInput};
     use crate::DeciderManager;
     use bytes::Bytes;
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
@@ -65,11 +65,11 @@ mod tests {
     fn test_decide() {
         let left_hash = Verifier::static_hash(&Bytes::from("left"));
         let right_hash = Verifier::static_hash(&Bytes::from("right"));
-        let left = DeciderManager::preimage_exists_decider(vec![InputType::ConstantH256(
+        let left = DeciderManager::preimage_exists_decider(vec![PropertyInput::ConstantH256(
             Verifier::static_hash(&Bytes::from("left")),
         )]);
         let left_witness = Bytes::from("left");
-        let right = DeciderManager::preimage_exists_decider(vec![InputType::ConstantH256(
+        let right = DeciderManager::preimage_exists_decider(vec![PropertyInput::ConstantH256(
             Verifier::static_hash(&Bytes::from("right")),
         )]);
         let right_witness = Bytes::from("right");

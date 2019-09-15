@@ -20,7 +20,7 @@ mod tests {
     use crate::deciders::SignVerifier;
     use crate::property_executor::PropertyExecutor;
     use crate::statements::{create_plasma_property, create_state_channel_property};
-    use crate::types::{Decision, InputType, Integer};
+    use crate::types::{Decision, Integer, PropertyInput};
     use crate::DeciderManager;
     use bytes::Bytes;
     use ethereum_types::Address;
@@ -50,14 +50,14 @@ mod tests {
     #[test]
     fn test_decide_range_and_preimage() {
         let property = DeciderManager::for_all_such_that_decider(
-            DeciderManager::q_range(vec![InputType::ConstantRange(Range::new(0, 10))]),
+            DeciderManager::q_range(vec![PropertyInput::ConstantRange(Range::new(0, 10))]),
             Bytes::from("n"),
             DeciderManager::for_all_such_that_decider(
-                DeciderManager::q_hash(vec![InputType::Placeholder(Bytes::from("n"))]),
+                DeciderManager::q_hash(vec![PropertyInput::Placeholder(Bytes::from("n"))]),
                 Bytes::from("h"),
-                DeciderManager::preimage_exists_decider(vec![InputType::Placeholder(Bytes::from(
-                    "h",
-                ))]),
+                DeciderManager::preimage_exists_decider(vec![PropertyInput::Placeholder(
+                    Bytes::from("h"),
+                )]),
             ),
         );
         let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
@@ -71,14 +71,14 @@ mod tests {
     #[should_panic]
     fn test_fail_to_decide_range_and_preimage() {
         let property = DeciderManager::for_all_such_that_decider(
-            DeciderManager::q_range(vec![InputType::ConstantRange(Range::new(0, 10))]),
+            DeciderManager::q_range(vec![PropertyInput::ConstantRange(Range::new(0, 10))]),
             Bytes::from("n"),
             DeciderManager::for_all_such_that_decider(
-                DeciderManager::q_hash(vec![InputType::Placeholder(Bytes::from("n"))]),
+                DeciderManager::q_hash(vec![PropertyInput::Placeholder(Bytes::from("n"))]),
                 Bytes::from("h"),
-                DeciderManager::preimage_exists_decider(vec![InputType::Placeholder(Bytes::from(
-                    "h",
-                ))]),
+                DeciderManager::preimage_exists_decider(vec![PropertyInput::Placeholder(
+                    Bytes::from("h"),
+                )]),
             ),
         );
         let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
@@ -96,14 +96,14 @@ mod tests {
     #[test]
     fn test_decide_less_than_and_preimage() {
         let property = DeciderManager::for_all_such_that_decider(
-            DeciderManager::q_uint(vec![InputType::ConstantInteger(Integer(10))]),
+            DeciderManager::q_uint(vec![PropertyInput::ConstantInteger(Integer(10))]),
             Bytes::from("n"),
             DeciderManager::for_all_such_that_decider(
-                DeciderManager::q_hash(vec![InputType::Placeholder(Bytes::from("n"))]),
+                DeciderManager::q_hash(vec![PropertyInput::Placeholder(Bytes::from("n"))]),
                 Bytes::from("h"),
-                DeciderManager::preimage_exists_decider(vec![InputType::Placeholder(Bytes::from(
-                    "h",
-                ))]),
+                DeciderManager::preimage_exists_decider(vec![PropertyInput::Placeholder(
+                    Bytes::from("h"),
+                )]),
             ),
         );
         let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();

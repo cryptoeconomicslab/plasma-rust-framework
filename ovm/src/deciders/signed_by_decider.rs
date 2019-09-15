@@ -1,7 +1,7 @@
 use crate::db::SignedByDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, InputType};
+use crate::types::{Decider, Decision, ImplicationProofElement, PropertyInput};
 use crate::DeciderManager;
 use bytes::Bytes;
 use ethereum_types::{Address, H256};
@@ -62,7 +62,7 @@ impl Default for SignedByDecider {
 impl Decider for SignedByDecider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        inputs: &[InputType],
+        inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let public_key = decider.get_variable(&inputs[0]).to_address();
         let message = decider.get_variable(&inputs[1]).to_bytes();
@@ -87,7 +87,7 @@ mod tests {
     use super::Verifier;
     use crate::db::SignedByDb;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decision, InputType};
+    use crate::types::{Decision, PropertyInput};
     use crate::DeciderManager;
     use bytes::Bytes;
     use ethsign::SecretKey;
@@ -102,8 +102,8 @@ mod tests {
         let message = Bytes::from("message");
         let signature = Verifier::sign(&secret_key, &message);
         let property = DeciderManager::signed_by_decider(vec![
-            InputType::ConstantAddress(secret_key.public().address().into()),
-            InputType::ConstantBytes(message.clone()),
+            PropertyInput::ConstantAddress(secret_key.public().address().into()),
+            PropertyInput::ConstantBytes(message.clone()),
         ]);
         let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());

@@ -7,7 +7,7 @@ use ethsign::SecretKey;
 use ovm::db::TransactionDb;
 use ovm::property_executor::PropertyExecutor;
 use ovm::types::StateUpdate;
-use ovm::types::{InputType, Integer, Property};
+use ovm::types::{Integer, Property, PropertyInput};
 use ovm::DeciderManager;
 use plasma_core::data_structure::{Range, Transaction};
 use plasma_db::traits::db::DatabaseTrait;
@@ -124,8 +124,8 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
                 Property::new(
                     ownership_decider_id,
                     vec![
-                        InputType::Placeholder(Bytes::from("state_update")),
-                        InputType::ConstantAddress(Address::from_slice(
+                        PropertyInput::Placeholder(Bytes::from("state_update")),
+                        PropertyInput::ConstantAddress(Address::from_slice(
                             &hex::decode("2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e").unwrap(),
                         )),
                     ],

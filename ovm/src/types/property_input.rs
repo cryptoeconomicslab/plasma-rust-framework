@@ -9,9 +9,9 @@ use plasma_core::data_structure::error::{
 };
 use plasma_core::data_structure::Range;
 
-/// InputType is attribute of Property. See further discussion https://github.com/plasma-group/ovm/issues/1.
+/// PropertyInput is attribute of Property. See further discussion https://github.com/plasma-group/ovm/issues/1.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum InputType {
+pub enum PropertyInput {
     Placeholder(Bytes),
     ConstantAddress(Address),
     ConstantBytes(Bytes),
@@ -22,69 +22,69 @@ pub enum InputType {
     ConstantMessage(Message),
 }
 
-impl InputType {
+impl PropertyInput {
     pub fn placeholder(placeholder: &str) -> Self {
-        InputType::Placeholder(Bytes::from(placeholder))
+        PropertyInput::Placeholder(Bytes::from(placeholder))
     }
 }
 
-impl Encodable for InputType {
+impl Encodable for PropertyInput {
     fn to_tuple(&self) -> Vec<Token> {
         match self {
-            InputType::Placeholder(placeholder) => {
+            PropertyInput::Placeholder(placeholder) => {
                 vec![Token::Uint(0.into()), Token::Bytes(placeholder.to_vec())]
             }
-            InputType::ConstantAddress(address) => vec![
+            PropertyInput::ConstantAddress(address) => vec![
                 Token::Uint(1.into()),
                 Token::Bytes(address.as_bytes().to_vec()),
             ],
-            InputType::ConstantBytes(bytes) => {
+            PropertyInput::ConstantBytes(bytes) => {
                 vec![Token::Uint(2.into()), Token::Bytes(bytes.to_vec())]
             }
-            InputType::ConstantH256(h256) => vec![
+            PropertyInput::ConstantH256(h256) => vec![
                 Token::Uint(3.into()),
                 Token::Bytes(h256.as_bytes().to_vec()),
             ],
-            InputType::ConstantInteger(integer) => {
+            PropertyInput::ConstantInteger(integer) => {
                 let b: Bytes = (*integer).into();
                 vec![Token::Uint(4.into()), Token::Bytes(b.to_vec())]
             }
-            InputType::ConstantRange(range) => {
+            PropertyInput::ConstantRange(range) => {
                 vec![Token::Uint(5.into()), Token::Bytes(range.to_abi())]
             }
-            InputType::ConstantProperty(property) => {
+            PropertyInput::ConstantProperty(property) => {
                 vec![Token::Uint(6.into()), Token::Bytes(property.to_abi())]
             }
-            InputType::ConstantMessage(message) => {
+            PropertyInput::ConstantMessage(message) => {
                 vec![Token::Uint(7.into()), Token::Bytes(message.to_abi())]
             }
         }
     }
 }
 
-impl Decodable for InputType {
-    type Ok = InputType;
+impl Decodable for PropertyInput {
+    type Ok = PropertyInput;
     fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
         let id = tuple[0].clone().to_uint();
         let bytes = tuple[1].clone().to_bytes();
         if let (Some(id), Some(bytes)) = (id, bytes) {
             let id_num = id.as_u64();
             if id_num == 0 {
-                Ok(InputType::Placeholder(Bytes::from(bytes)))
+                Ok(PropertyInput::Placeholder(Bytes::from(bytes)))
             } else if id_num == 1 {
-                Ok(InputType::ConstantAddress(Address::from_slice(&bytes)))
+                Ok(PropertyInput::ConstantAddress(Address::from_slice(&bytes)))
             } else if id_num == 2 {
-                Ok(InputType::ConstantBytes(Bytes::from(bytes)))
+                Ok(PropertyInput::ConstantBytes(Bytes::from(bytes)))
             } else if id_num == 3 {
-                Ok(InputType::ConstantH256(H256::from_slice(&bytes)))
+                Ok(PropertyInput::ConstantH256(H256::from_slice(&bytes)))
             } else if id_num == 4 {
-                Ok(InputType::ConstantInteger(Bytes::from(bytes).into()))
+                Ok(PropertyInput::ConstantInteger(Bytes::from(bytes).into()))
             } else if id_num == 5 {
-                Range::from_abi(&bytes).map(InputType::ConstantRange)
+                Range::from_abi(&bytes).map(PropertyInput::ConstantRange)
             } else if id_num == 6 {
-                Property::from_abi(&bytes).map(InputType::ConstantProperty)
+                Property::from_abi(&bytes).map(PropertyInput::ConstantProperty)
             } else if id_num == 7 {
-                Message::from_abi(&bytes).map(InputType::ConstantMessage)
+                Message::from_abi(&bytes).map(PropertyInput::ConstantMessage)
             } else {
                 panic!("")
             }

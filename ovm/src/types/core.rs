@@ -3,7 +3,7 @@ use super::state_update::StateUpdate;
 use crate::db::Message;
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
-use crate::types::InputType;
+use crate::types::PropertyInput;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use ethabi::{ParamType, Token};
 use ethereum_types::{Address, H256};
@@ -46,11 +46,11 @@ impl From<Bytes> for Integer {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Property {
     pub decider: Address,
-    pub inputs: Vec<InputType>,
+    pub inputs: Vec<PropertyInput>,
 }
 
 impl Property {
-    pub fn new(decider: Address, inputs: Vec<InputType>) -> Self {
+    pub fn new(decider: Address, inputs: Vec<PropertyInput>) -> Self {
         Self { decider, inputs }
     }
 }
@@ -79,7 +79,7 @@ impl Decodable for Property {
                 decider: decider_id,
                 inputs: inputs
                     .iter()
-                    .map(|i| InputType::from_abi(&i.clone().to_bytes().unwrap()).unwrap())
+                    .map(|i| PropertyInput::from_abi(&i.clone().to_bytes().unwrap()).unwrap())
                     .collect(),
             })
         } else {
@@ -153,7 +153,7 @@ impl Decision {
 pub trait Decider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        inputs: &[InputType],
+        inputs: &[PropertyInput],
     ) -> Result<Decision, Error>;
 }
 
@@ -261,7 +261,7 @@ impl QuantifierResult {
 mod tests {
 
     use super::Property;
-    use crate::types::InputType;
+    use crate::types::PropertyInput;
     use crate::DeciderManager;
     use ethereum_types::H256;
     use plasma_core::data_structure::abi::{Decodable, Encodable};
@@ -269,7 +269,9 @@ mod tests {
     #[test]
     fn test_encode_and_decode_property() {
         let property =
-            DeciderManager::preimage_exists_decider(vec![InputType::ConstantH256(H256::zero())]);
+            DeciderManager::preimage_exists_decider(vec![
+                PropertyInput::ConstantH256(H256::zero()),
+            ]);
         let encoded = property.to_abi();
         let decoded = Property::from_abi(&encoded).unwrap();
         assert_eq!(decoded, property);

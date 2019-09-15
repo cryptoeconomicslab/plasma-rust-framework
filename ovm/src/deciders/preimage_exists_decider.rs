@@ -1,7 +1,7 @@
 use crate::db::HashPreimageDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, InputType};
+use crate::types::{Decider, Decision, ImplicationProofElement, PropertyInput};
 use crate::DeciderManager;
 use bytes::Bytes;
 use ethereum_types::H256;
@@ -36,7 +36,7 @@ impl Default for PreimageExistsDecider {
 impl Decider for PreimageExistsDecider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        inputs: &[InputType],
+        inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let hash = decider.get_variable(&inputs[0]).to_h256();
         let key = hash;
@@ -60,7 +60,7 @@ mod tests {
     use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decision, InputType};
+    use crate::types::{Decision, PropertyInput};
     use crate::DeciderManager;
     use bytes::Bytes;
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
@@ -69,7 +69,8 @@ mod tests {
     fn test_decide() {
         let preimage = Bytes::from("left");
         let hash = Verifier::static_hash(&preimage);
-        let property = DeciderManager::preimage_exists_decider(vec![InputType::ConstantH256(hash)]);
+        let property =
+            DeciderManager::preimage_exists_decider(vec![PropertyInput::ConstantH256(hash)]);
         let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         assert!(db.store_witness(hash, &preimage).is_ok());

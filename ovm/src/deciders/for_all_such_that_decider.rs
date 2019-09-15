@@ -1,6 +1,6 @@
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, InputType, QuantifierResult};
+use crate::types::{Decider, Decision, ImplicationProofElement, PropertyInput, QuantifierResult};
 use crate::{DecideMixin, DeciderManager};
 use plasma_db::traits::kvs::KeyValueStore;
 
@@ -9,7 +9,7 @@ pub struct ForAllSuchThatDecider {}
 
 impl ForAllSuchThatDecider {
     fn get_decision(
-        inputs: &[InputType],
+        inputs: &[PropertyInput],
         false_decision: Decision,
         true_decisions: Vec<Decision>,
         undecided: bool,
@@ -42,7 +42,7 @@ impl Default for ForAllSuchThatDecider {
 impl Decider for ForAllSuchThatDecider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        inputs: &[InputType],
+        inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let quantifier = decider.get_variable(&inputs[0]).to_property();
         let placeholder = decider.get_variable(&inputs[1]).to_bytes();
@@ -82,7 +82,7 @@ mod tests {
     use crate::db::HashPreimageDb;
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decider, Decision, InputType, Integer};
+    use crate::types::{Decider, Decision, Integer, PropertyInput};
     use crate::DeciderManager;
     use bytes::Bytes;
     use plasma_core::data_structure::Range;
@@ -91,14 +91,14 @@ mod tests {
     #[test]
     fn test_decide() {
         let property = DeciderManager::for_all_such_that_decider(
-            DeciderManager::q_range(vec![InputType::ConstantRange(Range::new(5, 20))]),
+            DeciderManager::q_range(vec![PropertyInput::ConstantRange(Range::new(5, 20))]),
             Bytes::from("n"),
             DeciderManager::for_all_such_that_decider(
-                DeciderManager::q_hash(vec![InputType::Placeholder(Bytes::from("n"))]),
+                DeciderManager::q_hash(vec![PropertyInput::Placeholder(Bytes::from("n"))]),
                 Bytes::from("h"),
-                DeciderManager::preimage_exists_decider(vec![InputType::Placeholder(Bytes::from(
-                    "h",
-                ))]),
+                DeciderManager::preimage_exists_decider(vec![PropertyInput::Placeholder(
+                    Bytes::from("h"),
+                )]),
             ),
         );
         let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();

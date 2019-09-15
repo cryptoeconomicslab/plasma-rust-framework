@@ -1,4 +1,4 @@
-use crate::types::{InputType, Integer, Property};
+use crate::types::{Integer, Property, PropertyInput};
 use crate::DeciderManager;
 use bytes::Bytes;
 use plasma_core::data_structure::Range;
@@ -9,15 +9,15 @@ use plasma_core::data_structure::Range;
 ///      Or(b, Included(p), Excluded(b, p))
 pub fn create_plasma_property(specified_block_number: Integer, range: Range) -> Property {
     DeciderManager::for_all_such_that_decider(
-        DeciderManager::q_uint(vec![InputType::ConstantInteger(specified_block_number)]),
+        DeciderManager::q_uint(vec![PropertyInput::ConstantInteger(specified_block_number)]),
         Bytes::from("block"),
         DeciderManager::for_all_such_that_decider(
             DeciderManager::q_block(vec![
-                InputType::Placeholder(Bytes::from("block")),
-                InputType::ConstantRange(range),
+                PropertyInput::Placeholder(Bytes::from("block")),
+                PropertyInput::ConstantRange(range),
             ]),
             Bytes::from("state_update"),
-            DeciderManager::is_deprecated(vec![InputType::Placeholder(Bytes::from(
+            DeciderManager::is_deprecated(vec![PropertyInput::Placeholder(Bytes::from(
                 "state_update",
             ))]),
         ),
@@ -31,7 +31,7 @@ mod tests {
     use crate::db::{RangeAtBlockDb, TransactionDb};
     use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{InputType, Integer, PlasmaDataBlock, StateUpdate};
+    use crate::types::{Integer, PlasmaDataBlock, PropertyInput, StateUpdate};
     use crate::DeciderManager;
     use bytes::Bytes;
     use ethereum_types::{Address, H256};
@@ -63,8 +63,8 @@ mod tests {
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let alice: Address = secret_key.public().address().into();
         let property = DeciderManager::ownership(vec![
-            InputType::Placeholder(Bytes::from("state_update")),
-            InputType::ConstantAddress(alice),
+            PropertyInput::Placeholder(Bytes::from("state_update")),
+            PropertyInput::ConstantAddress(alice),
         ]);
         let mut leaves = vec![];
         let mut first_state_update_opt: Option<StateUpdate> = None;

@@ -2,7 +2,7 @@ use crate::db::TransactionDb;
 use crate::deciders::signed_by_decider::Verifier;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, InputType, Integer, Property, StateUpdate};
+use crate::types::{Decider, Decision, Integer, Property, PropertyInput, StateUpdate};
 use bytes::Bytes;
 use plasma_core::data_structure::abi::Decodable;
 use plasma_core::data_structure::Transaction;
@@ -33,7 +33,7 @@ pub struct OwnershipDecider {}
 impl Decider for OwnershipDecider {
     fn decide<T: KeyValueStore>(
         decider: &mut PropertyExecutor<T>,
-        inputs: &[InputType],
+        inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let state_update = decider.get_variable(&inputs[0]).to_state_update();
         let owner = decider.get_variable(&inputs[1]).to_address();

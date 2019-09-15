@@ -1,6 +1,6 @@
 use crate::db::RangeAtBlockRecord;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{InputType, PlasmaDataBlock, QuantifierResult, QuantifierResultItem};
+use crate::types::{PlasmaDataBlock, PropertyInput, QuantifierResult, QuantifierResultItem};
 use bytes::Bytes;
 use ethereum_types::H256;
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
@@ -32,7 +32,7 @@ impl BlockRangeQuantifier {
     }
     pub fn get_all_quantified<KVS>(
         decider: &PropertyExecutor<KVS>,
-        inputs: &[InputType],
+        inputs: &[PropertyInput],
     ) -> QuantifierResult
     where
         KVS: KeyValueStore,
