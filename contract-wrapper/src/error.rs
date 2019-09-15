@@ -9,6 +9,8 @@ use web3::contract::Error as Web3Error;
 pub enum ErrorKind {
     #[fail(display = "Invalid Input Type")]
     InvalidInputType,
+    #[fail(display = "Failed to connect")]
+    FailedToConnect,
     #[fail(display = "ABI error")]
     Abi,
     #[fail(display = "Web3 error")]

@@ -1,3 +1,4 @@
+use contract_wrapper::error::Error as ContractError;
 use ethabi::Error as AbiDecodeError;
 use failure::{Backtrace, Context, Fail};
 use plasma_db::error::Error as PlasmaDbError;
@@ -13,6 +14,8 @@ pub enum ErrorKind {
     AbiDecode,
     #[fail(display = "Db Error")]
     PlasmaDbError,
+    #[fail(display = "Contract Error")]
+    ContractError,
     #[fail(display = "Invalid Transaction")]
     InvalidTransaction,
     #[fail(display = "Merkelizing Error")]
@@ -81,9 +84,17 @@ impl From<AbiDecodeError> for Error {
 }
 
 impl From<PlasmaDbError> for Error {
-    fn from(_error: PlasmaDbError) -> Error {
+    fn from(error: PlasmaDbError) -> Error {
         Error {
-            inner: Context::from(ErrorKind::PlasmaDbError),
+            inner: error.context(ErrorKind::PlasmaDbError),
+        }
+    }
+}
+
+impl From<ContractError> for Error {
+    fn from(error: ContractError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::ContractError),
         }
     }
 }

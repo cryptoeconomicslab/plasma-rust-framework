@@ -56,18 +56,19 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
         let root = block.merkelize()?;
 
         // send root hash to commitment contract
-        let f = File::open("CommitmentContract.json").unwrap();
+        let f = File::open("../contract-wrapper/CommitmentChain.json").unwrap();
         let reader = BufReader::new(f);
         let contract_abi = ContractABI::load(reader).unwrap();
         let contract = CommitmentContractAdaptor::new(
-            "http://127.0.0.1:9545",
-            &self.commitment_contract_address.to_string(),
+            "http://127.0.0.1:8545",
+            self.commitment_contract_address,
             contract_abi,
         )
         .unwrap();
-        let _ = contract.submit_block(self.aggregator_address, root);
+        let _ = contract.submit_block(self.aggregator_address, block.get_block_number(), root)?;
 
         let _ = block_db.save_block(&block);
+        let _ = block_db.delete_all_queued_state_updates();
         Ok(())
     }
 

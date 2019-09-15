@@ -1,28 +1,41 @@
 [
   {
+    "constant": false,
+    "inputs": [
+      {
+        "internalType": "uint64",
+        "name": "blkNumber",
+        "type": "uint64"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "_root",
+        "type": "bytes32"
+      }
+    ],
+    "name": "submit_root",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
         "indexed": false,
+        "internalType": "uint64",
+        "name": "blockNumber",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
         "name": "root",
         "type": "bytes32"
       }
     ],
     "name": "BlockSubmitted",
     "type": "event"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "_root",
-        "type": "bytes32"
-      }
-    ],
-    "name": "submit",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
   }
 ]
