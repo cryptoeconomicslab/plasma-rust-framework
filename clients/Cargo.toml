@@ -15,10 +15,12 @@ plasma-core = { path = "../core" }
 plasma-db = { path = "../db" }
 contract-wrapper = { path = "../contract-wrapper" }
 failure = "0.1.5"
+futures = "0.1.27"
 merkle-interval-tree = { path = "../merkle-interval-tree" }
 tiny-keccak = "1.4.2"
 bincode = "*"
 pubsub-messaging = { path = "../pubsub-messaging" }
+tokio = "0.1.21"
 
 [dependencies.ethsign]
 version = "0.6.1"
