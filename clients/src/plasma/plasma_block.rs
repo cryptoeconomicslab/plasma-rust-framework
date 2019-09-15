@@ -55,7 +55,10 @@ impl PlasmaBlock {
         }
     }
 
-    pub fn merkelize(&mut self) {
+    pub fn merkelize(&mut self) -> bool {
+        if self.state_updates.is_empty() {
+            return false;
+        }
         let mut leaves = vec![];
         for s in self.state_updates.iter() {
             leaves.push(MerkleIntervalNode::Leaf {
@@ -66,6 +69,7 @@ impl PlasmaBlock {
 
         let tree = MerkleIntervalTree::generate(&leaves);
         self.tree = Some(tree);
+        true
     }
 }
 

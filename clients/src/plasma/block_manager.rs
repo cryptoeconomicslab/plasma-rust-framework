@@ -53,7 +53,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
         let state_updates = result.unwrap();
         let mut block = PlasmaBlock::new(self.get_next_block_number(), state_updates);
 
-        block.merkelize();
+        if !block.merkelize() {
+            return;
+        }
         let root = block.get_root().unwrap();
 
         // send root hash to commitment contract
