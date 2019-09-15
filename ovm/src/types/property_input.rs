@@ -30,35 +30,20 @@ impl PropertyInput {
 
 impl Encodable for PropertyInput {
     fn to_tuple(&self) -> Vec<Token> {
-        match self {
-            PropertyInput::Placeholder(placeholder) => {
-                vec![Token::Uint(0.into()), Token::Bytes(placeholder.to_vec())]
-            }
-            PropertyInput::ConstantAddress(address) => vec![
-                Token::Uint(1.into()),
-                Token::Bytes(address.as_bytes().to_vec()),
-            ],
-            PropertyInput::ConstantBytes(bytes) => {
-                vec![Token::Uint(2.into()), Token::Bytes(bytes.to_vec())]
-            }
-            PropertyInput::ConstantH256(h256) => vec![
-                Token::Uint(3.into()),
-                Token::Bytes(h256.as_bytes().to_vec()),
-            ],
+        let (id, bytes) = match self {
+            PropertyInput::Placeholder(placeholder) => (0, placeholder.to_vec()),
+            PropertyInput::ConstantAddress(address) => (1, address.as_bytes().to_vec()),
+            PropertyInput::ConstantBytes(bytes) => (2, bytes.to_vec()),
+            PropertyInput::ConstantH256(h256) => (3, h256.as_bytes().to_vec()),
             PropertyInput::ConstantInteger(integer) => {
                 let b: Bytes = (*integer).into();
-                vec![Token::Uint(4.into()), Token::Bytes(b.to_vec())]
+                (4, b.to_vec())
             }
-            PropertyInput::ConstantRange(range) => {
-                vec![Token::Uint(5.into()), Token::Bytes(range.to_abi())]
-            }
-            PropertyInput::ConstantProperty(property) => {
-                vec![Token::Uint(6.into()), Token::Bytes(property.to_abi())]
-            }
-            PropertyInput::ConstantMessage(message) => {
-                vec![Token::Uint(7.into()), Token::Bytes(message.to_abi())]
-            }
-        }
+            PropertyInput::ConstantRange(range) => (5, range.to_abi()),
+            PropertyInput::ConstantProperty(property) => (6, property.to_abi()),
+            PropertyInput::ConstantMessage(message) => (7, message.to_abi()),
+        };
+        vec![Token::Uint(id.into()), Token::Bytes(bytes.to_vec())]
     }
 }
 

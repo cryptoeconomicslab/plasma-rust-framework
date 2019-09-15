@@ -11,14 +11,12 @@ use crate::quantifiers::{
 use crate::types::{
     Decider, Decision, Property, PropertyInput, QuantifierResult, QuantifierResultItem,
 };
-
 use bytes::Bytes;
 use ethereum_types::Address;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 
 lazy_static! {
     static ref DECIDER_LIST: Vec<Address> = {
@@ -126,7 +124,7 @@ where
 pub struct PropertyExecutor<KVS: KeyValueStore> {
     db: KVS,
     range_db: RangeDbImpl<KVS>,
-    variables: Arc<Mutex<HashMap<Bytes, QuantifierResultItem>>>,
+    variables: HashMap<Bytes, QuantifierResultItem>,
 }
 
 impl<KVS> Default for PropertyExecutor<KVS>
@@ -137,7 +135,7 @@ where
         PropertyExecutor {
             db: KVS::open("kvs"),
             range_db: RangeDbImpl::from(KVS::open("range")),
-            variables: Arc::new(Mutex::new(Default::default())),
+            variables: Default::default(),
         }
     }
 }
@@ -153,17 +151,13 @@ where
         &self.range_db
     }
     pub fn set_variable(&mut self, placeholder: Bytes, result: QuantifierResultItem) {
-        self.variables.lock().unwrap().insert(placeholder, result);
+        self.variables.insert(placeholder, result);
     }
     pub fn get_variable(&self, placeholder: &PropertyInput) -> QuantifierResultItem {
         match placeholder {
-            PropertyInput::Placeholder(placeholder) => self
-                .variables
-                .lock()
-                .unwrap()
-                .get(placeholder)
-                .unwrap()
-                .clone(),
+            PropertyInput::Placeholder(placeholder) => {
+                self.variables.get(placeholder).unwrap().clone()
+            }
             PropertyInput::ConstantAddress(constant) => QuantifierResultItem::Address(*constant),
             PropertyInput::ConstantBytes(constant) => QuantifierResultItem::Bytes(constant.clone()),
             PropertyInput::ConstantH256(constant) => QuantifierResultItem::H256(*constant),
