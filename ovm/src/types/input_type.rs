@@ -9,6 +9,7 @@ use plasma_core::data_structure::error::{
 };
 use plasma_core::data_structure::Range;
 
+/// InputType is attribute of Property. See further discussion https://github.com/plasma-group/ovm/issues/1.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum InputType {
     Placeholder(Bytes),
