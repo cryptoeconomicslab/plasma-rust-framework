@@ -46,12 +46,13 @@ impl Stream for Handle {
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         try_ready!(self.interval.poll().map_err(|_| ()));
-        println!("start to submit merkle root");
+        println!("start to submit");
         let agg = self.plasma_aggregator.lock().unwrap();
         if agg.submit_next_block().is_ok() {
+            println!("succeeded to submit");
             Ok(Async::Ready(Some(())))
         } else {
-            Ok(Async::NotReady)
+            Ok(Async::Ready(Some(())))
         }
     }
 }
@@ -60,7 +61,7 @@ impl ServerHandler for Handle {
     fn handle_message(&mut self, msg: Message, sender: Sender) {
         let mut agg = self.plasma_aggregator.lock().unwrap();
         let ingest_result = agg.ingest_transaction(Transaction::from_abi(&msg.message).unwrap());
-        println!("{:?}", ingest_result);
+        println!("Recieving new transaction {:?}", ingest_result);
 
         let state_updates = StateUpdateList::new(agg.get_all_state_updates());
         println!("STATE_UPDATES: {:?}", state_updates);
@@ -73,10 +74,13 @@ impl ServerHandler for Handle {
 }
 
 fn main() {
+    let aggregator_address = hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap();
+    let commitment_contract_address =
+        hex::decode("30753E4A8aad7F8597332E813735Def5dD395028").unwrap();
     let mut aggregator = PlasmaAggregator::new(
+        Address::from_slice(&aggregator_address),
         Address::zero(),
-        Address::zero(),
-        Address::zero(),
+        Address::from_slice(&commitment_contract_address),
         "c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3",
     );
     aggregator.insert_test_ranges();

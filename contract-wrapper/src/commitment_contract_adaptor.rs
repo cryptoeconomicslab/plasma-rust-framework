@@ -14,14 +14,11 @@ pub struct CommitmentContractAdaptor {
 }
 
 impl CommitmentContractAdaptor {
-    pub fn new(host: &str, address: &str, abi: ContractABI) -> Result<Self, Error> {
+    pub fn new(host: &str, address: Address, abi: ContractABI) -> Result<Self, Error> {
         let (_eloop, http) = web3::transports::Http::new(host)
-            .map_err(|_| Error::from(ErrorKind::InvalidInputType))?;
+            .map_err(|_| Error::from(ErrorKind::FailedToConnect))?;
         let web3 = web3::Web3::new(http);
 
-        let address: Address = address
-            .parse()
-            .map_err(|_| Error::from(ErrorKind::InvalidInputType))?;
         let contract = Contract::new(web3.eth(), address, abi);
 
         Ok(Self {
@@ -32,14 +29,25 @@ impl CommitmentContractAdaptor {
         })
     }
 
-    pub fn submit_block(&self, from: Address, root: Bytes) -> Result<H256, Error> {
-        let result = self
-            .inner
-            .call("submit", root.to_vec(), from, Options::default());
+    pub fn submit_block(
+        &self,
+        from: Address,
+        block_number: u64,
+        root: Bytes,
+    ) -> Result<H256, Error> {
+        let result = self.inner.call(
+            "submit_root",
+            (block_number, H256::from_slice(root.to_vec().as_slice())),
+            from,
+            Options::default(),
+        );
 
         match result.wait() {
             Ok(r) => Ok(r),
-            Err(e) => Err(e.into()),
+            Err(e) => {
+                println!("{:?}", e);
+                Err(e.into())
+            }
         }
     }
 }
