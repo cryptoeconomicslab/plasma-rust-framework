@@ -427,7 +427,7 @@ dependencies = [
 [[package]]
 name = "ethabi"
 version = "7.0.0"
-source = "git+https://github.com/cryptoeconomicslab/ethabi?branch=tuple-support-v7.0.0#22f7dc5b579de6eeb9e04d6e674c000da904d157"
+source = "git+https://github.com/cryptoeconomicslab/ethabi?branch=tuple-support-v7.0.0#642bcc2ff79e8bb17e1b4c1e5ca558712a2f5b5d"
 dependencies = [
  "error-chain 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethereum-types 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
