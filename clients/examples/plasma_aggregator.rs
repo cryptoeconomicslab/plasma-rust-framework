@@ -76,7 +76,7 @@ impl ServerHandler for Handle {
 fn main() {
     let aggregator_address = hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap();
     let commitment_contract_address =
-        hex::decode("30753E4A8aad7F8597332E813735Def5dD395028").unwrap();
+        hex::decode("9FBDa871d559710256a2502A2517b794B482Db40").unwrap();
     let mut aggregator = PlasmaAggregator::new(
         Address::from_slice(&aggregator_address),
         Address::zero(),

@@ -14,6 +14,7 @@ ovm = { path = "../ovm" }
 plasma-core = { path = "../core" }
 plasma-db = { path = "../db" }
 contract-wrapper = { path = "../contract-wrapper" }
+event-watcher = { path = "../event-watcher" }
 failure = "0.1.5"
 futures = "0.1.27"
 merkle-interval-tree = { path = "../merkle-interval-tree" }

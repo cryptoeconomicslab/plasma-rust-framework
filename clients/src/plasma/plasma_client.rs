@@ -3,27 +3,136 @@ use super::state_db::StateDb;
 use bytes::Bytes;
 use contract_wrapper::plasma_contract_adaptor::PlasmaContractAdaptor;
 use ethabi::Contract as ContractABI;
+use ethabi::{Event, EventParam, ParamType};
 use ethereum_types::Address;
 use ethsign::SecretKey;
+use event_watcher::event_db::EventDbImpl;
+use event_watcher::event_watcher::{EventHandler, EventWatcher, Log};
+use futures::{future, Async, Future, Poll, Stream};
 use ovm::deciders::SignVerifier;
 use ovm::statements::create_plasma_property;
-use ovm::types::core::Property;
-use ovm::types::{Integer, StateUpdate};
+use ovm::types::{Integer, Property, PropertyInput, StateUpdate};
+use ovm::DeciderManager;
 use plasma_core::data_structure::abi::Encodable;
 use plasma_core::data_structure::{Range, Transaction, TransactionParams};
+use plasma_db::impls::kvs::CoreDbMemoryImpl;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
-use pubsub_messaging::{connect, ClientHandler, CloseCode, Message, Sender};
+use pubsub_messaging::{connect, Client as PubsubClient, ClientHandler, Message, Sender};
 use std::fs::File;
 use std::io::BufReader;
+use std::sync::{Arc, Mutex};
+use tokio::timer::Interval;
+
+pub struct PlasmaClientShell {
+    aggregator_endpoint: String,
+    commitment_contract_address: Address,
+    private_key: String,
+    controller: Option<PlasmaClientController>,
+    pubsub_client: Option<PubsubClient>,
+}
+
+impl PlasmaClientShell {
+    pub fn new(aggregator_endpoint: String, commitment_contract_address: Address, private_key: &str) -> Self {
+        Self {
+            aggregator_endpoint,
+            commitment_contract_address,
+            private_key: private_key.to_string(),
+            controller: None,
+            pubsub_client: None,
+        }
+    }
+    fn create_ownership_state_object(to_address: Address) -> Property {
+        let ownership_decider_id = DeciderManager::get_decider_address(9);
+        Property::new(
+            ownership_decider_id,
+            vec![
+                PropertyInput::Placeholder(Bytes::from("state_update")),
+                PropertyInput::ConstantAddress(to_address),
+            ],
+        )
+    }
+    pub fn connect(&mut self) {
+        let plasma_client = PlasmaClient::<CoreDbMemoryImpl>::new(
+            Address::zero(),
+            self.aggregator_endpoint.clone(),
+            self.private_key.clone(),
+        );
+        let controller = PlasmaClientController::new(plasma_client);
+        self.controller = Some(controller.clone());
+        let abi: Vec<Event> = vec![Event {
+            name: "BlockSubmitted".to_owned(),
+            inputs: vec![EventParam {
+                name: "blockNumber".to_owned(),
+                kind: ParamType::Uint(64),
+                indexed: false,
+            },EventParam {
+                name: "root".to_owned(),
+                kind: ParamType::FixedBytes(32),
+                indexed: false,
+            }],
+            anonymous: false,
+        }];
+        let kvs = CoreDbMemoryImpl::open("kvs");
+        let db = EventDbImpl::from(kvs);
+        let watcher = EventWatcher::new("http://localhost:8545", self.commitment_contract_address, abi, db, controller.clone());
+        tokio::spawn(watcher);
+    }
+    pub fn send_transaction(&self, to_address: &str, start: u64, end: u64) {
+        let to_address = Address::from_slice(&hex::decode(to_address).unwrap());
+        let controller = self.controller.clone().unwrap();
+        let tx = controller.plasma_client.lock().unwrap().create_transaction(
+            Range::new(start, end),
+            Bytes::from(Self::create_ownership_state_object(to_address).to_abi()),
+        );
+        let mut pubsub_client =
+            connect(self.aggregator_endpoint.clone(), controller.clone()).unwrap();
+        println!("{:?}", tx);
+        let msg = Message::new("Aggregator".to_string(), tx.to_abi());
+        pubsub_client.send(msg);
+        assert!(pubsub_client.handle.join().is_ok());
+    }
+}
 
 #[derive(Clone)]
-struct Handle();
+pub struct PlasmaClientController {
+    pub plasma_client: Arc<Mutex<PlasmaClient<CoreDbMemoryImpl>>>,
+}
 
-impl ClientHandler for Handle {
+impl PlasmaClientController {
+    pub fn new(plasma_client: PlasmaClient<CoreDbMemoryImpl>) -> Self {
+        Self {
+            plasma_client: Arc::new(Mutex::new(plasma_client)),
+        }
+    }
+}
+
+impl ClientHandler for PlasmaClientController {
     fn handle_message(&self, msg: Message, _sender: Sender) {
         println!("ClientHandler handle_message: {:?}", msg);
+    }
+}
+
+impl EventHandler for PlasmaClientController {
+    fn on_event(&self, log: &Log) {
+        println!("event > {:?}", log.event_signature);
+        // event > 0x90890809c654f11d6e72a28fa60149770a0d11ec6c92319d6ceb2bb0a4ea1a15
+
+        let decoded_param = log.params.first().unwrap();
+        println!(
+            "param > {:?}: {:?}",
+            decoded_param.event_param.name,
+            decoded_param.token.clone().to_uint().unwrap()
+        );
+        // param > "value": 22469980537774239738630940880827529904616858526135975343779764542717423171395
+        // self.send_transaction("", 0, 1);
+        let mut pubsub_client =
+            connect("127.0.0.1:8080".to_string(), self.clone()).unwrap();
+        let msg = Message::new("Aggregator".to_string(), b"fetch".to_vec());
+        pubsub_client.send(msg);
+        assert!(pubsub_client.handle.join().is_ok());
+
     }
 }
 
@@ -40,7 +149,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     pub fn new(
         plasma_contract_address: Address,
         aggregator_endpoint: String,
-        private_key: &str,
+        private_key: String,
     ) -> Self {
         let raw_key = hex::decode(private_key).unwrap();
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
@@ -92,15 +201,6 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         // TODO: decide property and claim property to contract
         // TODO: store as exit list
         create_plasma_property(block_number, range)
-    }
-
-    pub fn send_transaction(&self, transaction: Transaction) {
-        let handler = Handle();
-        let mut client = connect(self.aggregator_endpoint.clone(), handler).unwrap();
-        let msg = Message::new("Aggregator".to_string(), transaction.to_abi());
-        client.send(msg);
-        let _ = client.sender.close(CloseCode::Normal);
-        assert!(client.handle.join().is_ok());
     }
 
     /// Handle exit on plasma.

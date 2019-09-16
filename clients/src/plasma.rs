@@ -10,4 +10,4 @@ pub mod wallet_db;
 pub mod wallet_manager;
 
 pub use plasma_aggregator::PlasmaAggregator;
-pub use plasma_client::PlasmaClient;
+pub use plasma_client::{PlasmaClient, PlasmaClientController, PlasmaClientShell};

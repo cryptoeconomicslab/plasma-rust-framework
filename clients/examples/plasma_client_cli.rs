@@ -1,3 +1,4 @@
+/*
 #[macro_use]
 extern crate clap;
 
@@ -68,3 +69,6 @@ fn send(to: Address, start: u64, end: u64) {
     println!("{:?}", tx);
     client.send_transaction(tx);
 }
+*/
+
+fn main() {}
