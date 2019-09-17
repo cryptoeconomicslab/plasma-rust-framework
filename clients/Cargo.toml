@@ -21,6 +21,12 @@ tiny-keccak = "1.4.2"
 bincode = "*"
 pubsub-messaging = { path = "../pubsub-messaging" }
 tokio = "0.1.21"
+actix-web = "1.0.7"
+serde = "*"
+log = "*"
+env_logger = "*"
+chrono = { version = "0.4", features = ["serde"] }
+
 
 [dependencies.ethsign]
 version = "0.6.1"
