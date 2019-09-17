@@ -99,7 +99,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let mut client = connect(self.aggregator_endpoint.clone(), handler).unwrap();
         let msg = Message::new("Aggregator".to_string(), transaction.to_abi());
         client.send(msg);
-        client.sender.close(CloseCode::Normal);
+        let _ = client.sender.close(CloseCode::Normal);
         assert!(client.handle.join().is_ok());
     }
 

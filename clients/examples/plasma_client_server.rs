@@ -37,7 +37,7 @@ struct Balance {
 
 fn get_balance(
     body: web::Json<GetBalanceRequest>,
-    plasma_client: web::Data<PlasmaClient<CoreDbMemoryImpl>>,
+    _plasma_client: web::Data<PlasmaClient<CoreDbMemoryImpl>>,
 ) -> Result<HttpResponse> {
     info!("BODY: {:?}", body);
     Ok(HttpResponse::Ok().json(vec![Balance {
