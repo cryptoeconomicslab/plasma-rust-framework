@@ -10,20 +10,16 @@ use plasma_db::impls::kvs::CoreDbMemoryImpl;
 use serde::{Deserialize, Serialize};
 
 // Create Account
-#[derive(Deserialize, Debug)]
-struct CreateAccountRequest {
-    password_hash: String,
-}
-
 #[derive(Serialize)]
 struct CreateAccountResponse {
     address: Address,
+    session_key: String,
 }
 
-fn create_account(body: web::Json<CreateAccountRequest>) -> Result<HttpResponse> {
-    info!("BODY: {:?}", body);
+fn create_account() -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().json(CreateAccountResponse {
         address: Address::zero(),
+        session_key: "test_session_key".to_string(),
     }))
 }
 
@@ -34,7 +30,8 @@ struct GetBalanceRequest {
 }
 
 #[derive(Serialize)]
-struct GetBalanceResponse {
+struct Balance {
+    token_id: u64,
     balance: u64,
 }
 
@@ -43,7 +40,10 @@ fn get_balance(
     plasma_client: web::Data<PlasmaClient<CoreDbMemoryImpl>>,
 ) -> Result<HttpResponse> {
     info!("BODY: {:?}", body);
-    Ok(HttpResponse::Ok().json(GetBalanceResponse { balance: 10 }))
+    Ok(HttpResponse::Ok().json(vec![Balance {
+        token_id: 1,
+        balance: 10,
+    }]))
 }
 
 // Get Payment History
