@@ -1,9 +1,10 @@
 use crate::error::Error;
-use crate::types::{IncludedAtBlockInput, PlasmaDataBlock};
+use crate::types::{Integer, PlasmaDataBlock};
 use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
+use plasma_core::data_structure::Range;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::traits::rangestore::RangeStore;
 use plasma_db::RangeDbImpl;
@@ -48,18 +49,16 @@ impl<'a, KVS: KeyValueStore> RangeAtBlockDb<'a, KVS> {
             )
             .map_err::<Error, _>(Into::into)
     }
-    pub fn get_witness(&self, input: &IncludedAtBlockInput) -> Result<RangeAtBlockRecord, Error> {
+    pub fn get_witness(
+        &self,
+        block_number: Integer,
+        coin_range: Range,
+    ) -> Result<RangeAtBlockRecord, Error> {
         let result = self
             .db
             .bucket(&Bytes::from(&b"range_at_block"[..]))
-            .bucket(&input.get_block_number().into())
-            .get(
-                input
-                    .get_plasma_data_block()
-                    .get_updated_range()
-                    .get_start(),
-                input.get_plasma_data_block().get_updated_range().get_end(),
-            )
+            .bucket(&block_number.into())
+            .get(coin_range.get_start(), coin_range.get_end())
             .map_err::<Error, _>(Into::into)?;
         if result.len() == 0 {
             panic!("inclusion proof not found");

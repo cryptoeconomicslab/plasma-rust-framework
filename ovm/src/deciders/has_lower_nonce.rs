@@ -1,6 +1,7 @@
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, HasLowerNonceInput, ImplicationProofElement, Property};
+use crate::types::{Decider, Decision, ImplicationProofElement, PropertyInput};
+use crate::DeciderManager;
 use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct HasLowerNonceDecider {}
@@ -18,16 +19,17 @@ impl Default for HasLowerNonceDecider {
 }
 
 impl Decider for HasLowerNonceDecider {
-    type Input = HasLowerNonceInput;
     fn decide<T: KeyValueStore>(
-        _decider: &PropertyExecutor<T>,
-        input: &HasLowerNonceInput,
+        decider: &mut PropertyExecutor<T>,
+        inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
-        if input.get_message().nonce < input.get_nonce() {
+        let message = decider.get_variable(&inputs[0]).to_message();
+        let nonce = decider.get_variable(&inputs[1]).to_integer();
+        if message.nonce < nonce {
             Ok(Decision::new(
                 true,
                 vec![ImplicationProofElement::new(
-                    Property::HasLowerNonceDecider(input.clone()),
+                    DeciderManager::has_lower_nonce_decider(inputs.to_vec()),
                     None,
                 )],
             ))

@@ -6,7 +6,7 @@ use ethabi::{ParamType, Token};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_db::traits::kvs::KeyValueStore;
 
-#[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
+#[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
 pub struct Message {
     pub channel_id: Bytes,
     pub nonce: Integer,

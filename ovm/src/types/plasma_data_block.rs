@@ -4,7 +4,6 @@ use super::core::Integer;
 use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
-use ethereum_types::Address;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::Range;
 
@@ -14,7 +13,6 @@ pub struct PlasmaDataBlock {
     updated_range: Range,
     root: Bytes,
     is_included: bool,
-    predicate_address: Address,
     block_number: Integer,
     data: Bytes,
 }
@@ -25,7 +23,6 @@ impl PlasmaDataBlock {
         updated_range: Range,
         root: Bytes,
         is_included: bool,
-        predicate_address: Address,
         block_number: Integer,
         data: Bytes,
     ) -> Self {
@@ -34,7 +31,6 @@ impl PlasmaDataBlock {
             updated_range,
             root,
             is_included,
-            predicate_address,
             block_number,
             data,
         }
@@ -53,9 +49,6 @@ impl PlasmaDataBlock {
     pub fn get_is_included(&self) -> bool {
         self.is_included
     }
-    pub fn get_decider_id(&self) -> Address {
-        self.predicate_address
-    }
     pub fn get_root(&self) -> &Bytes {
         &self.root
     }
@@ -65,22 +58,4 @@ impl PlasmaDataBlock {
     pub fn get_data(&self) -> &Bytes {
         &self.data
     }
-
-    //    pub fn verify_deprecation(&self, transaction: &Transaction) -> bool {
-    //        if let Property::SignedByDecider(input) = &self.property {
-    //            if SignVerifier::recover(
-    //                transaction.get_signature(),
-    //                &Bytes::from(transaction.to_body_abi()),
-    //            ) == input.get_public_key()
-    //            {
-    //                return true;
-    //            }
-    //            false
-    //        } else {
-    //            // TODO: implement how to verify_deprecation using other.decider
-    //            false
-    //        }
-    //    }
 }
-
-pub type Witness = Bytes;

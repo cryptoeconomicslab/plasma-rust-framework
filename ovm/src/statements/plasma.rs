@@ -1,7 +1,6 @@
-use crate::types::{
-    BlockRangeQuantifierInput, ForAllSuchThatInput, Integer, IsDeprecatedDeciderInput, Property,
-    PropertyFactory, Quantifier, QuantifierResultItem, StateUpdate,
-};
+use crate::types::{Integer, Property, PropertyInput};
+use crate::DeciderManager;
+use bytes::Bytes;
 use plasma_core::data_structure::Range;
 
 /// Creates plasma checkpoint property
@@ -9,35 +8,20 @@ use plasma_core::data_structure::Range;
 ///   for all p such that included in block(b):
 ///      Or(b, Included(p), Excluded(b, p))
 pub fn create_plasma_property(specified_block_number: Integer, range: Range) -> Property {
-    Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-        Quantifier::NonnegativeIntegerLessThanQuantifier(specified_block_number),
-        Some(PropertyFactory::new(Box::new(move |item| {
-            if let QuantifierResultItem::Integer(block_number) = item {
-                create_coin_range_property(block_number, range)
-            } else {
-                panic!("invalid type in PropertyFactory");
-            }
-        }))),
-    )))
-}
-
-pub fn create_coin_range_property(block_number: Integer, range: Range) -> Property {
-    Property::ForAllSuchThatDecider(Box::new(ForAllSuchThatInput::new(
-        Quantifier::BlockRangeQuantifier(BlockRangeQuantifierInput::new(block_number, range)),
-        Some(PropertyFactory::new(Box::new(move |item| {
-            // TODO: fix
-            // IsDeprecatedDecider(IsdeprecatedDeciderInput(state_update))
-            // IsDeprecatedDecider = input.state_update.property.decide()
-            if let QuantifierResultItem::PlasmaDataBlock(plasma_data_block) = item {
-                println!("create_coin_range_property {:?}", block_number);
-                Property::IsDeprecatedDecider(Box::new(IsDeprecatedDeciderInput::new(
-                    StateUpdate::from(plasma_data_block),
-                )))
-            } else {
-                panic!("invalid type in PropertyFactory");
-            }
-        }))),
-    )))
+    DeciderManager::for_all_such_that_decider(
+        DeciderManager::q_uint(vec![PropertyInput::ConstantInteger(specified_block_number)]),
+        Bytes::from("block"),
+        DeciderManager::for_all_such_that_decider(
+            DeciderManager::q_block(vec![
+                PropertyInput::Placeholder(Bytes::from("block")),
+                PropertyInput::ConstantRange(range),
+            ]),
+            Bytes::from("state_update"),
+            DeciderManager::is_deprecated(vec![PropertyInput::Placeholder(Bytes::from(
+                "state_update",
+            ))]),
+        ),
+    )
 }
 
 #[cfg(test)]
@@ -47,7 +31,8 @@ mod tests {
     use crate::db::{RangeAtBlockDb, TransactionDb};
     use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Integer, OwnershipDeciderInput, PlasmaDataBlock, Property, StateUpdate};
+    use crate::types::{Integer, PlasmaDataBlock, PropertyInput, StateUpdate};
+    use crate::DeciderManager;
     use bytes::Bytes;
     use ethereum_types::{Address, H256};
     use ethsign::SecretKey;
@@ -77,16 +62,17 @@ mod tests {
                 .unwrap();
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let alice: Address = secret_key.public().address().into();
-        let property =
-            Property::OwnershipDecider(OwnershipDeciderInput::new(StateUpdate::default()));
+        let property = DeciderManager::ownership(vec![
+            PropertyInput::Placeholder(Bytes::from("state_update")),
+            PropertyInput::ConstantAddress(alice),
+        ]);
         let mut leaves = vec![];
         let mut first_state_update_opt: Option<StateUpdate> = None;
         for i in 0..100 {
             let state_update = StateUpdate::new(
                 block_number,
                 Range::new(i * 30, i * 30 + 100),
-                property.get_decider_id(),
-                Bytes::from(alice.as_bytes()),
+                property.clone(),
             );
             if i == 0 {
                 first_state_update_opt = Some(state_update.clone());
@@ -109,7 +95,6 @@ mod tests {
                 Range::new(0, 100),
                 root.clone(),
                 inclusion,
-                property.get_decider_id(),
                 block_number,
                 data.clone(),
             );
@@ -138,7 +123,7 @@ mod tests {
         let block_number = Integer(10);
         let range = Range::new(0, 100);
         let checkpoint_property = create_plasma_property(block_number, range);
-        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         store_inclusion_witness(&decider);
         let result = decider.decide(&checkpoint_property);
         assert!(result.is_ok());

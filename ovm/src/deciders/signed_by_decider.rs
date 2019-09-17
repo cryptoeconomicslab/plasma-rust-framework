@@ -1,7 +1,8 @@
 use crate::db::SignedByDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, Property, SignedByInput};
+use crate::types::{Decider, Decision, ImplicationProofElement, PropertyInput};
+use crate::DeciderManager;
 use bytes::Bytes;
 use ethereum_types::{Address, H256};
 use ethsign::{SecretKey, Signature};
@@ -59,23 +60,22 @@ impl Default for SignedByDecider {
 }
 
 impl Decider for SignedByDecider {
-    type Input = SignedByInput;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &SignedByInput,
+        decider: &mut PropertyExecutor<T>,
+        inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
+        let public_key = decider.get_variable(&inputs[0]).to_address();
+        let message = decider.get_variable(&inputs[1]).to_bytes();
         let db: SignedByDb<T> = SignedByDb::new(decider.get_db());
-        let signed_by_message = db.get_witness(input.get_public_key(), input.get_message())?;
-        if Verifier::recover(&signed_by_message.signature, input.get_message())
-            != input.get_public_key()
-        {
+        let signed_by_message = db.get_witness(public_key, &message)?;
+        if Verifier::recover(&signed_by_message.signature, &message) != public_key {
             return Err(Error::from(ErrorKind::InvalidPreimage));
         }
 
         Ok(Decision::new(
             true,
             vec![ImplicationProofElement::new(
-                Property::SignedByDecider(input.clone()),
+                DeciderManager::signed_by_decider(inputs.to_vec()),
                 Some(signed_by_message.signature),
             )],
         ))
@@ -87,7 +87,8 @@ mod tests {
     use super::Verifier;
     use crate::db::SignedByDb;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Decision, Property, SignedByInput};
+    use crate::types::{Decision, PropertyInput};
+    use crate::DeciderManager;
     use bytes::Bytes;
     use ethsign::SecretKey;
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
@@ -100,9 +101,11 @@ mod tests {
         let secret_key = SecretKey::from_raw(&raw_key).unwrap();
         let message = Bytes::from("message");
         let signature = Verifier::sign(&secret_key, &message);
-        let input = SignedByInput::new(message.clone(), secret_key.public().address().into());
-        let property = Property::SignedByDecider(input.clone());
-        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let property = DeciderManager::signed_by_decider(vec![
+            PropertyInput::ConstantAddress(secret_key.public().address().into()),
+            PropertyInput::ConstantBytes(message.clone()),
+        ]);
+        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
         assert!(db
             .store_witness(

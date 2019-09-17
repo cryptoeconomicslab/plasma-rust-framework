@@ -1,7 +1,8 @@
 use crate::db::RangeAtBlockDb;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, ImplicationProofElement, IncludedAtBlockInput, Property};
+use crate::types::{Decider, Decision, ImplicationProofElement, PropertyInput};
+use crate::DeciderManager;
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
 use plasma_db::traits::kvs::KeyValueStore;
 
@@ -15,14 +16,15 @@ impl Default for IncludedAtBlockDecider {
 }
 
 impl Decider for IncludedAtBlockDecider {
-    type Input = IncludedAtBlockInput;
     fn decide<T: KeyValueStore>(
-        decider: &PropertyExecutor<T>,
-        input: &IncludedAtBlockInput,
+        decider: &mut PropertyExecutor<T>,
+        inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
+        let block_number = decider.get_variable(&inputs[0]).to_integer();
+        let plasma_data_block = decider.get_variable(&inputs[0]).to_plasma_data_block();
         let db: RangeAtBlockDb<T> = RangeAtBlockDb::new(decider.get_range_db());
-        let range_at_block_record = db.get_witness(input)?;
-        let plasma_data_block = input.get_plasma_data_block();
+        let range_at_block_record =
+            db.get_witness(block_number, plasma_data_block.get_updated_range())?;
         let leaf = MerkleIntervalNode::Leaf {
             end: plasma_data_block.get_updated_range().get_end(),
             data: plasma_data_block.get_data().clone(),
@@ -39,7 +41,7 @@ impl Decider for IncludedAtBlockDecider {
         Ok(Decision::new(
             true,
             vec![ImplicationProofElement::new(
-                Property::IncludedAtBlockDecider(Box::new(input.clone())),
+                DeciderManager::included_at_block_decider(inputs.to_vec()),
                 Some(range_at_block_record.inclusion_proof.clone()),
             )],
         ))
