@@ -1,6 +1,6 @@
 use ethereum_types::Address;
+use futures::future;
 use plasma_clients::plasma::PlasmaClientShell;
-use futures::{future, Async, Future, Poll, Stream};
 
 fn main() {
     let commitment_contract_address_hex =

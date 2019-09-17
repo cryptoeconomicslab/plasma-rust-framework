@@ -1,13 +1,10 @@
-/*
 #[macro_use]
 extern crate clap;
 
-use bytes::Bytes;
 use clap::{App, Arg, SubCommand};
 use ethereum_types::Address;
-use plasma_clients::plasma::PlasmaClient;
-use plasma_core::data_structure::Range;
-use plasma_db::impls::kvs::CoreDbMemoryImpl;
+use futures::future;
+use plasma_clients::plasma::PlasmaClientShell;
 
 fn main() {
     let matches = App::new("OVM Wallet!!!")
@@ -46,6 +43,16 @@ fn main() {
                 ),
         )
         .get_matches();
+
+    let commitment_contract_address_hex =
+        hex::decode("9FBDa871d559710256a2502A2517b794B482Db40").unwrap();
+    let commitment_contract_address = Address::from_slice(&commitment_contract_address_hex);
+    let mut shell = PlasmaClientShell::new(
+        "127.0.0.1:8080".to_string(),
+        commitment_contract_address,
+        "659cbb0e2411a44db63778987b1e22153c086a95eb6b18bdf89de078917abc63",
+    );
+
     if matches.subcommand_matches("balance").is_some() {
         println!("Your balance is 500ETH");
     } else if let Some(matches) = matches.subcommand_matches("send") {
@@ -54,21 +61,11 @@ fn main() {
         let start = value_t!(matches, "start", u64).unwrap();
         let end = value_t!(matches, "end", u64).unwrap();
         println!("Send {:?}-{:?} ETH to {:?} ", start, end, to_address);
-        send(to_address, start, end);
-        println!("Sent!!!");
+        tokio::run(future::lazy(move || {
+            shell.connect();
+            shell.send_transaction(&to_address.to_string(), start, end);
+            println!("Sent!!!");
+            Ok(())
+        }));
     }
 }
-
-fn send(to: Address, start: u64, end: u64) {
-    let client = PlasmaClient::<CoreDbMemoryImpl>::new(
-        Address::zero(),
-        "127.0.0.1:8080".to_owned(),
-        "659cbb0e2411a44db63778987b1e22153c086a95eb6b18bdf89de078917abc63",
-    );
-    let tx = client.create_transaction(Range::new(start, end), Bytes::from(to.as_bytes()));
-    println!("{:?}", tx);
-    client.send_transaction(tx);
-}
-*/
-
-fn main() {}

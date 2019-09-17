@@ -4,7 +4,7 @@ use super::plasma_block::PlasmaBlock;
 use contract_wrapper::commitment_contract_adaptor::CommitmentContractAdaptor;
 use ethabi::Contract as ContractABI;
 use ethereum_types::Address;
-use ovm::types::StateUpdate;
+use ovm::types::{Integer, StateUpdate};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
@@ -46,7 +46,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
     /// generate block from queued state updates
     /// save block in block_db, submit to CommitmentContract
     /// return generated block
-    pub fn submit_next_block(&self) -> Result<(), Error> {
+    pub fn submit_next_block(&mut self) -> Result<(), Error> {
         let block_db = BlockDb::from(&self.db);
         let state_updates = block_db
             .get_pending_state_updates()
@@ -65,14 +65,26 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
             contract_abi,
         )
         .unwrap();
+        println!("block.get_block_number() {:?}", block.get_block_number());
         let _ = contract.submit_block(self.aggregator_address, block.get_block_number(), root)?;
 
         let _ = block_db.save_block(&block);
         let _ = block_db.delete_all_queued_state_updates();
+        self.save_next_block_number(block.get_block_number());
         Ok(())
+    }
+
+    pub fn get_block_range(&self, block_number: Integer) -> Result<PlasmaBlock, Error> {
+        let block_db = BlockDb::from(&self.db);
+        block_db.get_block(block_number)
     }
 
     pub fn get_next_block_number(&self) -> u64 {
         self.current_block_number + 1
     }
+
+    pub fn save_next_block_number(&mut self, block_number: u64) {
+        self.current_block_number = block_number;
+    }
+
 }

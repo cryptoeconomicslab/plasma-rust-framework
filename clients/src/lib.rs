@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate futures;
-
 pub mod plasma;
 pub mod state_channel;
 

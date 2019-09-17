@@ -5,6 +5,7 @@ authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"
 
 [dependencies]
+abi-derive = { path = "../abi-derive"}
 bytes = "0.4.12"
 clap = "2.33.0"
 ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }

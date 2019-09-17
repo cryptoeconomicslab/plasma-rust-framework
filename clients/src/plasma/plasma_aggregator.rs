@@ -6,8 +6,8 @@ use ethereum_types::Address;
 use ethsign::SecretKey;
 use ovm::db::TransactionDb;
 use ovm::property_executor::PropertyExecutor;
-use ovm::types::StateUpdate;
 use ovm::types::{Integer, Property, PropertyInput};
+use ovm::types::{StateUpdate, StateUpdateList};
 use ovm::DeciderManager;
 use plasma_core::data_structure::{Range, Transaction};
 use plasma_db::traits::db::DatabaseTrait;
@@ -92,10 +92,11 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         Err(Error::from(ErrorKind::InvalidTransaction))
     }
 
-    pub fn submit_next_block(&self) -> Result<(), Error> {
+    pub fn submit_next_block(&mut self) -> Result<(), Error> {
         // dequeue all state_update stored in range db
         // generate block using that data.
-        self.block_manager.submit_next_block()
+        let block_manager = &mut self.block_manager;
+        block_manager.submit_next_block()
     }
 
     pub fn get_aggregator_addres(&self) -> Address {
@@ -138,5 +139,14 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     pub fn get_all_state_updates(&self) -> Vec<StateUpdate> {
         let state_db = StateDb::new(self.decider.get_range_db());
         state_db.get_all_state_updates().unwrap_or_else(|_| vec![])
+    }
+
+    pub fn get_state_updates_of_block(
+        &self,
+        block_number: Integer,
+    ) -> Result<StateUpdateList, Error> {
+        self.block_manager
+            .get_block_range(block_number)
+            .map(|b| StateUpdateList::new(b.get_state_updates().to_vec()))
     }
 }

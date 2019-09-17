@@ -28,6 +28,10 @@ impl PlasmaBlock {
         self.block_number.0
     }
 
+    pub fn get_state_updates(&self) -> &[StateUpdate] {
+        &self.state_updates
+    }
+
     pub fn get_root(&self) -> Option<Bytes> {
         if let Some(tree) = &self.tree {
             Some(tree.get_root())

@@ -3,6 +3,7 @@ use bincode::{deserialize, serialize};
 use std::marker::{Send, Sync};
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Sender as ThreadOut;
+use std::sync::Arc;
 use std::thread::{spawn, JoinHandle};
 use ws::{
     connect as ws_connect, CloseCode, Error as WsError, Handler as WsHandler, Handshake,
@@ -48,9 +49,10 @@ where
 
 /// Client struct
 /// abstract Sender struct of ws-rs.
+#[derive(Clone)]
 pub struct Client {
     pub sender: Sender,
-    pub handle: JoinHandle<()>,
+    pub handle: Arc<JoinHandle<()>>,
 }
 
 impl Client {
@@ -94,7 +96,10 @@ pub fn connect<T: Handler + Clone + Send + Sync + 'static>(
     });
 
     if let Ok(sender) = rx.recv() {
-        Ok(Client { sender, handle: t })
+        Ok(Client {
+            sender,
+            handle: Arc::new(t),
+        })
     } else {
         Err(Error::Thread)
     }
