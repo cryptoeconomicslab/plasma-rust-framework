@@ -15,4 +15,4 @@ pub use error::{Error, Result};
 pub use message::Message;
 pub use server::handler::Handler as ServerHandler;
 pub use server::server_impl::{spawn_server, Server};
-pub use ws::{Message as WsMessage, Sender};
+pub use ws::{Message as WsMessage, Sender, CloseCode};

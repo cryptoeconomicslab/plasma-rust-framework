@@ -14,7 +14,7 @@ use plasma_core::data_structure::{Range, Transaction, TransactionParams};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
-use pubsub_messaging::{connect, ClientHandler, Message, Sender};
+use pubsub_messaging::{connect, ClientHandler, CloseCode, Message, Sender};
 use std::fs::File;
 use std::io::BufReader;
 
@@ -99,6 +99,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let mut client = connect(self.aggregator_endpoint.clone(), handler).unwrap();
         let msg = Message::new("Aggregator".to_string(), transaction.to_abi());
         client.send(msg);
+        client.sender.close(CloseCode::Normal);
         assert!(client.handle.join().is_ok());
     }
 

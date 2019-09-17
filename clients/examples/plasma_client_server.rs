@@ -1,8 +1,12 @@
 use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer, Result};
+use bytes::Bytes;
 use chrono::{DateTime, Local};
 use env_logger;
 use ethereum_types::Address;
 use log::info;
+use plasma_clients::plasma::PlasmaClient;
+use plasma_core::data_structure::Range;
+use plasma_db::impls::kvs::CoreDbMemoryImpl;
 use serde::{Deserialize, Serialize};
 
 // Create Account
@@ -34,7 +38,10 @@ struct GetBalanceResponse {
     balance: u64,
 }
 
-fn get_balance(body: web::Json<GetBalanceRequest>) -> Result<HttpResponse> {
+fn get_balance(
+    body: web::Json<GetBalanceRequest>,
+    plasma_client: web::Data<PlasmaClient<CoreDbMemoryImpl>>,
+) -> Result<HttpResponse> {
     info!("BODY: {:?}", body);
     Ok(HttpResponse::Ok().json(GetBalanceResponse { balance: 10 }))
 }
@@ -87,8 +94,13 @@ struct SendPayment {
     token_id: u64,
 }
 
-fn send_payment(body: web::Json<SendPayment>) -> Result<HttpResponse> {
-    info!("BODY: {:?}", body);
+fn send_payment(
+    body: web::Json<SendPayment>,
+    plasma_client: web::Data<PlasmaClient<CoreDbMemoryImpl>>,
+) -> Result<HttpResponse> {
+    let tx = plasma_client.create_transaction(Range::new(0, 10), Bytes::from(body.to.as_bytes()));
+    plasma_client.send_transaction(tx);
+
     Ok(HttpResponse::Ok().json(SendPayment {
         from: body.from,
         to: body.to,
@@ -218,10 +230,17 @@ fn create_exchange_offer(body: web::Json<CreateExchangeOfferRequest>) -> Result<
 pub fn main() {
     std::env::set_var("RUST_LOG", "INFO");
     env_logger::init();
+    // TODO: how to handle private key?
+    let client = web::Data::new(PlasmaClient::<CoreDbMemoryImpl>::new(
+        Address::zero(),
+        "127.0.0.1:8080".to_owned(),
+        "659cbb0e2411a44db63778987b1e22153c086a95eb6b18bdf89de078917abc63",
+    ));
 
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
+            .register_data(client.clone())
             .route("/create_account", web::post().to(create_account))
             .route("/get_balance", web::get().to(get_balance))
             .route("/get_payment_history", web::get().to(get_payment_history))
@@ -234,7 +253,7 @@ pub fn main() {
                 web::post().to(create_exchange_offer),
             )
     })
-    .bind("127.0.0.1:8080")
+    .bind("127.0.0.1:7777")
     .unwrap()
     .run()
     .unwrap();
