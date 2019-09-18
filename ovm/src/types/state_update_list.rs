@@ -5,7 +5,7 @@ use plasma_core::data_structure::error::Error as PlasmaCoreError;
 
 #[derive(Clone, Debug)]
 pub struct StateUpdateList {
-    state_updates: Vec<StateUpdate>,
+    pub state_updates: Vec<StateUpdate>,
 }
 
 impl StateUpdateList {
@@ -28,10 +28,10 @@ impl Encodable for StateUpdateList {
 impl Decodable for StateUpdateList {
     type Ok = StateUpdateList;
     fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
-        let state_updates = tuple[0].clone().to_array();
+        let state_updates = tuple[0].clone().to_array().unwrap();
         let state_update_list: Vec<StateUpdate> = state_updates
             .iter()
-            .filter_map(|s| StateUpdate::from_tuple(s).ok())
+            .filter_map(|s| StateUpdate::from_tuple(&s.clone().to_tuple().unwrap()).ok())
             .collect();
         Ok(StateUpdateList::new(state_update_list))
     }
@@ -39,5 +39,33 @@ impl Decodable for StateUpdateList {
         vec![ParamType::Array(Box::new(ParamType::Tuple(
             StateUpdate::get_param_types(),
         )))]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::StateUpdateList;
+    use crate::types::PropertyInput;
+    use crate::types::{Integer, StateUpdate};
+    use crate::DeciderManager;
+    use ethereum_types::H256;
+    use plasma_core::data_structure::abi::{Decodable, Encodable};
+    use plasma_core::data_structure::Range;
+
+    #[test]
+    fn test_encode_and_decode() {
+        let property =
+            DeciderManager::preimage_exists_decider(vec![
+                PropertyInput::ConstantH256(H256::zero()),
+            ]);
+        let state_update = StateUpdate::new(Integer(10), Range::new(0, 100), property);
+        let state_update_list = StateUpdateList::new(vec![state_update]);
+        let encoded = state_update_list.to_abi();
+        let decoded = StateUpdateList::from_abi(&encoded).unwrap();
+        assert_eq!(
+            decoded.state_updates.len(),
+            state_update_list.state_updates.len()
+        );
     }
 }

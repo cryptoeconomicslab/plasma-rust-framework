@@ -4,8 +4,7 @@ extern crate futures;
 use bincode::serialize;
 use ethereum_types::Address;
 use futures::{future, Async, Future, Poll, Stream};
-use ovm::types::StateUpdateList;
-use plasma_clients::plasma::PlasmaAggregator;
+use plasma_clients::plasma::{Command, FetchBlockRequest, PlasmaAggregator};
 use plasma_core::data_structure::abi::Decodable;
 use plasma_core::data_structure::abi::Encodable;
 use plasma_core::data_structure::Transaction;
@@ -46,8 +45,7 @@ impl Stream for Handle {
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         try_ready!(self.interval.poll().map_err(|_| ()));
-        println!("start to submit");
-        let agg = self.plasma_aggregator.lock().unwrap();
+        let mut agg = self.plasma_aggregator.lock().unwrap();
         if agg.submit_next_block().is_ok() {
             println!("succeeded to submit");
             Ok(Async::Ready(Some(())))
@@ -60,23 +58,41 @@ impl Stream for Handle {
 impl ServerHandler for Handle {
     fn handle_message(&mut self, msg: Message, sender: Sender) {
         let mut agg = self.plasma_aggregator.lock().unwrap();
-        let ingest_result = agg.ingest_transaction(Transaction::from_abi(&msg.message).unwrap());
-        println!("Recieving new transaction {:?}", ingest_result);
+        let command = Command::from_abi(&msg.message).unwrap();
+        if command.command_type.0 == 0 {
+            let tx = Transaction::from_abi(&command.body).unwrap();
+            let ingest_result = agg.ingest_transaction(tx).unwrap();
+            let message = Message::new(
+                "BROADCAST".to_owned(),
+                Command::create_new_tx_event(ingest_result)
+                    .to_abi()
+                    .to_vec(),
+            );
 
-        let state_updates = StateUpdateList::new(agg.get_all_state_updates());
-        println!("STATE_UPDATES: {:?}", state_updates);
-
-        let message = Message::new("BROADCAST".to_owned(), state_updates.to_abi().to_vec());
-
-        let msg = WsMessage::Binary(serialize(&message).unwrap());
-        let _ = sender.broadcast(msg);
+            let msg = WsMessage::Binary(serialize(&message).unwrap());
+            let _ = sender.broadcast(msg);
+        } else if command.command_type.0 == 1 {
+            let fetch_request = FetchBlockRequest::from_abi(&command.body).unwrap();
+            println!("fetch block {:?}", fetch_request);
+            let result = agg.get_plasma_block_of_block(fetch_request.block_number);
+            if let Ok(plasma_block) = result {
+                let message = Message::new(
+                    "BROADCAST".to_owned(),
+                    Command::create_plasma_block(plasma_block).to_abi().to_vec(),
+                );
+                let msg = WsMessage::Binary(serialize(&message).unwrap());
+                let _ = sender.broadcast(msg);
+            }
+        } else {
+            println!("undefined command type {:?}", command.command_type.0);
+        }
     }
 }
 
 fn main() {
     let aggregator_address = hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap();
     let commitment_contract_address =
-        hex::decode("30753E4A8aad7F8597332E813735Def5dD395028").unwrap();
+        hex::decode("9FBDa871d559710256a2502A2517b794B482Db40").unwrap();
     let mut aggregator = PlasmaAggregator::new(
         Address::from_slice(&aggregator_address),
         Address::zero(),

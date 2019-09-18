@@ -1,9 +1,10 @@
+use super::command::NewTransactionEvent;
 use super::error::{Error, ErrorKind};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
 use ovm::types::core::Integer;
-use ovm::types::StateUpdate;
+use ovm::types::{PlasmaDataBlock, StateUpdate};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
@@ -12,20 +13,34 @@ use plasma_core::data_structure::error::{
 pub struct PlasmaBlock {
     block_number: Integer,
     state_updates: Vec<StateUpdate>,
+    transactions: Vec<NewTransactionEvent>,
     tree: Option<MerkleIntervalTree<u64>>,
 }
 
 impl PlasmaBlock {
-    pub fn new(block_number: u64, state_updates: Vec<StateUpdate>) -> Self {
+    pub fn new(
+        block_number: u64,
+        state_updates: Vec<StateUpdate>,
+        transactions: Vec<NewTransactionEvent>,
+    ) -> Self {
         Self {
             block_number: Integer::new(block_number),
             state_updates,
+            transactions,
             tree: None,
         }
     }
 
     pub fn get_block_number(&self) -> u64 {
         self.block_number.0
+    }
+
+    pub fn get_state_updates(&self) -> &[StateUpdate] {
+        &self.state_updates
+    }
+
+    pub fn get_transactions(&self) -> &[NewTransactionEvent] {
+        &self.transactions
     }
 
     pub fn get_root(&self) -> Option<Bytes> {
@@ -51,6 +66,29 @@ impl PlasmaBlock {
             .position(|s| s.get_hash() == state_update.get_hash())
         {
             self.get_inclusion_proof_with_index(index)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_plasma_data_block(
+        &self,
+        root: Bytes,
+        state_update: StateUpdate,
+    ) -> Option<PlasmaDataBlock> {
+        if let Some(index) = self
+            .state_updates
+            .iter()
+            .position(|s| s.get_hash() == state_update.get_hash())
+        {
+            Some(PlasmaDataBlock::new(
+                Integer(index as u64),
+                state_update.get_range(),
+                root,
+                true,
+                state_update.get_block_number(),
+                Bytes::from(state_update.to_abi()),
+            ))
         } else {
             None
         }
@@ -112,6 +150,7 @@ impl Decodable for PlasmaBlock {
                 Ok(PlasmaBlock {
                     block_number: Integer(block_number.as_u64()),
                     state_updates: s,
+                    transactions: vec![],
                     tree: None,
                 })
             } else {

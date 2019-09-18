@@ -5,6 +5,7 @@ authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"
 
 [dependencies]
+abi-derive = { path = "../abi-derive"}
 bytes = "0.4.12"
 clap = "2.33.0"
 ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
@@ -12,8 +13,8 @@ ethereum-types = "^0.5.2"
 hex = "0.3.1"
 ovm = { path = "../ovm" }
 plasma-core = { path = "../core" }
-plasma-db = { path = "../db" }
 contract-wrapper = { path = "../contract-wrapper" }
+event-watcher = { path = "../event-watcher" }
 failure = "0.1.5"
 futures = "0.1.27"
 merkle-interval-tree = { path = "../merkle-interval-tree" }
@@ -33,3 +34,7 @@ rand = "*"
 version = "0.6.1"
 default-features = false
 features = ["pure-rust"]
+
+[dependencies.plasma-db]
+path = "../db"
+features = ["require-leveldb"]

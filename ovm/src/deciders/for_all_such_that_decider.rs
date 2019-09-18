@@ -41,7 +41,7 @@ impl Default for ForAllSuchThatDecider {
 
 impl Decider for ForAllSuchThatDecider {
     fn decide<T: KeyValueStore>(
-        decider: &mut PropertyExecutor<T>,
+        decider: &PropertyExecutor<T>,
         inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let quantifier = decider.get_variable(&inputs[0]).to_property();
@@ -101,7 +101,7 @@ mod tests {
                 )]),
             ),
         );
-        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         for i in 5..20 {
             let integer = Integer(i);
@@ -109,8 +109,7 @@ mod tests {
                 .store_witness(Verifier::static_hash(&integer.into()), &integer.into())
                 .is_ok());
         }
-        let decided: Decision =
-            ForAllSuchThatDecider::decide(&mut decider, &property.inputs).unwrap();
+        let decided: Decision = ForAllSuchThatDecider::decide(&decider, &property.inputs).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
 }

@@ -152,7 +152,7 @@ impl Decision {
 
 pub trait Decider {
     fn decide<T: KeyValueStore>(
-        decider: &mut PropertyExecutor<T>,
+        decider: &PropertyExecutor<T>,
         inputs: &[PropertyInput],
     ) -> Result<Decision, Error>;
 }

@@ -20,7 +20,7 @@ impl Default for AndDecider {
 
 impl Decider for AndDecider {
     fn decide<T: KeyValueStore>(
-        decider: &mut PropertyExecutor<T>,
+        decider: &PropertyExecutor<T>,
         inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let left = decider.get_variable(&inputs[0]).to_property();
@@ -65,7 +65,7 @@ mod tests {
         let right =
             DeciderManager::preimage_exists_decider(vec![PropertyInput::ConstantH256(right_hash)]);
         let and_decider = DeciderManager::and_decider(left, right);
-        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         assert!(db.store_witness(left_hash, &left_preimage).is_ok());
         assert!(db.store_witness(right_hash, &right_preimage).is_ok());

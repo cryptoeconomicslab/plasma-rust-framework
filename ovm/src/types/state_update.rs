@@ -62,7 +62,7 @@ impl StateUpdate {
     pub fn verify_state_transition<T: KeyValueStore>(
         &self,
         decider: &mut PropertyExecutor<T>,
-        _transaction: &Transaction,
+        transaction: &Transaction,
     ) -> bool {
         let property = self.get_property();
         decider.set_variable(
@@ -70,6 +70,11 @@ impl StateUpdate {
             QuantifierResultItem::StateUpdate(self.clone()),
         );
         let decided = property.decide(decider);
+        println!(
+            "decide local deprecation claim {:?}. decision = {:?}",
+            transaction.get_range(),
+            decided.is_ok()
+        );
         decided.is_ok()
     }
 

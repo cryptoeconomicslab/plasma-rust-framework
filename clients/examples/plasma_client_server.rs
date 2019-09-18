@@ -1,12 +1,9 @@
 use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer, Result};
-use bytes::Bytes;
 use chrono::{DateTime, Local};
 use env_logger;
 use ethereum_types::Address;
 use log::info;
-use plasma_clients::plasma::PlasmaClient;
-use plasma_core::data_structure::Range;
-use plasma_db::impls::kvs::CoreDbMemoryImpl;
+use plasma_clients::plasma::PlasmaClientShell;
 use serde::{Deserialize, Serialize};
 
 // Create Account
@@ -37,7 +34,7 @@ struct Balance {
 
 fn get_balance(
     body: web::Json<GetBalanceRequest>,
-    _plasma_client: web::Data<PlasmaClient<CoreDbMemoryImpl>>,
+    _plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     info!("BODY: {:?}", body);
     Ok(HttpResponse::Ok().json(vec![Balance {
@@ -96,10 +93,10 @@ struct SendPayment {
 
 fn send_payment(
     body: web::Json<SendPayment>,
-    plasma_client: web::Data<PlasmaClient<CoreDbMemoryImpl>>,
+    plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
-    let tx = plasma_client.create_transaction(Range::new(0, 10), Bytes::from(body.to.as_bytes()));
-    plasma_client.send_transaction(tx);
+    let to_address = body.to.to_string();
+    plasma_client.send_transaction(&to_address, 0, 10);
 
     Ok(HttpResponse::Ok().json(SendPayment {
         from: body.from,
@@ -231,16 +228,19 @@ pub fn main() {
     std::env::set_var("RUST_LOG", "INFO");
     env_logger::init();
     // TODO: how to handle private key?
-    let client = web::Data::new(PlasmaClient::<CoreDbMemoryImpl>::new(
-        Address::zero(),
-        "127.0.0.1:8080".to_owned(),
-        "659cbb0e2411a44db63778987b1e22153c086a95eb6b18bdf89de078917abc63",
-    ));
+    let commitment_contract_address_hex =
+        hex::decode("9FBDa871d559710256a2502A2517b794B482Db40").unwrap();
+    let commitment_contract_address = Address::from_slice(&commitment_contract_address_hex);
 
     HttpServer::new(move || {
+        let client = web::Data::new(PlasmaClientShell::new(
+            "127.0.0.1:8080".to_owned(),
+            commitment_contract_address,
+            "659cbb0e2411a44db63778987b1e22153c086a95eb6b18bdf89de078917abc63",
+        ));
         App::new()
             .wrap(Logger::default())
-            .register_data(client.clone())
+            .register_data(client)
             .route("/create_account", web::post().to(create_account))
             .route("/get_balance", web::get().to(get_balance))
             .route("/get_payment_history", web::get().to(get_payment_history))

@@ -1,14 +1,17 @@
 use super::block_manager::BlockManager;
+use super::command::NewTransactionEvent;
 use super::error::{Error, ErrorKind};
+use super::plasma_block::PlasmaBlock;
+use super::plasma_client::PlasmaClientShell;
 use super::state_db::StateDb;
 use bytes::Bytes;
 use ethereum_types::Address;
 use ethsign::SecretKey;
-use ovm::db::TransactionDb;
+use ovm::db::{SignedByDb, TransactionDb};
+use ovm::deciders::SignVerifier;
 use ovm::property_executor::PropertyExecutor;
-use ovm::types::StateUpdate;
-use ovm::types::{Integer, Property, PropertyInput};
-use ovm::DeciderManager;
+use ovm::types::Integer;
+use ovm::types::{StateUpdate, StateUpdateList};
 use plasma_core::data_structure::{Range, Transaction};
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -60,9 +63,13 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     // TODO:
     // - handle multi prev_states case.
     // - fix decide logic for state transition.
-    pub fn ingest_transaction(&mut self, transaction: Transaction) -> Result<(), Error> {
+    pub fn ingest_transaction(
+        &mut self,
+        transaction: Transaction,
+    ) -> Result<NewTransactionEvent, Error> {
         let transaction_db = TransactionDb::new(self.decider.get_range_db());
-        let next_block_number = self.block_manager.get_next_block_number();
+        let signed_by_db = SignedByDb::new(self.decider.get_db());
+        let next_block_number = self.block_manager.get_current_block_number();
         let state_db = StateDb::new(self.decider.get_range_db());
         let state_updates = state_db
             .get_verified_state_updates(
@@ -75,6 +82,15 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         }
         let prev_state = &state_updates[0];
         transaction_db.put_transaction(prev_state.get_block_number().0, transaction.clone());
+        let message = Bytes::from(transaction.to_body_abi());
+        assert!(signed_by_db
+            .store_witness(
+                SignVerifier::recover(transaction.get_signature(), &message),
+                message,
+                transaction.get_signature().clone(),
+            )
+            .is_ok());
+
         if !prev_state.get_range().is_subrange(&transaction.get_range()) {
             return Err(Error::from(ErrorKind::InvalidTransaction));
         }
@@ -87,15 +103,22 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             if res.is_err() {
                 return Err(Error::from(ErrorKind::InvalidTransaction));
             }
-            return Ok(());
+            let new_tx =
+                NewTransactionEvent::new(prev_state.get_block_number(), transaction.clone());
+            let res_tx = self.block_manager.enqueue_tx(new_tx.clone());
+            if res_tx.is_err() {
+                return Err(Error::from(ErrorKind::InvalidTransaction));
+            }
+            return Ok(new_tx.clone());
         }
         Err(Error::from(ErrorKind::InvalidTransaction))
     }
 
-    pub fn submit_next_block(&self) -> Result<(), Error> {
+    pub fn submit_next_block(&mut self) -> Result<(), Error> {
         // dequeue all state_update stored in range db
         // generate block using that data.
-        self.block_manager.submit_next_block()
+        let block_manager = &mut self.block_manager;
+        block_manager.submit_next_block()
     }
 
     pub fn get_aggregator_addres(&self) -> Address {
@@ -116,20 +139,13 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
 
     pub fn insert_test_ranges(&mut self) {
         let mut state_db = StateDb::new(self.decider.get_range_db());
-        let ownership_decider_id = DeciderManager::get_decider_address(9);
-        for i in 0..5 {
+        for i in 0..3 {
             let state_update = StateUpdate::new(
-                Integer::new(1),
-                Range::new(i * 10, (i + 1) * 10),
-                Property::new(
-                    ownership_decider_id,
-                    vec![
-                        PropertyInput::Placeholder(Bytes::from("state_update")),
-                        PropertyInput::ConstantAddress(Address::from_slice(
-                            &hex::decode("2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e").unwrap(),
-                        )),
-                    ],
-                ),
+                Integer::new(0),
+                Range::new(i * 20, (i + 1) * 20),
+                PlasmaClientShell::create_ownership_state_object(Address::from_slice(
+                    &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),
+                )),
             );
             assert!(state_db.put_verified_state_update(state_update).is_ok());
         }
@@ -138,5 +154,18 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     pub fn get_all_state_updates(&self) -> Vec<StateUpdate> {
         let state_db = StateDb::new(self.decider.get_range_db());
         state_db.get_all_state_updates().unwrap_or_else(|_| vec![])
+    }
+
+    pub fn get_state_updates_of_block(
+        &self,
+        block_number: Integer,
+    ) -> Result<StateUpdateList, Error> {
+        self.block_manager
+            .get_block_range(block_number)
+            .map(|b| StateUpdateList::new(b.get_state_updates().to_vec()))
+    }
+
+    pub fn get_plasma_block_of_block(&self, block_number: Integer) -> Result<PlasmaBlock, Error> {
+        self.block_manager.get_block_range(block_number)
     }
 }

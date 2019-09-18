@@ -20,7 +20,7 @@ impl Default for HasLowerNonceDecider {
 
 impl Decider for HasLowerNonceDecider {
     fn decide<T: KeyValueStore>(
-        decider: &mut PropertyExecutor<T>,
+        decider: &PropertyExecutor<T>,
         inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let message = decider.get_variable(&inputs[0]).to_message();

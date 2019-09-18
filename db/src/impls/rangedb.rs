@@ -27,6 +27,10 @@ where
         }
     }
 
+    pub fn get_db(&self) -> &KVS {
+        &self.db
+    }
+
     fn validate_range(start: u64, end: u64) -> bool {
         start < end
     }

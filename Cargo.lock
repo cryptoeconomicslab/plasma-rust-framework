@@ -1707,6 +1707,7 @@ dependencies = [
 name = "plasma-clients"
 version = "0.1.0"
 dependencies = [
+ "abi-derive 0.1.0",
  "actix-web 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1717,6 +1718,7 @@ dependencies = [
  "ethabi 7.0.0 (git+https://github.com/cryptoeconomicslab/ethabi?branch=tuple-support-v7.0.0)",
  "ethereum-types 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethsign 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "event-watcher 0.1.0",
  "failure 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",

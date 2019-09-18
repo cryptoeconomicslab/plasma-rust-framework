@@ -1,6 +1,7 @@
 use contract_wrapper::error::Error as ContractError;
 use ethabi::Error as AbiDecodeError;
 use failure::{Backtrace, Context, Fail};
+use plasma_core::data_structure::error::Error as PlasmaCoreError;
 use plasma_db::error::Error as PlasmaDbError;
 use std::fmt;
 use std::fmt::Display;
@@ -12,6 +13,8 @@ pub enum ErrorKind {
     Io,
     #[fail(display = "ABI Decode error")]
     AbiDecode,
+    #[fail(display = "Core Error")]
+    PlasmaCoreError,
     #[fail(display = "Db Error")]
     PlasmaDbError,
     #[fail(display = "Contract Error")]
@@ -79,6 +82,14 @@ impl From<AbiDecodeError> for Error {
     fn from(_error: AbiDecodeError) -> Error {
         Error {
             inner: Context::from(ErrorKind::AbiDecode),
+        }
+    }
+}
+
+impl From<PlasmaCoreError> for Error {
+    fn from(error: PlasmaCoreError) -> Error {
+        Error {
+            inner: error.context(ErrorKind::PlasmaCoreError),
         }
     }
 }

@@ -20,7 +20,7 @@ impl Default for OrDecider {
 
 impl Decider for OrDecider {
     fn decide<T: KeyValueStore>(
-        decider: &mut PropertyExecutor<T>,
+        decider: &PropertyExecutor<T>,
         inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let left = decider.get_variable(&inputs[0]).to_property();
@@ -74,7 +74,7 @@ mod tests {
         )]);
         let right_witness = Bytes::from("right");
         let or_decider = DeciderManager::or_decider(left, DeciderManager::not_decider(right));
-        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         assert!(db.store_witness(left_hash, &left_witness).is_ok());
         assert!(db.store_witness(right_hash, &right_witness).is_ok());

@@ -60,7 +60,7 @@ mod tests {
                 )]),
             ),
         );
-        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         store_preimage(&decider);
         let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
@@ -81,7 +81,7 @@ mod tests {
                 )]),
             ),
         );
-        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let decided_result = decider.decide(&property);
         assert_eq!(decided_result.is_ok(), false);
     }
@@ -96,7 +96,7 @@ mod tests {
     #[test]
     fn test_decide_less_than_and_preimage() {
         let property = DeciderManager::for_all_such_that_decider(
-            DeciderManager::q_uint(vec![PropertyInput::ConstantInteger(Integer(10))]),
+            DeciderManager::q_less_than(vec![PropertyInput::ConstantInteger(Integer(10))]),
             Bytes::from("n"),
             DeciderManager::for_all_such_that_decider(
                 DeciderManager::q_hash(vec![PropertyInput::Placeholder(Bytes::from("n"))]),
@@ -106,7 +106,7 @@ mod tests {
                 )]),
             ),
         );
-        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         store_preimage(&decider);
         let decided: Decision = decider.decide(&property).unwrap();
         assert_eq!(decided.get_outcome(), true);
@@ -130,7 +130,7 @@ mod tests {
         let message = Bytes::from(channel_message.to_abi());
         let signature = SignVerifier::sign(&secret_key_bob, &message);
         let property = create_state_channel_property(alice, bob, channel_message.clone());
-        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
         assert!(db.store_witness(bob, message, signature).is_ok());
         let decided: Decision = decider.decide(&property).unwrap();
@@ -143,7 +143,7 @@ mod tests {
         let block_number = Integer(10);
         let range = Range::new(0, 100);
         let checkpoint_property = create_plasma_property(block_number, range);
-        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let result = decider.decide(&checkpoint_property);
         // faid to decide because no local decision
         assert!(result.is_err());
