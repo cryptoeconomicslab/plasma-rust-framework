@@ -53,15 +53,9 @@ impl PlasmaClientShell {
     /// Claim for ownership
     pub fn create_ownership_state_object(to_address: Address) -> Property {
         /*
-        let ownership_decider_id = DeciderManager::get_decider_address(9);
-        Property::new(
-            ownership_decider_id,
-            vec![
-                PropertyInput::Placeholder(Bytes::from("state_update")),
-                PropertyInput::ConstantAddress(to_address),
-            ],
-        )
-        */
+         * There exists tx such that state_update.deprecate(tx):
+         *   SignedBy(tx, to_address).
+         */
         DeciderManager::there_exists_such_that(vec![
             PropertyInput::ConstantProperty(DeciderManager::q_tx(vec![
                 PropertyInput::Placeholder(Bytes::from("state_update")),
@@ -76,6 +70,11 @@ impl PlasmaClientShell {
 
     // Claim for checkpoint
     pub fn create_checkpoint_property(specified_block_number: Integer, range: Range) -> Property {
+        /*
+         * For all b such that b < specified_block_number:
+         *   For all state_update such that block_range_quantifier(b, range):
+         *     IsDeprecated(state_update).
+         */
         DeciderManager::for_all_such_that_decider(
             // less than quantifier
             DeciderManager::q_less_than(vec![PropertyInput::ConstantInteger(
