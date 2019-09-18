@@ -2,7 +2,6 @@ use super::event_db::EventDb;
 use ethabi::{decode, Error, ErrorKind, Event, EventParam, ParamType, Token, Topic, TopicFilter};
 use ethereum_types::{Address, H256};
 use futures::{Async, Future, Poll, Stream};
-use std::marker::Send;
 use std::time::Duration;
 use tokio::timer::Interval;
 use web3::types::{BlockNumber, FilterBuilder, Log as RawLog};
@@ -170,20 +169,26 @@ where
     }
 }
 
-pub struct EventWatcher<T>
+pub trait EventHandler {
+    fn on_event(&self, log: &Log);
+}
+
+pub struct EventWatcher<T, E>
 where
     T: EventDb,
+    E: EventHandler,
 {
     stream: EventFetcher<T>,
-    listeners: Vec<Box<dyn Fn(&Log) -> () + Send>>,
+    handler: E,
     _eloop: transports::EventLoopHandle,
 }
 
-impl<T> EventWatcher<T>
+impl<T, E> EventWatcher<T, E>
 where
     T: EventDb,
+    E: EventHandler,
 {
-    pub fn new(url: &str, address: Address, abi: Vec<Event>, db: T) -> EventWatcher<T> {
+    pub fn new(url: &str, address: Address, abi: Vec<Event>, db: T, handler: E) -> Self {
         let (eloop, transport) = web3::transports::Http::new(url).unwrap();
         let web3 = web3::Web3::new(transport);
         let stream = EventFetcher::new(web3, address, abi, db);
@@ -191,18 +196,15 @@ where
         EventWatcher {
             _eloop: eloop,
             stream,
-            listeners: vec![],
+            handler,
         }
-    }
-
-    pub fn subscribe(&mut self, listener: Box<dyn Fn(&Log) -> () + Send>) {
-        self.listeners.push(listener);
     }
 }
 
-impl<T> Future for EventWatcher<T>
+impl<T, E> Future for EventWatcher<T, E>
 where
     T: EventDb,
+    E: EventHandler,
 {
     type Item = ();
     type Error = ();
@@ -215,9 +217,7 @@ where
             };
 
             for log in logs.iter() {
-                for listener in self.listeners.iter() {
-                    listener(&log);
-                }
+                self.handler.on_event(&log);
             }
         }
     }

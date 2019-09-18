@@ -5,10 +5,27 @@ extern crate tokio;
 use ethabi::{Event, EventParam, ParamType};
 use ethereum_types::Address;
 use event_watcher::event_db::EventDbImpl;
-use event_watcher::event_watcher::EventWatcher;
+use event_watcher::event_watcher::{EventHandler, EventWatcher, Log};
 use futures::future;
 use plasma_db::impls::kvs::memory::CoreDbMemoryImpl;
 use plasma_db::traits::DatabaseTrait;
+
+struct MyEventHandler {}
+
+impl EventHandler for MyEventHandler {
+    fn on_event(&self, log: &Log) {
+        println!("event > {:?}", log.event_signature);
+        // event > 0x90890809c654f11d6e72a28fa60149770a0d11ec6c92319d6ceb2bb0a4ea1a15
+
+        let decoded_param = log.params.first().unwrap();
+        println!(
+            "param > {:?}: {:?}",
+            decoded_param.event_param.name,
+            decoded_param.token.clone().to_uint().unwrap()
+        );
+        // param > "value": 22469980537774239738630940880827529904616858526135975343779764542717423171395
+    }
+}
 
 fn main() {
     println!("Watcher started");
@@ -29,20 +46,8 @@ fn main() {
 
     let kvs = CoreDbMemoryImpl::open("kvs");
     let db = EventDbImpl::from(kvs);
-    let mut watcher = EventWatcher::new("http://localhost:9545", address, abi, db);
-
-    watcher.subscribe(Box::new(|log| {
-        println!("event > {:?}", log.event_signature);
-        // event > 0x90890809c654f11d6e72a28fa60149770a0d11ec6c92319d6ceb2bb0a4ea1a15
-
-        let decoded_param = log.params.first().unwrap();
-        println!(
-            "param > {:?}: {:?}",
-            decoded_param.event_param.name,
-            decoded_param.token.clone().to_uint().unwrap()
-        );
-        // param > "value": 22469980537774239738630940880827529904616858526135975343779764542717423171395
-    }));
+    let handler = MyEventHandler {};
+    let watcher = EventWatcher::new("http://localhost:9545", address, abi, db, handler);
 
     tokio::run(future::lazy(|| {
         tokio::spawn(watcher);
