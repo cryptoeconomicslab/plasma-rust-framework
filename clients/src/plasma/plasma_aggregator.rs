@@ -3,10 +3,12 @@ use super::command::NewTransactionEvent;
 use super::error::{Error, ErrorKind};
 use super::plasma_block::PlasmaBlock;
 use super::state_db::StateDb;
+use super::plasma_client::PlasmaClientShell;
 use bytes::Bytes;
 use ethereum_types::Address;
 use ethsign::SecretKey;
-use ovm::db::TransactionDb;
+use ovm::db::{SignedByDb, TransactionDb};
+use ovm::deciders::SignVerifier;
 use ovm::property_executor::PropertyExecutor;
 use ovm::types::{Integer, Property, PropertyInput};
 use ovm::types::{StateUpdate, StateUpdateList};
@@ -67,6 +69,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         transaction: Transaction,
     ) -> Result<NewTransactionEvent, Error> {
         let transaction_db = TransactionDb::new(self.decider.get_range_db());
+        let signed_by_db = SignedByDb::new(self.decider.get_db());
         let next_block_number = self.block_manager.get_current_block_number();
         let state_db = StateDb::new(self.decider.get_range_db());
         let state_updates = state_db
@@ -80,6 +83,13 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         }
         let prev_state = &state_updates[0];
         transaction_db.put_transaction(prev_state.get_block_number().0, transaction.clone());
+        let message = Bytes::from(transaction.to_body_abi());
+        signed_by_db.store_witness(
+            SignVerifier::recover(transaction.get_signature(), &message),
+            message,
+            transaction.get_signature().clone(),
+        );
+
         if !prev_state.get_range().is_subrange(&transaction.get_range()) {
             return Err(Error::from(ErrorKind::InvalidTransaction));
         }
@@ -133,15 +143,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             let state_update = StateUpdate::new(
                 Integer::new(0),
                 Range::new(i * 20, (i + 1) * 20),
-                Property::new(
-                    ownership_decider_id,
-                    vec![
-                        PropertyInput::Placeholder(Bytes::from("state_update")),
-                        PropertyInput::ConstantAddress(Address::from_slice(
-                            &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),
-                        )),
-                    ],
-                ),
+                PlasmaClientShell::create_ownership_state_object(Address::from_slice(
+                    &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),
+                ))
             );
             assert!(state_db.put_verified_state_update(state_update).is_ok());
         }

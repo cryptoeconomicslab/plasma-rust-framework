@@ -9,7 +9,7 @@ use ethereum_types::Address;
 use ethsign::SecretKey;
 use event_watcher::event_db::EventDbImpl;
 use event_watcher::event_watcher::{EventHandler, EventWatcher, Log};
-use ovm::db::{RangeAtBlockDb, TransactionDb};
+use ovm::db::{RangeAtBlockDb, SignedByDb, TransactionDb};
 use ovm::deciders::SignVerifier;
 use ovm::property_executor::PropertyExecutor;
 use ovm::types::{Integer, Property, PropertyInput, StateUpdate};
@@ -51,7 +51,8 @@ impl PlasmaClientShell {
     }
 
     /// Claim for ownership
-    fn create_ownership_state_object(to_address: Address) -> Property {
+    pub fn create_ownership_state_object(to_address: Address) -> Property {
+        /*
         let ownership_decider_id = DeciderManager::get_decider_address(9);
         Property::new(
             ownership_decider_id,
@@ -60,6 +61,17 @@ impl PlasmaClientShell {
                 PropertyInput::ConstantAddress(to_address),
             ],
         )
+        */
+        DeciderManager::there_exists_such_that(vec![
+            PropertyInput::ConstantProperty(DeciderManager::q_tx(vec![
+                PropertyInput::Placeholder(Bytes::from("state_update")),
+            ])),
+            PropertyInput::ConstantBytes(Bytes::from("tx")),
+            PropertyInput::ConstantProperty(DeciderManager::signed_by_decider(vec![
+                PropertyInput::ConstantAddress(to_address),
+                PropertyInput::Placeholder(Bytes::from("tx")),
+            ])),
+        ])
     }
 
     // Claim for checkpoint
@@ -145,11 +157,13 @@ impl PlasmaClientShell {
             .get_state_updates()
             .iter()
             .filter(|s| {
-                if let PropertyInput::ConstantAddress(address) = s.get_property().inputs[1] {
-                    address == self.my_address
-                } else {
-                    false
+                let p = &s.get_property().inputs[2];
+                if let PropertyInput::ConstantProperty(signed_by) = p {
+                    if let PropertyInput::ConstantAddress(address) = signed_by.inputs[0] {
+                        return address == self.my_address
+                    }
                 }
+                false
             })
             .fold(0, |acc, s| {
                 acc + s.get_range().get_end() - s.get_range().get_start()
@@ -307,6 +321,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let range_db = self.decider.get_range_db();
         let range_at_block_db = RangeAtBlockDb::new(range_db);
         let transaction_db = TransactionDb::new(self.decider.get_range_db());
+        let signed_by_db = SignedByDb::new(self.decider.get_db());
         let root = block.merkelize().unwrap();
 
         for s in block.get_state_updates().iter() {
@@ -321,6 +336,12 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         }
         for tx in block.get_transactions().iter() {
             transaction_db.put_transaction(tx.prev_state_block_number.0, tx.transaction.clone());
+            let message = Bytes::from(tx.transaction.to_body_abi());
+            signed_by_db.store_witness(
+                SignVerifier::recover(tx.transaction.get_signature(), &message),
+                message,
+                tx.transaction.get_signature().clone(),
+            );
         }
         for su in self.get_state_updates() {
             let property = PlasmaClientShell::create_checkpoint_property(
@@ -351,15 +372,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
             state_updates.push(StateUpdate::new(
                 Integer::new(0),
                 Range::new(i * 20, (i + 1) * 20),
-                Property::new(
-                    ownership_decider_id,
-                    vec![
-                        PropertyInput::Placeholder(Bytes::from("state_update")),
-                        PropertyInput::ConstantAddress(Address::from_slice(
-                            &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),
-                        )),
-                    ],
-                ),
+                PlasmaClientShell::create_ownership_state_object(Address::from_slice(
+                    &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),
+                ))
             ));
         }
         let plasma_block = PlasmaBlock::new(0, state_updates, vec![]);
