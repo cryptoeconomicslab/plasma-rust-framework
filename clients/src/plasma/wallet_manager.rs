@@ -38,3 +38,25 @@ impl<'a, KVS: KeyValueStore> WalletManager<'a, KVS> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use plasma_db::{impls::kvs::memory::CoreDbMemoryImpl, traits::db::DatabaseTrait};
+
+    #[test]
+    fn test_generate_key_session() {
+        let kvs = CoreDbMemoryImpl::open("test");
+        let mut wallet_manager = WalletManager::new(&kvs);
+        let (session, private_key) = wallet_manager.generate_key_session();
+        assert_eq!(
+            wallet_manager
+                .get_key(&session)
+                .unwrap()
+                .public()
+                .bytes()
+                .to_vec(),
+            private_key.public().bytes().to_vec()
+        );
+    }
+}
