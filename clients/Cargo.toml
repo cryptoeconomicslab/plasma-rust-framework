@@ -26,7 +26,8 @@ serde = "*"
 log = "*"
 env_logger = "*"
 chrono = { version = "0.4", features = ["serde"] }
-
+libsecp256k1 = "0.2.2"
+rand = "*"
 
 [dependencies.ethsign]
 version = "0.6.1"
