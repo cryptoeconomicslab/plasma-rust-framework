@@ -150,7 +150,7 @@ impl DeciderManager {
     pub fn q_range(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(10), inputs)
     }
-    pub fn q_uint(inputs: Vec<PropertyInput>) -> Property {
+    pub fn q_less_than(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(11), inputs)
     }
     pub fn q_block(inputs: Vec<PropertyInput>) -> Property {

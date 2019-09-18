@@ -66,7 +66,9 @@ impl PlasmaClientShell {
     pub fn create_checkpoint_property(specified_block_number: Integer, range: Range) -> Property {
         DeciderManager::for_all_such_that_decider(
             // less than quantifier
-            DeciderManager::q_uint(vec![PropertyInput::ConstantInteger(specified_block_number)]),
+            DeciderManager::q_less_than(vec![PropertyInput::ConstantInteger(
+                specified_block_number,
+            )]),
             Bytes::from("block"),
             DeciderManager::for_all_such_that_decider(
                 // block range quantifier

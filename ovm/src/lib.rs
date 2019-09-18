@@ -96,7 +96,7 @@ mod tests {
     #[test]
     fn test_decide_less_than_and_preimage() {
         let property = DeciderManager::for_all_such_that_decider(
-            DeciderManager::q_uint(vec![PropertyInput::ConstantInteger(Integer(10))]),
+            DeciderManager::q_less_than(vec![PropertyInput::ConstantInteger(Integer(10))]),
             Bytes::from("n"),
             DeciderManager::for_all_such_that_decider(
                 DeciderManager::q_hash(vec![PropertyInput::Placeholder(Bytes::from("n"))]),
