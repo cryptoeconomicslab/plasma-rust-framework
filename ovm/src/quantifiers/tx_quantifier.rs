@@ -2,7 +2,6 @@ use crate::db::TransactionDb;
 use crate::property_executor::PropertyExecutor;
 use crate::types::{PropertyInput, QuantifierResult, QuantifierResultItem};
 use bytes::Bytes;
-use plasma_core::data_structure::abi::Encodable;
 use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct TxQuantifier {}

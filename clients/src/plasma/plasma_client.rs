@@ -159,7 +159,7 @@ impl PlasmaClientShell {
                 let p = &s.get_property().inputs[2];
                 if let PropertyInput::ConstantProperty(signed_by) = p {
                     if let PropertyInput::ConstantAddress(address) = signed_by.inputs[0] {
-                        return address == self.my_address
+                        return address == self.my_address;
                     }
                 }
                 false
@@ -336,11 +336,13 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         for tx in block.get_transactions().iter() {
             transaction_db.put_transaction(tx.prev_state_block_number.0, tx.transaction.clone());
             let message = Bytes::from(tx.transaction.to_body_abi());
-            signed_by_db.store_witness(
-                SignVerifier::recover(tx.transaction.get_signature(), &message),
-                message,
-                tx.transaction.get_signature().clone(),
-            );
+            assert!(signed_by_db
+                .store_witness(
+                    SignVerifier::recover(tx.transaction.get_signature(), &message),
+                    message,
+                    tx.transaction.get_signature().clone(),
+                )
+                .is_ok());
         }
         for su in self.get_state_updates() {
             let property = PlasmaClientShell::create_checkpoint_property(
@@ -365,7 +367,6 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     }
 
     pub fn insert_test_ranges(&mut self) {
-        let ownership_decider_id = DeciderManager::get_decider_address(9);
         let mut state_updates = vec![];
         for i in 0..3 {
             state_updates.push(StateUpdate::new(
@@ -373,7 +374,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
                 Range::new(i * 20, (i + 1) * 20),
                 PlasmaClientShell::create_ownership_state_object(Address::from_slice(
                     &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),
-                ))
+                )),
             ));
         }
         let plasma_block = PlasmaBlock::new(0, state_updates, vec![]);
