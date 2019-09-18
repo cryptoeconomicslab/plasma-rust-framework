@@ -11,7 +11,6 @@ use event_watcher::event_db::EventDbImpl;
 use event_watcher::event_watcher::{EventHandler, EventWatcher, Log};
 use ovm::db::{RangeAtBlockDb, TransactionDb};
 use ovm::deciders::SignVerifier;
-use ovm::statements::create_plasma_property;
 use ovm::types::{Integer, Property, PropertyInput, StateUpdate, StateUpdateList};
 use ovm::DeciderManager;
 use ovm::property_executor::PropertyExecutor;
@@ -51,6 +50,8 @@ impl PlasmaClientShell {
             controller: None,
         }
     }
+
+    /// Claim for ownership
     fn create_ownership_state_object(to_address: Address) -> Property {
         let ownership_decider_id = DeciderManager::get_decider_address(9);
         Property::new(
@@ -61,6 +62,39 @@ impl PlasmaClientShell {
             ],
         )
     }
+    // multisig
+    fn create_multisig_state_object(to_address: Address) -> Property {
+        let ownership_decider_id = DeciderManager::get_decider_address(9);
+        Property::new(
+            ownership_decider_id,
+            vec![
+                PropertyInput::Placeholder(Bytes::from("state_update")),
+                PropertyInput::ConstantAddress(to_address),
+            ],
+        )
+    }
+
+
+    // Claim for checkpoint
+    pub fn create_checkpoint_property(specified_block_number: Integer, range: Range) -> Property {
+        DeciderManager::for_all_such_that_decider(
+            // less than quantifier
+            DeciderManager::q_uint(vec![PropertyInput::ConstantInteger(specified_block_number)]),
+            Bytes::from("block"),
+            DeciderManager::for_all_such_that_decider(
+                // block range quantifier
+                DeciderManager::q_block(vec![
+                    PropertyInput::Placeholder(Bytes::from("block")),
+                    PropertyInput::ConstantRange(range),
+                ]),
+                Bytes::from("state_update"),
+                DeciderManager::is_deprecated(vec![PropertyInput::Placeholder(Bytes::from(
+                    "state_update",
+                ))]),
+            ),
+        )
+    }
+
     pub fn connect(&mut self) {
         let plasma_client =
             PlasmaClient::<CoreDbLevelDbImpl>::new(Address::zero(), self.private_key.clone());
@@ -250,7 +284,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     pub fn get_exit_claim(&self, block_number: Integer, range: Range) -> Property {
         // TODO: decide property and claim property to contract
         // TODO: store as exit list
-        create_plasma_property(block_number, range)
+        PlasmaClientShell::create_checkpoint_property(block_number, range)
     }
 
     /// Handle exit on plasma.
@@ -299,7 +333,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
                 tx.prev_state_block_number.0, tx.transaction.clone());
         }
         for su in self.get_state_updates() {
-            let property = create_plasma_property(Integer(su.get_block_number().0), su.get_range());
+            let property = PlasmaClientShell::create_checkpoint_property(Integer(su.get_block_number().0), su.get_range());
             let decision = self.decider.decide(&property);
             println!("decide local checkpoint claim {:?}. decision = {:?}", su.get_range(), decision.is_ok());
 
