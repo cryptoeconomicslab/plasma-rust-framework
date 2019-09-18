@@ -11,15 +11,14 @@ use event_watcher::event_db::EventDbImpl;
 use event_watcher::event_watcher::{EventHandler, EventWatcher, Log};
 use ovm::db::{RangeAtBlockDb, TransactionDb};
 use ovm::deciders::SignVerifier;
-use ovm::types::{Integer, Property, PropertyInput, StateUpdate, StateUpdateList};
-use ovm::DeciderManager;
 use ovm::property_executor::PropertyExecutor;
+use ovm::types::{Integer, Property, PropertyInput, StateUpdate};
+use ovm::DeciderManager;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::{Range, Transaction, TransactionParams};
-use plasma_db::impls::kvs::{CoreDbLevelDbImpl, CoreDbMemoryImpl};
+use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
-use plasma_db::RangeDbImpl;
 use pubsub_messaging::{connect, Client as PubsubClient, ClientHandler, Message, Sender};
 use std::fs::File;
 use std::io::BufReader;
@@ -62,18 +61,6 @@ impl PlasmaClientShell {
             ],
         )
     }
-    // multisig
-    fn create_multisig_state_object(to_address: Address) -> Property {
-        let ownership_decider_id = DeciderManager::get_decider_address(9);
-        Property::new(
-            ownership_decider_id,
-            vec![
-                PropertyInput::Placeholder(Bytes::from("state_update")),
-                PropertyInput::ConstantAddress(to_address),
-            ],
-        )
-    }
-
 
     // Claim for checkpoint
     pub fn create_checkpoint_property(specified_block_number: Integer, range: Range) -> Property {
@@ -143,24 +130,28 @@ impl PlasmaClientShell {
         let mut pubsub_client = controller.pubsub_client.clone().unwrap();
         let msg = Message::new("Aggregator".to_string(), command.to_abi());
         pubsub_client.send(msg);
-
     }
     pub fn initialize(&self) {
-        let mut controller = self.controller.clone().unwrap();
-//        controller.fetch_block(Integer(0));
+        let controller = self.controller.clone().unwrap();
+        //        controller.fetch_block(Integer(0));
         controller.initialize()
     }
     pub fn get_balance(&self) -> u64 {
         let controller = self.controller.clone().unwrap();
         let plasma_client = controller.plasma_client.lock().unwrap();
-        plasma_client.get_state_updates().iter().filter(|s| {
-            if let PropertyInput::ConstantAddress(address) = s.get_property().inputs[1] {
-                address == self.my_address
-            } else {
-                false
-            }
-        })
-        .fold(0, |acc, s| acc + s.get_range().get_end() - s.get_range().get_start())
+        plasma_client
+            .get_state_updates()
+            .iter()
+            .filter(|s| {
+                if let PropertyInput::ConstantAddress(address) = s.get_property().inputs[1] {
+                    address == self.my_address
+                } else {
+                    false
+                }
+            })
+            .fold(0, |acc, s| {
+                acc + s.get_range().get_end() - s.get_range().get_start()
+            })
     }
 }
 
@@ -193,23 +184,17 @@ impl PlasmaClientController {
         let mut plasma_client = self.plasma_client.lock().unwrap();
         plasma_client.insert_test_ranges()
     }
-    
 }
 
 impl ClientHandler for PlasmaClientController {
     fn handle_message(&self, msg: Message, _sender: Sender) {
-        let mut plasma_client = self.plasma_client.lock().unwrap();
+        let plasma_client = self.plasma_client.lock().unwrap();
         let command = Command::from_abi(&msg.message).unwrap();
         if command.command_type.0 == 3 {
-            plasma_client.handle_new_block(
-                PlasmaBlock::from_abi(&command.body)
-                    .unwrap()
-            );
+            plasma_client.handle_new_block(PlasmaBlock::from_abi(&command.body).unwrap());
         } else if command.command_type.0 == 4 {
-            plasma_client.handle_new_transaction(
-                &NewTransactionEvent::from_abi(&command.body)
-                    .unwrap()
-            );
+            plasma_client
+                .handle_new_transaction(&NewTransactionEvent::from_abi(&command.body).unwrap());
         } else {
             println!("undefined command type {:?}", command.command_type.0);
         }
@@ -323,20 +308,29 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let root = block.merkelize().unwrap();
 
         for s in block.get_state_updates().iter() {
-            range_at_block_db.store_witness(
-                block.get_inclusion_proof(s.clone()).unwrap(),
-                block.get_plasma_data_block(root.clone(), s.clone()).unwrap()
-            );
+            assert!(range_at_block_db
+                .store_witness(
+                    block.get_inclusion_proof(s.clone()).unwrap(),
+                    block
+                        .get_plasma_data_block(root.clone(), s.clone())
+                        .unwrap(),
+                )
+                .is_ok());
         }
         for tx in block.get_transactions().iter() {
-            transaction_db.put_transaction(
-                tx.prev_state_block_number.0, tx.transaction.clone());
+            transaction_db.put_transaction(tx.prev_state_block_number.0, tx.transaction.clone());
         }
         for su in self.get_state_updates() {
-            let property = PlasmaClientShell::create_checkpoint_property(Integer(su.get_block_number().0), su.get_range());
+            let property = PlasmaClientShell::create_checkpoint_property(
+                Integer(su.get_block_number().0),
+                su.get_range(),
+            );
             let decision = self.decider.decide(&property);
-            println!("decide local checkpoint claim {:?}. decision = {:?}", su.get_range(), decision.is_ok());
-
+            println!(
+                "decide local checkpoint claim {:?}. decision = {:?}",
+                su.get_range(),
+                decision.is_ok()
+            );
         }
         self.update_state_updates(block.get_state_updates().to_vec());
     }
@@ -366,11 +360,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
                 ),
             ));
         }
-        let plasma_block = PlasmaBlock::new(
-            0,
-            state_updates,
-            vec![]
-        );
+        let plasma_block = PlasmaBlock::new(0, state_updates, vec![]);
         self.handle_new_block(plasma_block);
     }
 

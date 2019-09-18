@@ -70,7 +70,11 @@ impl StateUpdate {
             QuantifierResultItem::StateUpdate(self.clone()),
         );
         let decided = property.decide(decider);
-        println!("decide local deprecation claim {:?}. decision = {:?}", transaction.get_range(), decided.is_ok());
+        println!(
+            "decide local deprecation claim {:?}. decision = {:?}",
+            transaction.get_range(),
+            decided.is_ok()
+        );
         decided.is_ok()
     }
 

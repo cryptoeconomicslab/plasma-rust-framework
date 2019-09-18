@@ -71,7 +71,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> StateChannel<KVS> {
         channel_id: &Bytes,
         claim: &Property,
     ) -> Vec<ImplicationProofElement> {
-        let mut decider: PropertyExecutor<KVS> = Default::default();
+        let decider: PropertyExecutor<KVS> = Default::default();
         let decision: Decision = decider.decide(&claim).unwrap();
         if decision.get_outcome() {
             let channel_db: ChannelDb<KVS> = (&self.db).into();
@@ -87,7 +87,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> StateChannel<KVS> {
         counter_party: Address,
     ) -> Option<Decision> {
         let property = self.get_exit_claim(channel_id, my_address, counter_party);
-        let mut decider: PropertyExecutor<KVS> = Default::default();
+        let decider: PropertyExecutor<KVS> = Default::default();
         decider.decide(&property).ok()
     }
 

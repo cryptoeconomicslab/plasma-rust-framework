@@ -74,7 +74,7 @@ mod tests {
         )]);
         let right_witness = Bytes::from("right");
         let or_decider = DeciderManager::or_decider(left, DeciderManager::not_decider(right));
-        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         assert!(db.store_witness(left_hash, &left_witness).is_ok());
         assert!(db.store_witness(right_hash, &right_witness).is_ok());

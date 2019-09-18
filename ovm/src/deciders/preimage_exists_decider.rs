@@ -71,7 +71,7 @@ mod tests {
         let hash = Verifier::static_hash(&preimage);
         let property =
             DeciderManager::preimage_exists_decider(vec![PropertyInput::ConstantH256(hash)]);
-        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = HashPreimageDb::new(decider.get_db());
         assert!(db.store_witness(hash, &preimage).is_ok());
         let decided: Decision = decider.decide(&property).unwrap();

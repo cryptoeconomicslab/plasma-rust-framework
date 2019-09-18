@@ -105,7 +105,7 @@ mod tests {
             PropertyInput::ConstantAddress(secret_key.public().address().into()),
             PropertyInput::ConstantBytes(message.clone()),
         ]);
-        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let db = SignedByDb::new(decider.get_db());
         assert!(db
             .store_witness(

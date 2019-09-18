@@ -46,9 +46,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
 
     pub fn enqueue_tx(&self, tx: NewTransactionEvent) -> Result<(), Error> {
         let block_db = BlockDb::from(&self.db);
-        block_db
-            .enqueue_tx(tx)
-            .map_err::<Error, _>(Into::into)
+        block_db.enqueue_tx(tx).map_err::<Error, _>(Into::into)
     }
 
     /// generate block from queued state updates
@@ -59,13 +57,8 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
         let state_updates = block_db
             .get_pending_state_updates()
             .map_err::<Error, _>(Into::into)?;
-        let transactions = block_db
-            .get_pending_txs()
-            .map_err::<Error, _>(Into::into)?;
-        let mut block = PlasmaBlock::new(
-            self.current_block_number,
-            state_updates,
-            transactions);
+        let transactions = block_db.get_pending_txs().map_err::<Error, _>(Into::into)?;
+        let mut block = PlasmaBlock::new(self.current_block_number, state_updates, transactions);
 
         let root = block.merkelize()?;
 

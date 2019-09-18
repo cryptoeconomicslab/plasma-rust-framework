@@ -4,8 +4,7 @@ extern crate futures;
 use bincode::serialize;
 use ethereum_types::Address;
 use futures::{future, Async, Future, Poll, Stream};
-use ovm::types::StateUpdateList;
-use plasma_clients::plasma::{Command, FetchBlockRequest, NewTransactionEvent, PlasmaAggregator};
+use plasma_clients::plasma::{Command, FetchBlockRequest, PlasmaAggregator};
 use plasma_core::data_structure::abi::Decodable;
 use plasma_core::data_structure::abi::Encodable;
 use plasma_core::data_structure::Transaction;
@@ -63,8 +62,6 @@ impl ServerHandler for Handle {
         if command.command_type.0 == 0 {
             let tx = Transaction::from_abi(&command.body).unwrap();
             let ingest_result = agg.ingest_transaction(tx).unwrap();
-            let state_updates = StateUpdateList::new(agg.get_all_state_updates());
-            // println!("STATE_UPDATES: {:?}", state_updates);
             let message = Message::new(
                 "BROADCAST".to_owned(),
                 Command::create_new_tx_event(ingest_result)
@@ -81,9 +78,7 @@ impl ServerHandler for Handle {
             if let Ok(plasma_block) = result {
                 let message = Message::new(
                     "BROADCAST".to_owned(),
-                    Command::create_plasma_block(plasma_block)
-                        .to_abi()
-                        .to_vec(),
+                    Command::create_plasma_block(plasma_block).to_abi().to_vec(),
                 );
                 let msg = WsMessage::Binary(serialize(&message).unwrap());
                 let _ = sender.broadcast(msg);

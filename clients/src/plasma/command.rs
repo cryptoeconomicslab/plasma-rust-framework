@@ -61,6 +61,9 @@ pub struct NewTransactionEvent {
 
 impl NewTransactionEvent {
     pub fn new(prev_state_block_number: Integer, transaction: Transaction) -> Self {
-        Self { prev_state_block_number, transaction }
+        Self {
+            prev_state_block_number,
+            transaction,
+        }
     }
 }

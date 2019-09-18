@@ -123,7 +123,7 @@ mod tests {
         let block_number = Integer(10);
         let range = Range::new(0, 100);
         let checkpoint_property = create_plasma_property(block_number, range);
-        let mut decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
+        let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         store_inclusion_witness(&decider);
         let result = decider.decide(&checkpoint_property);
         assert!(result.is_ok());

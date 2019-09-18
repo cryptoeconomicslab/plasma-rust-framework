@@ -1,8 +1,8 @@
 use super::block_manager::BlockManager;
 use super::command::NewTransactionEvent;
 use super::error::{Error, ErrorKind};
-use super::state_db::StateDb;
 use super::plasma_block::PlasmaBlock;
+use super::state_db::StateDb;
 use bytes::Bytes;
 use ethereum_types::Address;
 use ethsign::SecretKey;
@@ -62,7 +62,10 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     // TODO:
     // - handle multi prev_states case.
     // - fix decide logic for state transition.
-    pub fn ingest_transaction(&mut self, transaction: Transaction) -> Result<NewTransactionEvent, Error> {
+    pub fn ingest_transaction(
+        &mut self,
+        transaction: Transaction,
+    ) -> Result<NewTransactionEvent, Error> {
         let transaction_db = TransactionDb::new(self.decider.get_range_db());
         let next_block_number = self.block_manager.get_current_block_number();
         let state_db = StateDb::new(self.decider.get_range_db());
@@ -89,10 +92,8 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             if res.is_err() {
                 return Err(Error::from(ErrorKind::InvalidTransaction));
             }
-            let new_tx = NewTransactionEvent::new(
-                prev_state.get_block_number(),
-                transaction.clone()
-            );
+            let new_tx =
+                NewTransactionEvent::new(prev_state.get_block_number(), transaction.clone());
             let res_tx = self.block_manager.enqueue_tx(new_tx.clone());
             if res_tx.is_err() {
                 return Err(Error::from(ErrorKind::InvalidTransaction));
@@ -160,11 +161,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             .map(|b| StateUpdateList::new(b.get_state_updates().to_vec()))
     }
 
-    pub fn get_plasma_block_of_block(
-        &self,
-        block_number: Integer,
-    ) -> Result<PlasmaBlock, Error> {
-        self.block_manager
-            .get_block_range(block_number)
+    pub fn get_plasma_block_of_block(&self, block_number: Integer) -> Result<PlasmaBlock, Error> {
+        self.block_manager.get_block_range(block_number)
     }
 }

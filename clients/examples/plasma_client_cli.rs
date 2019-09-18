@@ -63,7 +63,7 @@ fn main() {
     let mut shell = PlasmaClientShell::new(
         "127.0.0.1:8080".to_string(),
         commitment_contract_address,
-        &get_private_key(account.to_string())
+        &get_private_key(account.to_string()),
     );
 
     if matches.subcommand_matches("balance").is_some() {

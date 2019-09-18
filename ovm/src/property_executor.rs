@@ -22,26 +22,66 @@ use std::sync::RwLock;
 lazy_static! {
     static ref DECIDER_LIST: Vec<Address> = {
         let mut list = vec![];
-        list.push(Address::from_slice(&hex::decode("722d70e765d4ec72719d29fcbefe595480a9a3a0").unwrap()));
-        list.push(Address::from_slice(&hex::decode("0888415d7a6b971d6fdb15d62d795f2a909d8065").unwrap()));
-        list.push(Address::from_slice(&hex::decode("0326080d0f068c6ab58ab8ee31726da2c92f691f").unwrap()));
-        list.push(Address::from_slice(&hex::decode("6bae98b57d444f02b41383434d006d013a7203f0").unwrap()));
-        list.push(Address::from_slice(&hex::decode("f73f3ebe9c256e29c9761b6e0668908ffc1639ad").unwrap()));
-        list.push(Address::from_slice(&hex::decode("9657997a36fce37b51fb7d99b10ce15f425c54f4").unwrap()));
-        list.push(Address::from_slice(&hex::decode("330b5059134444e32c305b2dc20d51057e198ed1").unwrap()));
-        list.push(Address::from_slice(&hex::decode("7735e33ecd766357887b2512ff828122174e4f61").unwrap()));
-        list.push(Address::from_slice(&hex::decode("d0ac44c34597e9042ee521162560521672eabd18").unwrap()));
-        list.push(Address::from_slice(&hex::decode("fa118401b87fad66085764307c72343bdf3b17ac").unwrap()));
-        list.push(Address::from_slice(&hex::decode("f0f7daba2c80a15fe17fb0eb0f79c8acee9ac025").unwrap()));
-        list.push(Address::from_slice(&hex::decode("5140ac06ade1006cb5f1cab85d96f37b5780eca1").unwrap()));
-        list.push(Address::from_slice(&hex::decode("09ea10fff4ee3abce0f4bba57d039d6075d60f5e").unwrap()));
-        list.push(Address::from_slice(&hex::decode("a80a778f9ffcdd87302d723da75b64d2b53d6e44").unwrap()));
-        list.push(Address::from_slice(&hex::decode("b32f99ebf4bdb4a8734e62398a4594f3e23f7f94").unwrap()));
-        list.push(Address::from_slice(&hex::decode("848e53adf2e8dcbb9582a4b11af4cb9245663a23").unwrap()));
-        list.push(Address::from_slice(&hex::decode("d58b92479920e05e17ac9a5a250e7da4da083c27").unwrap()));
-        list.push(Address::from_slice(&hex::decode("5adad58b266ac03cc77d84dbdf61749f68573728").unwrap()));
-        list.push(Address::from_slice(&hex::decode("5a645e3c785477eb4119a32dabae7452a53034e8").unwrap()));
-        list.push(Address::from_slice(&hex::decode("55d87e9fd1a712bebe7915e0dce903a470992222").unwrap()));
+        list.push(Address::from_slice(
+            &hex::decode("722d70e765d4ec72719d29fcbefe595480a9a3a0").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("0888415d7a6b971d6fdb15d62d795f2a909d8065").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("0326080d0f068c6ab58ab8ee31726da2c92f691f").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("6bae98b57d444f02b41383434d006d013a7203f0").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("f73f3ebe9c256e29c9761b6e0668908ffc1639ad").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("9657997a36fce37b51fb7d99b10ce15f425c54f4").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("330b5059134444e32c305b2dc20d51057e198ed1").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("7735e33ecd766357887b2512ff828122174e4f61").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("d0ac44c34597e9042ee521162560521672eabd18").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("fa118401b87fad66085764307c72343bdf3b17ac").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("f0f7daba2c80a15fe17fb0eb0f79c8acee9ac025").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("5140ac06ade1006cb5f1cab85d96f37b5780eca1").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("09ea10fff4ee3abce0f4bba57d039d6075d60f5e").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("a80a778f9ffcdd87302d723da75b64d2b53d6e44").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("b32f99ebf4bdb4a8734e62398a4594f3e23f7f94").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("848e53adf2e8dcbb9582a4b11af4cb9245663a23").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("d58b92479920e05e17ac9a5a250e7da4da083c27").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("5adad58b266ac03cc77d84dbdf61749f68573728").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("5a645e3c785477eb4119a32dabae7452a53034e8").unwrap(),
+        ));
+        list.push(Address::from_slice(
+            &hex::decode("55d87e9fd1a712bebe7915e0dce903a470992222").unwrap(),
+        ));
         list
     };
 }
@@ -173,9 +213,13 @@ where
     }
     pub fn get_variable(&self, placeholder: &PropertyInput) -> QuantifierResultItem {
         match placeholder {
-            PropertyInput::Placeholder(placeholder) => {
-                self.variables.read().unwrap().get(placeholder).unwrap().clone()
-            }
+            PropertyInput::Placeholder(placeholder) => self
+                .variables
+                .read()
+                .unwrap()
+                .get(placeholder)
+                .unwrap()
+                .clone(),
             PropertyInput::ConstantAddress(constant) => QuantifierResultItem::Address(*constant),
             PropertyInput::ConstantBytes(constant) => QuantifierResultItem::Bytes(constant.clone()),
             PropertyInput::ConstantH256(constant) => QuantifierResultItem::H256(*constant),

@@ -47,7 +47,7 @@ mod tests {
 
     use super::StateUpdateList;
     use crate::types::PropertyInput;
-    use crate::types::{Integer, Property, StateUpdate};
+    use crate::types::{Integer, StateUpdate};
     use crate::DeciderManager;
     use ethereum_types::H256;
     use plasma_core::data_structure::abi::{Decodable, Encodable};
