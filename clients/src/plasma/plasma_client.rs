@@ -100,7 +100,6 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let msg = Message::new("Aggregator".to_string(), transaction.to_abi());
         client.send(msg);
         let _ = client.sender.close(CloseCode::Normal);
-        assert!(client.handle.join().is_ok());
     }
 
     /// Handle exit on plasma.
