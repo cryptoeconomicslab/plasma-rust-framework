@@ -13,6 +13,7 @@ fn main() {
     );
     tokio::run(future::lazy(move || {
         shell.connect();
+        println!("{:?}", shell.get_balance());
         shell.send_transaction("2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e", 0, 10);
         Ok(())
     }));

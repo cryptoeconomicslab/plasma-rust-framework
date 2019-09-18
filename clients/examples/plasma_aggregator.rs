@@ -5,7 +5,7 @@ use bincode::serialize;
 use ethereum_types::Address;
 use futures::{future, Async, Future, Poll, Stream};
 use ovm::types::StateUpdateList;
-use plasma_clients::plasma::{Command, FetchBlockRequest, PlasmaAggregator};
+use plasma_clients::plasma::{Command, FetchBlockRequest, NewTransactionEvent, PlasmaAggregator};
 use plasma_core::data_structure::abi::Decodable;
 use plasma_core::data_structure::abi::Encodable;
 use plasma_core::data_structure::Transaction;
@@ -46,7 +46,6 @@ impl Stream for Handle {
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         try_ready!(self.interval.poll().map_err(|_| ()));
-        println!("start to submit");
         let mut agg = self.plasma_aggregator.lock().unwrap();
         if agg.submit_next_block().is_ok() {
             println!("succeeded to submit");
@@ -63,24 +62,35 @@ impl ServerHandler for Handle {
         let command = Command::from_abi(&msg.message).unwrap();
         if command.command_type.0 == 0 {
             let tx = Transaction::from_abi(&command.body).unwrap();
-            let ingest_result = agg.ingest_transaction(tx);
-            println!("Recieving new transaction {:?}", ingest_result);
+            let ingest_result = agg.ingest_transaction(tx).unwrap();
 
             let state_updates = StateUpdateList::new(agg.get_all_state_updates());
-            println!("STATE_UPDATES: {:?}", state_updates);
-
-            let message = Message::new("BROADCAST".to_owned(), state_updates.to_abi().to_vec());
+            // println!("STATE_UPDATES: {:?}", state_updates);
+            let message = Message::new(
+                "BROADCAST".to_owned(),
+                Command::create_new_tx_event(ingest_result)
+                    .to_abi()
+                    .to_vec(),
+            );
 
             let msg = WsMessage::Binary(serialize(&message).unwrap());
             let _ = sender.broadcast(msg);
-        } else {
+        } else if command.command_type.0 == 1 {
             let fetch_request = FetchBlockRequest::from_abi(&command.body).unwrap();
-            let result = agg.get_state_updates_of_block(fetch_request.block_number);
-            if let Ok(state_updates) = result {
-                let message = Message::new("BROADCAST".to_owned(), state_updates.to_abi().to_vec());
+            println!("fetch block {:?}", fetch_request);
+            let result = agg.get_plasma_block_of_block(fetch_request.block_number);
+            if let Ok(plasma_block) = result {
+                let message = Message::new(
+                    "BROADCAST".to_owned(),
+                    Command::create_plasma_block(plasma_block)
+                        .to_abi()
+                        .to_vec(),
+                );
                 let msg = WsMessage::Binary(serialize(&message).unwrap());
                 let _ = sender.broadcast(msg);
             }
+        } else {
+            println!("undefined command type {:?}", command.command_type.0);
         }
     }
 }

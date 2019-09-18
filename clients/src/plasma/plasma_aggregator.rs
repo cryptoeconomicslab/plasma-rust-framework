@@ -1,6 +1,8 @@
 use super::block_manager::BlockManager;
+use super::command::NewTransactionEvent;
 use super::error::{Error, ErrorKind};
 use super::state_db::StateDb;
+use super::plasma_block::PlasmaBlock;
 use bytes::Bytes;
 use ethereum_types::Address;
 use ethsign::SecretKey;
@@ -60,9 +62,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     // TODO:
     // - handle multi prev_states case.
     // - fix decide logic for state transition.
-    pub fn ingest_transaction(&mut self, transaction: Transaction) -> Result<(), Error> {
+    pub fn ingest_transaction(&mut self, transaction: Transaction) -> Result<NewTransactionEvent, Error> {
         let transaction_db = TransactionDb::new(self.decider.get_range_db());
-        let next_block_number = self.block_manager.get_next_block_number();
+        let next_block_number = self.block_manager.get_current_block_number();
         let state_db = StateDb::new(self.decider.get_range_db());
         let state_updates = state_db
             .get_verified_state_updates(
@@ -87,7 +89,10 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             if res.is_err() {
                 return Err(Error::from(ErrorKind::InvalidTransaction));
             }
-            return Ok(());
+            return Ok(NewTransactionEvent::new(
+                prev_state.get_block_number(),
+                transaction.clone()
+            ));
         }
         Err(Error::from(ErrorKind::InvalidTransaction))
     }
@@ -118,10 +123,10 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     pub fn insert_test_ranges(&mut self) {
         let mut state_db = StateDb::new(self.decider.get_range_db());
         let ownership_decider_id = DeciderManager::get_decider_address(9);
-        for i in 0..5 {
+        for i in 0..3 {
             let state_update = StateUpdate::new(
-                Integer::new(1),
-                Range::new(i * 10, (i + 1) * 10),
+                Integer::new(0),
+                Range::new(i * 20, (i + 1) * 20),
                 Property::new(
                     ownership_decider_id,
                     vec![
@@ -148,5 +153,13 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         self.block_manager
             .get_block_range(block_number)
             .map(|b| StateUpdateList::new(b.get_state_updates().to_vec()))
+    }
+
+    pub fn get_plasma_block_of_block(
+        &self,
+        block_number: Integer,
+    ) -> Result<PlasmaBlock, Error> {
+        self.block_manager
+            .get_block_range(block_number)
     }
 }

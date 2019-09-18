@@ -17,7 +17,7 @@ impl Default for IncludedAtBlockDecider {
 
 impl Decider for IncludedAtBlockDecider {
     fn decide<T: KeyValueStore>(
-        decider: &mut PropertyExecutor<T>,
+        decider: &PropertyExecutor<T>,
         inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let block_number = decider.get_variable(&inputs[0]).to_integer();

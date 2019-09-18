@@ -17,6 +17,11 @@ fn main() {
                 .version("1.0"),
         )
         .subcommand(
+            SubCommand::with_name("init")
+                .about("initialize")
+                .version("1.0"),
+        )
+        .subcommand(
             SubCommand::with_name("send")
                 .about("send money")
                 .version("1.0")
@@ -54,16 +59,26 @@ fn main() {
     );
 
     if matches.subcommand_matches("balance").is_some() {
-        println!("Your balance is 500ETH");
+        tokio::run(future::lazy(move || {
+            shell.connect();
+            shell.initialize();
+            println!("Your balance is {:?} ETH", shell.get_balance());
+            Ok(())
+        }));
+    } else if matches.subcommand_matches("init").is_some() {
+        tokio::run(future::lazy(move || {
+            shell.connect();
+            shell.initialize();
+            Ok(())
+        }));
     } else if let Some(matches) = matches.subcommand_matches("send") {
-        let to_address =
-            Address::from_slice(&hex::decode(matches.value_of("to").unwrap()).unwrap());
+        let to_address = value_t!(matches, "to", String).unwrap();
         let start = value_t!(matches, "start", u64).unwrap();
         let end = value_t!(matches, "end", u64).unwrap();
         println!("Send {:?}-{:?} ETH to {:?} ", start, end, to_address);
         tokio::run(future::lazy(move || {
             shell.connect();
-            shell.send_transaction(&to_address.to_string(), start, end);
+            shell.send_transaction(&to_address, start, end);
             println!("Sent!!!");
             Ok(())
         }));

@@ -27,7 +27,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
             aggregator_address,
             commitment_contract_address,
             db,
-            current_block_number: 0,
+            current_block_number: 1,
         }
     }
 
@@ -51,7 +51,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
         let state_updates = block_db
             .get_pending_state_updates()
             .map_err::<Error, _>(Into::into)?;
-        let mut block = PlasmaBlock::new(self.get_next_block_number(), state_updates);
+        let mut block = PlasmaBlock::new(self.current_block_number, state_updates);
 
         let root = block.merkelize()?;
 
@@ -65,18 +65,21 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
             contract_abi,
         )
         .unwrap();
-        println!("block.get_block_number() {:?}", block.get_block_number());
         let _ = contract.submit_block(self.aggregator_address, block.get_block_number(), root)?;
 
         let _ = block_db.save_block(&block);
         let _ = block_db.delete_all_queued_state_updates();
-        self.save_next_block_number(block.get_block_number());
+        self.save_next_block_number(self.get_next_block_number());
         Ok(())
     }
 
     pub fn get_block_range(&self, block_number: Integer) -> Result<PlasmaBlock, Error> {
         let block_db = BlockDb::from(&self.db);
         block_db.get_block(block_number)
+    }
+
+    pub fn get_current_block_number(&self) -> u64 {
+        self.current_block_number
     }
 
     pub fn get_next_block_number(&self) -> u64 {
@@ -86,5 +89,4 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
     pub fn save_next_block_number(&mut self, block_number: u64) {
         self.current_block_number = block_number;
     }
-
 }

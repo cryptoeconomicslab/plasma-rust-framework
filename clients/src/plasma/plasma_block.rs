@@ -3,7 +3,7 @@ use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
 use ovm::types::core::Integer;
-use ovm::types::StateUpdate;
+use ovm::types::{PlasmaDataBlock, StateUpdate};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
@@ -55,6 +55,25 @@ impl PlasmaBlock {
             .position(|s| s.get_hash() == state_update.get_hash())
         {
             self.get_inclusion_proof_with_index(index)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_plasma_data_block(&self, root: Bytes, state_update: StateUpdate) -> Option<PlasmaDataBlock> {
+        if let Some(index) = self
+            .state_updates
+            .iter()
+            .position(|s| s.get_hash() == state_update.get_hash())
+        {
+            Some(PlasmaDataBlock::new(
+                Integer(index as u64),
+                state_update.get_range(),
+                root,
+                true,
+                state_update.get_block_number(),
+                Bytes::from(state_update.to_abi())
+            ))
         } else {
             None
         }

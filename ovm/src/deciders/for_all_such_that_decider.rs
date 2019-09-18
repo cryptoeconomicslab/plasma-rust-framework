@@ -41,7 +41,7 @@ impl Default for ForAllSuchThatDecider {
 
 impl Decider for ForAllSuchThatDecider {
     fn decide<T: KeyValueStore>(
-        decider: &mut PropertyExecutor<T>,
+        decider: &PropertyExecutor<T>,
         inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let quantifier = decider.get_variable(&inputs[0]).to_property();
@@ -110,7 +110,7 @@ mod tests {
                 .is_ok());
         }
         let decided: Decision =
-            ForAllSuchThatDecider::decide(&mut decider, &property.inputs).unwrap();
+            ForAllSuchThatDecider::decide(&decider, &property.inputs).unwrap();
         assert_eq!(decided.get_outcome(), true);
     }
 }

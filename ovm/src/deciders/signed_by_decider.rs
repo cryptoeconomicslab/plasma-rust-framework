@@ -61,7 +61,7 @@ impl Default for SignedByDecider {
 
 impl Decider for SignedByDecider {
     fn decide<T: KeyValueStore>(
-        decider: &mut PropertyExecutor<T>,
+        decider: &PropertyExecutor<T>,
         inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let public_key = decider.get_variable(&inputs[0]).to_address();

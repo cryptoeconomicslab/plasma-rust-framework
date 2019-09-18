@@ -35,7 +35,7 @@ impl Default for PreimageExistsDecider {
 
 impl Decider for PreimageExistsDecider {
     fn decide<T: KeyValueStore>(
-        decider: &mut PropertyExecutor<T>,
+        decider: &PropertyExecutor<T>,
         inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let hash = decider.get_variable(&inputs[0]).to_h256();

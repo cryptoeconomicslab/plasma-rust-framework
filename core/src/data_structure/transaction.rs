@@ -206,21 +206,13 @@ impl Decodable for Transaction {
     /// ```ignore
     /// let tx = Transaction.from_abi(&abi)
     /// ```
-    fn from_abi(data: &[u8]) -> Result<Self, Error> {
-        let decoded: Vec<Token> = ethabi::decode(
-            &[
-                ethabi::ParamType::Address,
-                ethabi::ParamType::Tuple(vec![
-                    ethabi::ParamType::Uint(8),
-                    ethabi::ParamType::Uint(8),
-                ]),
-                ethabi::ParamType::Bytes,
-                ethabi::ParamType::Bytes,
-            ],
-            data,
-        )
-        .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
+    fn get_param_types() -> Vec<ethabi::ParamType> {
+        vec![
+            ethabi::ParamType::Address,
+            ethabi::ParamType::Tuple(vec![ethabi::ParamType::Uint(8), ethabi::ParamType::Uint(8)]),
+            ethabi::ParamType::Bytes,
+            ethabi::ParamType::Bytes,
+        ]
     }
 }
 

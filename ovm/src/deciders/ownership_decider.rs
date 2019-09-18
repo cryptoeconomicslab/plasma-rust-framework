@@ -32,7 +32,7 @@ pub struct OwnershipDecider {}
 
 impl Decider for OwnershipDecider {
     fn decide<T: KeyValueStore>(
-        decider: &mut PropertyExecutor<T>,
+        decider: &PropertyExecutor<T>,
         inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let state_update = decider.get_variable(&inputs[0]).to_state_update();
@@ -40,8 +40,6 @@ impl Decider for OwnershipDecider {
         let db: TransactionDb<T> = TransactionDb::new(decider.get_range_db());
         let txs =
             db.get_transactions(state_update.get_block_number().0, state_update.get_range())?;
-        println!("TXS: {:?}", txs);
-
         if txs.is_empty() {
             return Err(Error::from(ErrorKind::CannotDecide));
         }

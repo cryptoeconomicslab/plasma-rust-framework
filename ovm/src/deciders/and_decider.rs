@@ -20,7 +20,7 @@ impl Default for AndDecider {
 
 impl Decider for AndDecider {
     fn decide<T: KeyValueStore>(
-        decider: &mut PropertyExecutor<T>,
+        decider: &PropertyExecutor<T>,
         inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let left = decider.get_variable(&inputs[0]).to_property();
