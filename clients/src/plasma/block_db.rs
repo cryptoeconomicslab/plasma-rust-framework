@@ -1,3 +1,4 @@
+use super::command::NewTransactionEvent;
 use super::error::{Error, ErrorKind};
 use super::plasma_block::PlasmaBlock;
 use bytes::Bytes;
@@ -60,6 +61,35 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
         let _ = self
             .db
             .bucket(&Bytes::from(&"queued_state_updates"[..]))
+            .del_batch(MIN_RANGE, MAX_RANGE)?;
+        Ok(())
+    }
+
+    pub fn enqueue_tx(&self, tx: NewTransactionEvent) -> Result<(), Error> {
+        let range = tx.transaction.get_range();
+
+        self.db
+            .bucket(&Bytes::from(&"queued_txs"[..]))
+            .put(range.get_start(), range.get_end(), &tx.to_abi())
+            .map_err::<Error, _>(Into::into)?;
+        Ok(())
+    }
+
+    pub fn get_pending_txs(&self) -> Result<Vec<NewTransactionEvent>, Error> {
+        let res = self
+            .db
+            .bucket(&Bytes::from(&"queued_txs"[..]))
+            .get(MIN_RANGE, MAX_RANGE)?
+            .iter()
+            .map(|range| NewTransactionEvent::from_abi(range.get_value()).unwrap())
+            .collect();
+        Ok(res)
+    }
+
+    pub fn delete_all_queued_txs(&self) -> Result<(), Error> {
+        let _ = self
+            .db
+            .bucket(&Bytes::from(&"queued_txs"[..]))
             .del_batch(MIN_RANGE, MAX_RANGE)?;
         Ok(())
     }

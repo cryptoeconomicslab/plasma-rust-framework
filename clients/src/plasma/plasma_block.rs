@@ -1,10 +1,12 @@
 use super::error::{Error, ErrorKind};
+use super::command::NewTransactionEvent;
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
 use ovm::types::core::Integer;
 use ovm::types::{PlasmaDataBlock, StateUpdate};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
+use plasma_core::data_structure::Transaction;
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
 };
@@ -12,14 +14,20 @@ use plasma_core::data_structure::error::{
 pub struct PlasmaBlock {
     block_number: Integer,
     state_updates: Vec<StateUpdate>,
+    transactions: Vec<NewTransactionEvent>,
     tree: Option<MerkleIntervalTree<u64>>,
 }
 
 impl PlasmaBlock {
-    pub fn new(block_number: u64, state_updates: Vec<StateUpdate>) -> Self {
+    pub fn new(
+        block_number: u64,
+        state_updates: Vec<StateUpdate>,
+        transactions: Vec<NewTransactionEvent>
+    ) -> Self {
         Self {
             block_number: Integer::new(block_number),
             state_updates,
+            transactions,
             tree: None,
         }
     }
@@ -30,6 +38,10 @@ impl PlasmaBlock {
 
     pub fn get_state_updates(&self) -> &[StateUpdate] {
         &self.state_updates
+    }
+
+    pub fn get_transactions(&self) -> &[NewTransactionEvent] {
+        &self.transactions
     }
 
     pub fn get_root(&self) -> Option<Bytes> {
@@ -135,6 +147,7 @@ impl Decodable for PlasmaBlock {
                 Ok(PlasmaBlock {
                     block_number: Integer(block_number.as_u64()),
                     state_updates: s,
+                    transactions: vec![],
                     tree: None,
                 })
             } else {

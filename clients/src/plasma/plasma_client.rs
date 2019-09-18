@@ -285,6 +285,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         // println!("handle_new_block {:?} {:?}", block.get_block_number(), block.get_state_updates());
         let range_db = self.decider.get_range_db();
         let range_at_block_db = RangeAtBlockDb::new(range_db);
+        let transaction_db = TransactionDb::new(self.decider.get_range_db());
         let root = block.merkelize().unwrap();
 
         for s in block.get_state_updates().iter() {
@@ -292,6 +293,10 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
                 block.get_inclusion_proof(s.clone()).unwrap(),
                 block.get_plasma_data_block(root.clone(), s.clone()).unwrap()
             );
+        }
+        for tx in block.get_transactions().iter() {
+            transaction_db.put_transaction(
+                tx.prev_state_block_number.0, tx.transaction.clone());
         }
         for su in self.get_state_updates() {
             let property = create_plasma_property(Integer(su.get_block_number().0), su.get_range());
@@ -321,7 +326,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
                     vec![
                         PropertyInput::Placeholder(Bytes::from("state_update")),
                         PropertyInput::ConstantAddress(Address::from_slice(
-                            &hex::decode("2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e").unwrap(),
+                            &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),
                         )),
                     ],
                 ),
@@ -329,7 +334,8 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         }
         let plasma_block = PlasmaBlock::new(
             0,
-            state_updates
+            state_updates,
+            vec![]
         );
         self.handle_new_block(plasma_block);
     }

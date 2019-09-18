@@ -63,7 +63,6 @@ impl ServerHandler for Handle {
         if command.command_type.0 == 0 {
             let tx = Transaction::from_abi(&command.body).unwrap();
             let ingest_result = agg.ingest_transaction(tx).unwrap();
-
             let state_updates = StateUpdateList::new(agg.get_all_state_updates());
             // println!("STATE_UPDATES: {:?}", state_updates);
             let message = Message::new(

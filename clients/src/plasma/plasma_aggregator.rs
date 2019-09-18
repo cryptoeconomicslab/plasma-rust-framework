@@ -89,10 +89,15 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             if res.is_err() {
                 return Err(Error::from(ErrorKind::InvalidTransaction));
             }
-            return Ok(NewTransactionEvent::new(
+            let new_tx = NewTransactionEvent::new(
                 prev_state.get_block_number(),
                 transaction.clone()
-            ));
+            );
+            let res_tx = self.block_manager.enqueue_tx(new_tx.clone());
+            if res_tx.is_err() {
+                return Err(Error::from(ErrorKind::InvalidTransaction));
+            }
+            return Ok(new_tx.clone());
         }
         Err(Error::from(ErrorKind::InvalidTransaction))
     }
@@ -132,7 +137,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
                     vec![
                         PropertyInput::Placeholder(Bytes::from("state_update")),
                         PropertyInput::ConstantAddress(Address::from_slice(
-                            &hex::decode("2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e").unwrap(),
+                            &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),
                         )),
                     ],
                 ),

@@ -1,4 +1,5 @@
 use super::block_db::BlockDb;
+use super::command::NewTransactionEvent;
 use super::error::Error;
 use super::plasma_block::PlasmaBlock;
 use contract_wrapper::commitment_contract_adaptor::CommitmentContractAdaptor;
@@ -43,6 +44,13 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
             .map_err::<Error, _>(Into::into)
     }
 
+    pub fn enqueue_tx(&self, tx: NewTransactionEvent) -> Result<(), Error> {
+        let block_db = BlockDb::from(&self.db);
+        block_db
+            .enqueue_tx(tx)
+            .map_err::<Error, _>(Into::into)
+    }
+
     /// generate block from queued state updates
     /// save block in block_db, submit to CommitmentContract
     /// return generated block
@@ -51,7 +59,13 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
         let state_updates = block_db
             .get_pending_state_updates()
             .map_err::<Error, _>(Into::into)?;
-        let mut block = PlasmaBlock::new(self.current_block_number, state_updates);
+        let transactions = block_db
+            .get_pending_txs()
+            .map_err::<Error, _>(Into::into)?;
+        let mut block = PlasmaBlock::new(
+            self.current_block_number,
+            state_updates,
+            transactions);
 
         let root = block.merkelize()?;
 
@@ -69,6 +83,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
 
         let _ = block_db.save_block(&block);
         let _ = block_db.delete_all_queued_state_updates();
+        let _ = block_db.delete_all_queued_txs();
         self.save_next_block_number(self.get_next_block_number());
         Ok(())
     }

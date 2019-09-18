@@ -11,6 +11,13 @@ fn main() {
         .version("1.0")
         .author("CryptoeconomicsLab. Inc")
         .about("Does awesome things")
+        .arg(
+            Arg::with_name("from")
+                .short("f")
+                .value_name("from")
+                .takes_value(true)
+                .help("from address"),
+        )
         .subcommand(
             SubCommand::with_name("balance")
                 .about("get balance")
@@ -52,16 +59,16 @@ fn main() {
     let commitment_contract_address_hex =
         hex::decode("9FBDa871d559710256a2502A2517b794B482Db40").unwrap();
     let commitment_contract_address = Address::from_slice(&commitment_contract_address_hex);
+    let account = matches.value_of("from").unwrap();
     let mut shell = PlasmaClientShell::new(
         "127.0.0.1:8080".to_string(),
         commitment_contract_address,
-        "659cbb0e2411a44db63778987b1e22153c086a95eb6b18bdf89de078917abc63",
+        &get_private_key(account.to_string())
     );
 
     if matches.subcommand_matches("balance").is_some() {
         tokio::run(future::lazy(move || {
             shell.connect();
-            shell.initialize();
             println!("Your balance is {:?} ETH", shell.get_balance());
             Ok(())
         }));
@@ -82,5 +89,15 @@ fn main() {
             println!("Sent!!!");
             Ok(())
         }));
+    }
+}
+
+fn get_private_key(account: String) -> String {
+    if account == "627306090abab3a6e1400e9345bc60c78a8bef57" {
+        "c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3".to_string()
+    } else if account == "f17f52151ebef6c7334fad080c5704d77216b732" {
+        "ae6ae8e5ccbfb04590405997ee2d52d2b330726137b875053c36d94e974d162f".to_string()
+    } else {
+        "0dbbe8e4ae425a6d2687f1a7e3ba17bc98c673636790f1b8ad91193c05875ef1".to_string()
     }
 }
