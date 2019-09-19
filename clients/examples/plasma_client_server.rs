@@ -34,12 +34,13 @@ struct Balance {
 
 fn get_balance(
     body: web::Json<GetBalanceRequest>,
-    _plasma_client: web::Data<PlasmaClientShell>,
+    plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     info!("BODY: {:?}", body);
+    let balance = plasma_client.get_balance();
     Ok(HttpResponse::Ok().json(vec![Balance {
         token_id: 1,
-        balance: 10,
+        balance,
     }]))
 }
 
@@ -227,20 +228,25 @@ fn create_exchange_offer(body: web::Json<CreateExchangeOfferRequest>) -> Result<
 pub fn main() {
     std::env::set_var("RUST_LOG", "INFO");
     env_logger::init();
-    // TODO: how to handle private key?
+
     let commitment_contract_address_hex =
         hex::decode("9FBDa871d559710256a2502A2517b794B482Db40").unwrap();
     let commitment_contract_address = Address::from_slice(&commitment_contract_address_hex);
 
     HttpServer::new(move || {
-        let client = web::Data::new(PlasmaClientShell::new(
+        let client = PlasmaClientShell::new(
             "127.0.0.1:8080".to_owned(),
             commitment_contract_address,
             "659cbb0e2411a44db63778987b1e22153c086a95eb6b18bdf89de078917abc63",
-        ));
+        );
+        client.initialize();
+        client.connect();
+
+        let data = web::Data::new(client);
+
         App::new()
             .wrap(Logger::default())
-            .register_data(client)
+            .register_data(data)
             .route("/create_account", web::post().to(create_account))
             .route("/get_balance", web::get().to(get_balance))
             .route("/get_payment_history", web::get().to(get_payment_history))
