@@ -234,13 +234,13 @@ pub fn main() {
     let commitment_contract_address = Address::from_slice(&commitment_contract_address_hex);
 
     HttpServer::new(move || {
-        let client = PlasmaClientShell::new(
+        let mut client = PlasmaClientShell::new(
             "127.0.0.1:8080".to_owned(),
             commitment_contract_address,
-            "659cbb0e2411a44db63778987b1e22153c086a95eb6b18bdf89de078917abc63",
+            "c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3",
         );
-        client.initialize();
         client.connect();
+        client.initialize();
 
         let data = web::Data::new(client);
 
@@ -259,6 +259,7 @@ pub fn main() {
                 web::post().to(create_exchange_offer),
             )
     })
+    .workers(1)
     .bind("127.0.0.1:7777")
     .unwrap()
     .run()
