@@ -1,9 +1,12 @@
-use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer, Result};
+use actix_web::{error, middleware::Logger, web, App, HttpResponse, HttpServer, Result};
 use chrono::{DateTime, Local};
 use env_logger;
 use ethereum_types::Address;
 use log::info;
-use plasma_clients::plasma::PlasmaClientShell;
+use plasma_clients::plasma::{
+    error::{Error, ErrorKind},
+    PlasmaClientShell,
+};
 use serde::{Deserialize, Serialize};
 
 // Create Account
@@ -96,15 +99,25 @@ fn send_payment(
     body: web::Json<SendPayment>,
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
-    let to_address = body.to.to_string();
-    plasma_client.send_transaction(&to_address, 0, 10);
+    if let Some(range) = plasma_client.search_range(body.amount) {
+        let to_address = body.to.to_string();
+        plasma_client.send_transaction(
+            &to_address,
+            range.get_start(),
+            range.get_start() + body.amount,
+        );
 
-    Ok(HttpResponse::Ok().json(SendPayment {
-        from: body.from,
-        to: body.to,
-        amount: body.amount,
-        token_id: body.token_id,
-    }))
+        return Ok(HttpResponse::Ok().json(SendPayment {
+            from: body.from,
+            to: body.to,
+            amount: body.amount,
+            token_id: body.token_id,
+        }));
+    }
+
+    Err(error::ErrorBadRequest(Error::from(
+        ErrorKind::InvalidParameter,
+    )))
 }
 
 // Get Exchange Offers

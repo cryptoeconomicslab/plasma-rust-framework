@@ -128,6 +128,9 @@ impl PlasmaClientShell {
         );
         tokio::spawn(watcher);
     }
+    pub fn search_range(&self, amount: u64) -> Option<Range> {
+        self.controller.clone().unwrap().search_range(amount)
+    }
     pub fn send_transaction(&self, to_address: &str, start: u64, end: u64) {
         let to_address = Address::from_slice(&hex::decode(to_address).unwrap());
         let controller = self.controller.clone().unwrap();
@@ -198,6 +201,9 @@ impl PlasmaClientController {
     fn initialize(&self) {
         let mut plasma_client = self.plasma_client.lock().unwrap();
         plasma_client.insert_test_ranges()
+    }
+    fn search_range(&self, amount: u64) -> Option<Range> {
+        self.plasma_client.lock().unwrap().search_range(amount)
     }
 }
 
@@ -394,5 +400,13 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         for s in state_updates.iter() {
             let _ = state_db.put_verified_state_update(s.clone());
         }
+    }
+
+    /// return range if enough amount is exists.
+    pub fn search_range(&self, amount: u64) -> Option<Range> {
+        self.get_state_updates()
+            .iter()
+            .map(|su| su.get_range())
+            .find(|range| amount <= range.get_end() - range.get_start())
     }
 }
