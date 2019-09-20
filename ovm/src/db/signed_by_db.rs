@@ -5,7 +5,7 @@ use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::Address;
 use plasma_core::data_structure::abi::{Decodable, Encodable};
-use plasma_db::traits::kvs::{BaseDbKey, KeyValueStore};
+use plasma_db::{BaseDbKey, KeyValueStore};
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct SignedByRecord {

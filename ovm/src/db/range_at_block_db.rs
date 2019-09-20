@@ -5,9 +5,8 @@ use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::Range;
-use plasma_db::traits::kvs::KeyValueStore;
-use plasma_db::traits::rangestore::RangeStore;
 use plasma_db::RangeDbImpl;
+use plasma_db::{KeyValueStore, RangeStore};
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct RangeAtBlockRecord {

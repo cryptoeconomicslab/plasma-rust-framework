@@ -8,7 +8,7 @@ use plasma_clients::plasma::{Command, FetchBlockRequest, PlasmaAggregator};
 use plasma_core::data_structure::abi::Decodable;
 use plasma_core::data_structure::abi::Encodable;
 use plasma_core::data_structure::Transaction;
-use plasma_db::impls::kvs::CoreDbMemoryImpl;
+use plasma_db::CoreDbMemoryImpl;
 use pubsub_messaging::{spawn_server, Message, Sender, ServerHandler, WsMessage};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;

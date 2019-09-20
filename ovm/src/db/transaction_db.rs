@@ -3,9 +3,8 @@ use plasma_core::data_structure::abi::Decodable;
 use plasma_core::data_structure::abi::Encodable;
 use plasma_core::data_structure::error::Error as PlasmaCoreError;
 use plasma_core::data_structure::{Range, Transaction};
-use plasma_db::traits::kvs::KeyValueStore;
-use plasma_db::traits::rangestore::RangeStore;
 use plasma_db::RangeDbImpl;
+use plasma_db::{KeyValueStore, RangeStore};
 
 pub struct TransactionDb<'a, KVS> {
     db: &'a RangeDbImpl<KVS>,

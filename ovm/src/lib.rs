@@ -27,8 +27,7 @@ mod tests {
     use ethsign::SecretKey;
     use plasma_core::data_structure::abi::Encodable;
     use plasma_core::data_structure::Range;
-    use plasma_db::impls::kvs::CoreDbMemoryImpl;
-    use plasma_db::traits::kvs::KeyValueStore;
+    use plasma_db::{CoreDbMemoryImpl, KeyValueStore};
 
     fn store_preimage<KVS: KeyValueStore>(decider: &PropertyExecutor<KVS>) {
         let db = HashPreimageDb::new(decider.get_db());

@@ -13,9 +13,8 @@ use crate::types::{
 };
 use bytes::Bytes;
 use ethereum_types::Address;
-use plasma_db::traits::db::DatabaseTrait;
-use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::RangeDbImpl;
+use plasma_db::{DatabaseTrait, KeyValueStore};
 use std::collections::HashMap;
 use std::sync::RwLock;
 
