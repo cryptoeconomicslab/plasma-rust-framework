@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate clap;
 
+use bytes::Bytes;
 use clap::{App, Arg, SubCommand};
 use ethereum_types::Address;
 use futures::future;
@@ -12,11 +13,11 @@ fn main() {
         .author("CryptoeconomicsLab. Inc")
         .about("Does awesome things")
         .arg(
-            Arg::with_name("from")
-                .short("f")
-                .value_name("from")
+            Arg::with_name("session")
+                .short("ss")
+                .value_name("session")
                 .takes_value(true)
-                .help("from address"),
+                .help("session string"),
         )
         .subcommand(
             SubCommand::with_name("balance")
@@ -59,17 +60,17 @@ fn main() {
     let commitment_contract_address_hex =
         hex::decode("9FBDa871d559710256a2502A2517b794B482Db40").unwrap();
     let commitment_contract_address = Address::from_slice(&commitment_contract_address_hex);
-    let account = matches.value_of("from").unwrap();
-    let mut shell = PlasmaClientShell::new(
-        "127.0.0.1:8080".to_string(),
-        commitment_contract_address,
-        &get_private_key(account.to_string()),
-    );
+    let session_str = value_t!(matches, "session", String).unwrap();
+    let mut shell =
+        PlasmaClientShell::new("127.0.0.1:8080".to_string(), commitment_contract_address);
 
     if matches.subcommand_matches("balance").is_some() {
         tokio::run(future::lazy(move || {
             shell.connect();
-            println!("Your balance is {:?} ETH", shell.get_balance());
+            println!(
+                "Your balance is {:?} ETH",
+                shell.get_balance(&string_to_session(session_str))
+            );
             Ok(())
         }));
     } else if matches.subcommand_matches("init").is_some() {
@@ -85,11 +86,15 @@ fn main() {
         println!("Send {:?}-{:?} ETH to {:?} ", start, end, to_address);
         tokio::run(future::lazy(move || {
             shell.connect();
-            shell.send_transaction(&to_address, start, end);
+            shell.send_transaction(&string_to_session(session_str), &to_address, start, end);
             println!("Sent!!!");
             Ok(())
         }));
     }
+}
+
+fn string_to_session(session: String) -> Bytes {
+    Bytes::from(hex::decode(session).unwrap())
 }
 
 fn get_private_key(account: String) -> String {
