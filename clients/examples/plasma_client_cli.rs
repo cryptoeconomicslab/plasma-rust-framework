@@ -127,13 +127,9 @@ fn main() {
         );
         tokio::run(future::lazy(move || {
             shell.connect();
-            shell.send_transaction(
-                &decode_session(session_str).unwrap(),
-                to_address,
-                token_address_opt,
-                start,
-                end,
-            );
+            let session = &decode_session(session_str).unwrap();
+            let (property, metadata) = shell.ownership_property(session, to_address);
+            shell.send_transaction(session, token_address_opt, start, end, property, metadata);
             println!("Sent!!!");
             Ok(())
         }));
