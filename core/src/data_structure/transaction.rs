@@ -1,9 +1,8 @@
 extern crate ethereum_types;
 extern crate tiny_keccak;
 
-use super::abi::{Decodable, Encodable};
-use super::error::{Error, ErrorKind};
 use super::Range;
+use abi_utils::{Decodable, Encodable, Error as AbiError, ErrorKind as AbiErrorKind};
 use bytes::Bytes;
 use ethabi::Token;
 use ethereum_types::Address;
@@ -41,7 +40,7 @@ impl Encodable for TransactionParams {
 // TODO: use AbiDecodable
 impl Decodable for TransactionParams {
     type Ok = Self;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
+    fn from_tuple(tuple: &[Token]) -> Result<Self, AbiError> {
         let plasma_contract_address = tuple[0].clone().to_address();
         let range = tuple[1].clone().to_tuple();
         let parameters = tuple[2].clone().to_bytes();
@@ -54,24 +53,16 @@ impl Decodable for TransactionParams {
                 parameters: Bytes::from(parameters),
             })
         } else {
-            Err(Error::from(ErrorKind::AbiDecode))
+            Err(AbiError::from(AbiErrorKind::AbiDecode))
         }
     }
 
-    fn from_abi(data: &[u8]) -> Result<Self, Error> {
-        let decoded: Vec<Token> = ethabi::decode(
-            &[
-                ethabi::ParamType::Address,
-                ethabi::ParamType::Tuple(vec![
-                    ethabi::ParamType::Uint(8),
-                    ethabi::ParamType::Uint(8),
-                ]),
-                ethabi::ParamType::Bytes,
-            ],
-            data,
-        )
-        .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
+    fn get_param_types() -> Vec<ethabi::ParamType> {
+        vec![
+            ethabi::ParamType::Address,
+            ethabi::ParamType::Tuple(vec![ethabi::ParamType::Uint(8), ethabi::ParamType::Uint(8)]),
+            ethabi::ParamType::Bytes,
+        ]
     }
 }
 
@@ -183,7 +174,7 @@ impl Encodable for Transaction {
 
 impl Decodable for Transaction {
     type Ok = Self;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
+    fn from_tuple(tuple: &[Token]) -> Result<Self, AbiError> {
         let plasma_contract_address = tuple[0].clone().to_address();
         let range = tuple[1].clone().to_tuple();
         let parameters = tuple[2].clone().to_bytes();
@@ -198,7 +189,7 @@ impl Decodable for Transaction {
                 Bytes::from(signature),
             ))
         } else {
-            Err(Error::from(ErrorKind::AbiDecode))
+            Err(AbiError::from(AbiErrorKind::AbiDecode))
         }
     }
     /// ### Transaction.from_abi()
@@ -219,7 +210,7 @@ impl Decodable for Transaction {
 #[cfg(test)]
 mod tests {
     use super::{Range, Transaction};
-    use crate::data_structure::abi::{Decodable, Encodable};
+    use abi_utils::{Decodable, Encodable};
     use bytes::Bytes;
     use ethereum_types::Address;
 

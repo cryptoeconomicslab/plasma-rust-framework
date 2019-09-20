@@ -1,5 +1,4 @@
-use super::abi::{Decodable, Encodable};
-use super::error::{Error, ErrorKind};
+use abi_utils::{Decodable, Encodable, Error as AbiError, ErrorKind as AbiErrorKind};
 use ethabi::Token;
 use std::cmp::{max, min};
 
@@ -81,13 +80,13 @@ impl Encodable for Range {
 
 impl Decodable for Range {
     type Ok = Self;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
+    fn from_tuple(tuple: &[Token]) -> Result<Self, AbiError> {
         let start = tuple[0].clone().to_uint();
         let end = tuple[1].clone().to_uint();
         if let (Some(start), Some(end)) = (start, end) {
             Ok(Range::new(start.as_u64(), end.as_u64()))
         } else {
-            Err(Error::from(ErrorKind::AbiDecode))
+            Err(AbiError::from(AbiErrorKind::AbiDecode))
         }
     }
     fn get_param_types() -> Vec<ethabi::ParamType> {

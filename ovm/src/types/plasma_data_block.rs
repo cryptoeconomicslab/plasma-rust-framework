@@ -4,7 +4,6 @@ use super::core::Integer;
 use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
-use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::Range;
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]

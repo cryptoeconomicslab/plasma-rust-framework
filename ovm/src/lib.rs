@@ -22,10 +22,10 @@ mod tests {
     use crate::statements::{create_plasma_property, create_state_channel_property};
     use crate::types::{Decision, Integer, PropertyInput};
     use crate::DeciderManager;
+    use abi_utils::Encodable;
     use bytes::Bytes;
     use ethereum_types::Address;
     use ethsign::SecretKey;
-    use plasma_core::data_structure::abi::Encodable;
     use plasma_core::data_structure::Range;
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
     use plasma_db::traits::kvs::KeyValueStore;

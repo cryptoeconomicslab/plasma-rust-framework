@@ -1,0 +1,15 @@
+[package]
+name = "abi-derive"
+version = "0.1.0"
+authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+bytes = "0.4.12"
+ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
+syn = "1.0.2"
+quote = "1.0.1"
+proc-macro2 = "1.0.1"

@@ -1,9 +1,9 @@
 use crate::db::Message;
 use crate::types::{Integer, Property, PropertyInput};
 use crate::DeciderManager;
+use abi_utils::Encodable;
 use bytes::Bytes;
 use ethereum_types::Address;
-use plasma_core::data_structure::abi::Encodable;
 
 pub fn create_state_channel_property(
     my_address: Address,

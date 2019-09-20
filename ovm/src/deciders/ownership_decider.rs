@@ -3,8 +3,8 @@ use crate::deciders::signed_by_decider::Verifier;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{Decider, Decision, Integer, Property, PropertyInput, StateUpdate};
+use abi_utils::Decodable;
 use bytes::Bytes;
-use plasma_core::data_structure::abi::Decodable;
 use plasma_core::data_structure::Transaction;
 use plasma_db::traits::kvs::KeyValueStore;
 
