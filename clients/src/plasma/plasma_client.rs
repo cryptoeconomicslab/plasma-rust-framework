@@ -131,8 +131,7 @@ impl PlasmaClientShell {
     pub fn search_range(&self, amount: u64) -> Option<Range> {
         self.controller.clone().unwrap().search_range(amount)
     }
-    pub fn send_transaction(&self, to_address: &str, start: u64, end: u64) {
-        let to_address = Address::from_slice(&hex::decode(to_address).unwrap());
+    pub fn send_transaction(&self, to_address: Address, start: u64, end: u64) {
         let controller = self.controller.clone().unwrap();
         let tx = controller.plasma_client.lock().unwrap().create_transaction(
             Range::new(start, end),

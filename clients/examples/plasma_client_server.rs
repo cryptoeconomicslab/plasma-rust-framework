@@ -100,12 +100,7 @@ fn send_payment(
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     if let Some(range) = plasma_client.search_range(body.amount) {
-        let to_address = body.to.to_string();
-        plasma_client.send_transaction(
-            &to_address,
-            range.get_start(),
-            range.get_start() + body.amount,
-        );
+        plasma_client.send_transaction(body.to, range.get_start(), range.get_start() + body.amount);
 
         return Ok(HttpResponse::Ok().json(SendPayment {
             from: body.from,
