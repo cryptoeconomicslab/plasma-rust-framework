@@ -6,7 +6,7 @@ use crate::deciders::{
 use crate::error::Error;
 use crate::quantifiers::{
     BlockRangeQuantifier, HashQuantifier, IntegerRangeQuantifier,
-    NonnegativeIntegerLessThanQuantifier, SignedByQuantifier, TxQuantifier,
+    NonnegativeIntegerLessThanQuantifier, SignedByQuantifier, SwapQuantifier, TxQuantifier,
 };
 use crate::types::{
     Decider, Decision, Property, PropertyInput, QuantifierResult, QuantifierResultItem,
@@ -142,6 +142,9 @@ impl DeciderManager {
     pub fn q_tx(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(25), inputs)
     }
+    pub fn q_swap(inputs: Vec<PropertyInput>) -> Property {
+        Property::new(Self::get_decider_address(26), inputs)
+    }
 }
 
 /// Mixin for adding decide method to Property
@@ -255,6 +258,8 @@ where
             HashQuantifier::get_all_quantified(self, &property.inputs)
         } else if decider_id == DECIDER_LIST[25] {
             TxQuantifier::get_all_quantified(self, &property.inputs)
+        } else if decider_id == DECIDER_LIST[26] {
+            SwapQuantifier::get_all_quantified(self, &property.inputs)
         } else {
             panic!("unknown quantifier")
         }

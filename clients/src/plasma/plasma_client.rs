@@ -53,7 +53,7 @@ impl PlasmaClientShell {
     /// Claim for ownership
     pub fn create_ownership_state_object(to_address: Address) -> Property {
         /*
-         * There exists tx such that state_update.deprecate(tx):
+         * There exists tx such that state_update.is_same_range(tx):
          *   SignedBy(tx, to_address).
          */
         DeciderManager::there_exists_such_that(vec![
