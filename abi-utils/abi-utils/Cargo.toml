@@ -1,15 +1,10 @@
 [package]
-name = "plasma-core"
+name = "abi-utils"
 version = "0.1.0"
 authors = ["Cryptoeconomics Lab <info@cryptoeconomicslab.com>"]
 edition = "2018"
 
 [dependencies]
-abi-derive = { path = "../abi-utils/abi-derive" }
-abi-utils = { path = "../abi-utils/abi-utils" }
 bytes = "0.4.12"
 ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
-ethereum-types = "^0.5.2"
 failure = "0.1.5"
-num-traits = { version = "0.2.8", default-features = false }
-tiny-keccak = "1.4.2"

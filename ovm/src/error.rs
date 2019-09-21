@@ -1,3 +1,4 @@
+use abi_utils::Error as AbiError;
 use ethabi::Error as AbiDecodeError;
 use failure::{Backtrace, Context, Fail};
 use plasma_core::data_structure::error::Error as PlasmaCoreError;
@@ -13,6 +14,8 @@ pub enum ErrorKind {
     Io,
     #[fail(display = "ABI Decode error")]
     AbiDecode,
+    #[fail(display = "ABI error")]
+    AbiError,
     #[fail(display = "Plasma Core error")]
     PlasmaCoreError,
     #[fail(display = "Plasma Db error")]
@@ -82,6 +85,14 @@ impl From<AbiDecodeError> for Error {
     fn from(_error: AbiDecodeError) -> Error {
         Error {
             inner: Context::from(ErrorKind::AbiDecode),
+        }
+    }
+}
+
+impl From<AbiError> for Error {
+    fn from(_error: AbiError) -> Error {
+        Error {
+            inner: Context::from(ErrorKind::AbiError),
         }
     }
 }

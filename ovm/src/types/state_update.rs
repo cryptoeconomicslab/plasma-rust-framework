@@ -1,12 +1,12 @@
 use crate::deciders::OwnershipDecider;
 use crate::property_executor::PropertyExecutor;
-use crate::types::core::{Integer, Property, QuantifierResultItem};
+use crate::types::core::{Property, QuantifierResultItem};
 use crate::types::PlasmaDataBlock;
 use crate::DecideMixin;
 use abi_derive::{AbiDecodable, AbiEncodable};
+use abi_utils::{Decodable, Encodable, Integer};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
-use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
 };

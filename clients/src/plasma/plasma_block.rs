@@ -1,14 +1,11 @@
 use super::command::NewTransactionEvent;
 use super::error::{Error, ErrorKind};
+use abi_utils::{Decodable, Encodable, Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
 use ovm::types::core::Integer;
 use ovm::types::{PlasmaDataBlock, StateUpdate};
-use plasma_core::data_structure::abi::{Decodable, Encodable};
-use plasma_core::data_structure::error::{
-    Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
-};
 
 pub struct PlasmaBlock {
     block_number: Integer,

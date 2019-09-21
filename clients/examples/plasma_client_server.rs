@@ -1,4 +1,5 @@
 use actix_web::{error, middleware::Logger, web, App, HttpResponse, HttpServer, Result};
+use bytes::Bytes;
 use chrono::{DateTime, Local};
 use env_logger;
 use ethereum_types::Address;
@@ -27,6 +28,7 @@ fn create_account() -> Result<HttpResponse> {
 #[derive(Deserialize, Debug)]
 struct GetBalanceRequest {
     address: Address,
+    session: Vec<u8>,
 }
 
 #[derive(Serialize)]
@@ -40,7 +42,7 @@ fn get_balance(
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     info!("BODY: {:?}", body);
-    let balance = plasma_client.get_balance();
+    let balance = plasma_client.get_balance(&Bytes::from(body.session.clone()));
     Ok(HttpResponse::Ok().json(vec![Balance {
         token_id: 1,
         balance,
@@ -93,6 +95,7 @@ struct SendPayment {
     to: Address,
     amount: u64,
     token_id: u64,
+    session: Vec<u8>,
 }
 
 fn send_payment(
@@ -100,11 +103,17 @@ fn send_payment(
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     if let Some(range) = plasma_client.search_range(body.amount) {
-        plasma_client.send_transaction(body.to, range.get_start(), range.get_start() + body.amount);
+        plasma_client.send_transaction(
+            &Bytes::from(body.session.clone()),
+            body.to,
+            range.get_start(),
+            range.get_start() + body.amount,
+        );
 
         return Ok(HttpResponse::Ok().json(SendPayment {
             from: body.from,
             to: body.to,
+            session: body.session.clone(),
             amount: body.amount,
             token_id: body.token_id,
         }));
@@ -242,16 +251,12 @@ pub fn main() {
     let commitment_contract_address = Address::from_slice(&commitment_contract_address_hex);
 
     HttpServer::new(move || {
-        let mut client = PlasmaClientShell::new(
-            "127.0.0.1:8080".to_owned(),
-            commitment_contract_address,
-            "c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3",
-        );
+        let mut client =
+            PlasmaClientShell::new("127.0.0.1:8080".to_owned(), commitment_contract_address);
         client.connect();
         client.initialize();
 
         let data = web::Data::new(client);
-
         App::new()
             .wrap(Logger::default())
             .register_data(data)

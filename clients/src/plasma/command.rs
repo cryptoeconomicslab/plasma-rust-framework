@@ -1,9 +1,9 @@
 use super::plasma_block::PlasmaBlock;
 use abi_derive::{AbiDecodable, AbiEncodable};
+use abi_utils::Encodable;
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ovm::types::{Integer, StateUpdateList};
-use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::Transaction;
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]

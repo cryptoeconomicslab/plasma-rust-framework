@@ -1,6 +1,8 @@
 use super::command::{Command, NewTransactionEvent};
 use super::plasma_block::PlasmaBlock;
 use super::state_db::StateDb;
+use super::wallet_manager::WalletManager;
+use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
 use contract_wrapper::plasma_contract_adaptor::PlasmaContractAdaptor;
 use ethabi::Contract as ContractABI;
@@ -14,7 +16,6 @@ use ovm::deciders::SignVerifier;
 use ovm::property_executor::PropertyExecutor;
 use ovm::types::{Integer, Property, PropertyInput, StateUpdate};
 use ovm::DeciderManager;
-use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::{Range, Transaction, TransactionParams};
 use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 use plasma_db::traits::db::DatabaseTrait;
@@ -27,25 +28,14 @@ use std::sync::{Arc, Mutex};
 pub struct PlasmaClientShell {
     aggregator_endpoint: String,
     commitment_contract_address: Address,
-    private_key: String,
-    my_address: Address,
     controller: Option<PlasmaClientController>,
 }
 
 impl PlasmaClientShell {
-    pub fn new(
-        aggregator_endpoint: String,
-        commitment_contract_address: Address,
-        private_key: &str,
-    ) -> Self {
-        let raw_key = hex::decode(private_key).unwrap();
-        let secret_key = SecretKey::from_raw(&raw_key).unwrap();
-        let my_address: Address = secret_key.public().address().into();
+    pub fn new(aggregator_endpoint: String, commitment_contract_address: Address) -> Self {
         Self {
             aggregator_endpoint,
             commitment_contract_address,
-            private_key: private_key.to_string(),
-            my_address,
             controller: None,
         }
     }
@@ -95,9 +85,14 @@ impl PlasmaClientShell {
         )
     }
 
+    pub fn get_my_address(&self, session: &Bytes) -> Option<Address> {
+        let controller = self.controller.clone().unwrap();
+        let plasma_client = controller.plasma_client.lock().unwrap();
+        plasma_client.get_my_address(session)
+    }
+
     pub fn connect(&mut self) {
-        let plasma_client =
-            PlasmaClient::<CoreDbLevelDbImpl>::new(Address::zero(), self.private_key.clone());
+        let plasma_client = PlasmaClient::<CoreDbLevelDbImpl>::new(Address::zero());
         let controller = PlasmaClientController::new(plasma_client);
         let pubsub_client = connect(self.aggregator_endpoint.clone(), controller.clone()).unwrap();
         self.controller = Some(controller.clone_by_pubsub_client(pubsub_client));
@@ -131,9 +126,23 @@ impl PlasmaClientShell {
     pub fn search_range(&self, amount: u64) -> Option<Range> {
         self.controller.clone().unwrap().search_range(amount)
     }
-    pub fn send_transaction(&self, to_address: Address, start: u64, end: u64) {
+    /// Creates new account
+    pub fn create_account(&self) -> (Bytes, SecretKey) {
+        let controller = self.controller.clone().unwrap();
+        let plasma_client = controller.plasma_client.lock().unwrap();
+        plasma_client.create_account()
+    }
+    /// Imports secret key
+    pub fn import_account(&self, private_key: &str) -> (Bytes, SecretKey) {
+        let raw_key = hex::decode(private_key).unwrap();
+        let controller = self.controller.clone().unwrap();
+        let plasma_client = controller.plasma_client.lock().unwrap();
+        plasma_client.import_key(&raw_key)
+    }
+    pub fn send_transaction(&self, session: &Bytes, to_address: Address, start: u64, end: u64) {
         let controller = self.controller.clone().unwrap();
         let tx = controller.plasma_client.lock().unwrap().create_transaction(
+            session,
             Range::new(start, end),
             Bytes::from(Self::create_ownership_state_object(to_address).to_abi()),
         );
@@ -151,9 +160,10 @@ impl PlasmaClientShell {
         //        controller.fetch_block(Integer(0));
         controller.initialize()
     }
-    pub fn get_balance(&self) -> u64 {
+    pub fn get_balance(&self, session: &Bytes) -> u64 {
         let controller = self.controller.clone().unwrap();
         let plasma_client = controller.plasma_client.lock().unwrap();
+        let my_address = plasma_client.get_my_address(session).unwrap();
         plasma_client
             .get_state_updates()
             .iter()
@@ -161,7 +171,7 @@ impl PlasmaClientShell {
                 let p = &s.get_property().inputs[2];
                 if let PropertyInput::ConstantProperty(signed_by) = p {
                     if let PropertyInput::ConstantAddress(address) = signed_by.inputs[0] {
-                        return address == self.my_address;
+                        return address == my_address;
                     }
                 }
                 false
@@ -236,21 +246,13 @@ impl EventHandler for PlasmaClientController {
 /// Plasma Client on OVM.
 pub struct PlasmaClient<KVS: KeyValueStore> {
     plasma_contract_address: Address,
-    secret_key: SecretKey,
-    my_address: Address,
     decider: PropertyExecutor<KVS>,
 }
 
 impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
-    pub fn new(plasma_contract_address: Address, private_key: String) -> Self {
-        let raw_key = hex::decode(private_key).unwrap();
-        let secret_key = SecretKey::from_raw(&raw_key).unwrap();
-        let my_address: Address = secret_key.public().address().into();
-
+    pub fn new(plasma_contract_address: Address) -> Self {
         PlasmaClient {
             plasma_contract_address,
-            secret_key,
-            my_address,
             decider: Default::default(),
         }
     }
@@ -259,7 +261,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     /// Send ethereum transaction to Plasma Deposit Contract.
     /// amount: amount to deposit
     /// property: initial state object
-    pub fn deposit(&self, amount: u64, property: Property) {
+    pub fn deposit(&self, session: &Bytes, amount: u64, property: Property) {
         // TODO: add PlasmaContractABI
         let f = File::open("PlasmaContract.json").unwrap();
         let reader = BufReader::new(f);
@@ -271,18 +273,47 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         )
         .unwrap();
         // TODO: handle result
-        let _result = plasma_contract.deposit(self.my_address, amount, property);
+        let _result =
+            plasma_contract.deposit(self.get_my_address(session).unwrap(), amount, property);
+    }
+
+    /// Creates new account
+    pub fn create_account(&self) -> (Bytes, SecretKey) {
+        let mut wallet = WalletManager::new(self.decider.get_db());
+        wallet.generate_key_session()
+    }
+
+    pub fn import_key(&self, secret_key: &[u8]) -> (Bytes, SecretKey) {
+        let mut wallet = WalletManager::new(self.decider.get_db());
+        wallet.import_key(secret_key)
+    }
+
+    pub fn get_my_address(&self, session: &Bytes) -> Option<Address> {
+        let wallet = WalletManager::new(self.decider.get_db());
+        wallet
+            .get_key(session)
+            .map(|secret_key| secret_key.public().address().into())
     }
 
     /// Create transaction to update state for specific coin range.
     /// TODO: maybe need to specify Property for how state transition works.
-    pub fn create_transaction(&self, range: Range, parameters: Bytes) -> Transaction {
+    pub fn create_transaction(
+        &self,
+        session: &Bytes,
+        range: Range,
+        parameters: Bytes,
+    ) -> Transaction {
         let transaction_params =
             TransactionParams::new(self.plasma_contract_address, range, parameters);
 
-        let signature =
-            SignVerifier::sign(&self.secret_key, &Bytes::from(transaction_params.to_abi()));
-        Transaction::from_params(transaction_params, signature)
+        let wallet = WalletManager::new(self.decider.get_db());
+        if let Some(secret_key) = wallet.get_key(session) {
+            let signature =
+                SignVerifier::sign(&secret_key, &Bytes::from(transaction_params.to_abi()));
+            Transaction::from_params(transaction_params, signature)
+        } else {
+            panic!("secret key not found");
+        }
     }
 
     /// Start exit on plasma. return exit property
@@ -294,7 +325,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
 
     /// Handle exit on plasma.
     /// After dispute period, withdraw from Plasma Contract.
-    pub fn finalize_exit(&self, state_update: StateUpdate, range: Range) {
+    pub fn finalize_exit(&self, session: &Bytes, state_update: StateUpdate, range: Range) {
         // TODO: add PlasmaContractABI
         let f = File::open("PlasmaContract.json").unwrap();
         let reader = BufReader::new(f);
@@ -311,7 +342,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let checkpoint = (state_update, range);
 
         // TODO: handle result
-        let _result = plasma_contract.withdraw(self.my_address, checkpoint);
+        let _result = plasma_contract.withdraw(self.get_my_address(session).unwrap(), checkpoint);
     }
 
     /// Challenge to specific exit by claiming contradicting statement.

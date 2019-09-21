@@ -1,9 +1,9 @@
 use super::command::NewTransactionEvent;
 use super::error::{Error, ErrorKind};
 use super::plasma_block::PlasmaBlock;
+use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
 use ovm::types::{Integer, StateUpdate};
-use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::traits::rangestore::RangeStore;
 use plasma_db::RangeDbImpl;

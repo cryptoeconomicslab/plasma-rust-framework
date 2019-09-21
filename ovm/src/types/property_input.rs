@@ -1,12 +1,9 @@
 use crate::db::message_db::Message;
 use crate::types::{Integer, Property};
+use abi_utils::{Decodable, Encodable, Error as AbiError, ErrorKind as AbiErrorKind};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::{Address, H256};
-use plasma_core::data_structure::abi::{Decodable, Encodable};
-use plasma_core::data_structure::error::{
-    Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
-};
 use plasma_core::data_structure::Range;
 
 /// PropertyInput is attribute of Property. See further discussion https://github.com/plasma-group/ovm/issues/1.
@@ -49,7 +46,7 @@ impl Encodable for PropertyInput {
 
 impl Decodable for PropertyInput {
     type Ok = PropertyInput;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
+    fn from_tuple(tuple: &[Token]) -> Result<Self, AbiError> {
         let id = tuple[0].clone().to_uint();
         let bytes = tuple[1].clone().to_bytes();
         if let (Some(id), Some(bytes)) = (id, bytes) {
@@ -74,7 +71,7 @@ impl Decodable for PropertyInput {
                 panic!("")
             }
         } else {
-            Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
+            Err(AbiError::from(AbiErrorKind::AbiDecode))
         }
     }
     fn get_param_types() -> Vec<ParamType> {

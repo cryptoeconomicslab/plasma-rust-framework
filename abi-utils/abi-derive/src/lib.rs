@@ -30,7 +30,7 @@ fn impl_encodable_macro(ast: &syn::DeriveInput) -> TokenStream {
             .filter(|f| f.attrs.first().is_none())
             .map(create_tokens);
         let gen = quote! {
-            impl Encodable for #name {
+            impl abi_utils::Encodable for #name {
                 fn to_tuple(&self) -> Vec<Token> {
                     vec![#(#field_list),*]
                 }
@@ -68,9 +68,9 @@ fn impl_decodable_macro_for_struct(
         .map(move |f| {
             let ident = &f.ident.clone().unwrap();
             if let syn::Type::Path(path) = &f.ty {
-                let type_name = &path.path.segments.first().unwrap().ident;
+                let type_of_attr = &path.path.segments.first().unwrap();
                 count += 1;
-                create_parse_val_token_stream(ident, type_name, count as usize)
+                create_parse_val_token_stream(ident, type_of_attr, count as usize)
             } else {
                 panic!("invalid type")
             }
@@ -88,9 +88,9 @@ fn impl_decodable_macro_for_struct(
         }
     });
     let gen = quote! {
-        impl Decodable for #name {
+        impl abi_utils::Decodable for #name {
             type Ok = #name;
-            fn from_tuple(tuple: &[Token]) -> Result<Self, plasma_core::data_structure::error::Error> {
+            fn from_tuple(tuple: &[Token]) -> Result<Self, abi_utils::error::Error> {
                 #(#field_list)*
                 Ok(#name::new(
                     #(#create_fields),*
@@ -107,7 +107,8 @@ fn impl_decodable_macro_for_struct(
 fn create_tokens(f: &syn::Field) -> proc_macro2::TokenStream {
     let ident = &f.ident.clone().unwrap();
     if let syn::Type::Path(path) = &f.ty {
-        let type_name = &path.path.segments.first().unwrap().ident;
+        let type_of_attr = &path.path.segments.first().unwrap();
+        let type_name = &type_of_attr.ident;
         match &*type_name.to_string() {
             "bool" => quote! {
                 Token::Bool(self.#ident)
@@ -124,6 +125,21 @@ fn create_tokens(f: &syn::Field) -> proc_macro2::TokenStream {
             "Address" => quote! {
                 Token::Address(self.#ident)
             },
+            "Vec" => {
+                let item_name = get_vec_item(type_of_attr);
+                if item_name == "Integer" {
+                    quote! {
+                        Token::Array(
+                            self.#ident
+                                .iter()
+                                .map(|item| Token::Uint(item.0.into()))
+                                .collect(),
+                        )
+                    }
+                } else {
+                    panic!("Unsupported Vec type");
+                }
+            }
             _ => quote! {
                 Token::Tuple(self.#ident.to_tuple())
             },
@@ -137,7 +153,8 @@ fn create_tokens(f: &syn::Field) -> proc_macro2::TokenStream {
 
 fn create_param_type_token_stream(f: &syn::Field) -> proc_macro2::TokenStream {
     if let syn::Type::Path(path) = &f.ty {
-        let type_name = &path.path.segments.first().unwrap().ident;
+        let type_of_attr = &path.path.segments.first().unwrap();
+        let type_name = &type_of_attr.ident;
         match &*type_name.to_string() {
             "bool" => quote! {
                 ethabi::ParamType::Bool
@@ -154,6 +171,16 @@ fn create_param_type_token_stream(f: &syn::Field) -> proc_macro2::TokenStream {
             "Address" => quote! {
                 ethabi::ParamType::Address
             },
+            "Vec" => {
+                let item_name = get_vec_item(type_of_attr);
+                if item_name == "Integer" {
+                    quote! {
+                        ethabi::ParamType::Array(Box::new(ethabi::ParamType::Uint(256)))
+                    }
+                } else {
+                    panic!("Unsupported Vec type");
+                }
+            }
             _ => quote! {
                 ethabi::ParamType::Tuple(#type_name::get_param_types())
             },
@@ -167,9 +194,10 @@ fn create_param_type_token_stream(f: &syn::Field) -> proc_macro2::TokenStream {
 
 fn create_parse_val_token_stream(
     ident: &syn::Ident,
-    type_name: &syn::Ident,
+    type_of_attr: &syn::PathSegment,
     index: usize,
 ) -> proc_macro2::TokenStream {
+    let type_name = &type_of_attr.ident;
     match &*type_name.to_string() {
         "bool" => quote! {
             let #ident: bool = tuple[#index].clone().to_bool().unwrap();
@@ -186,8 +214,37 @@ fn create_parse_val_token_stream(
         "Address" => quote! {
             let #ident: Address = tuple[#index].clone().to_address().unwrap();
         },
+        "Vec" => {
+            let item_name = get_vec_item(type_of_attr);
+            if item_name == "Integer" {
+                let ident_list = syn::Ident::new(
+                    &(ident.to_string() + "_list"),
+                    proc_macro2::Span::call_site(),
+                );
+                quote! {
+                    let #ident_list = tuple[#index].clone().to_array().unwrap();
+                    let #ident: Vec<Integer> = #ident_list
+                        .iter()
+                        .map(|item| Integer(item.clone().to_uint().unwrap().as_u64()))
+                        .collect();
+                }
+            } else {
+                panic!("Unsupported Vec type");
+            }
+        }
         _ => quote! {
             let #ident: #type_name = #type_name::from_tuple(&tuple[#index].clone().to_tuple().unwrap()).unwrap();
         },
     }
+}
+
+fn get_vec_item(type_of_attr: &syn::PathSegment) -> proc_macro2::Ident {
+    if let syn::PathArguments::AngleBracketed(args) = &type_of_attr.arguments {
+        if let syn::GenericArgument::Type(t) = args.args.first().unwrap() {
+            if let syn::Type::Path(path) = t {
+                return path.path.segments.first().unwrap().ident.clone();
+            }
+        }
+    }
+    panic!("unexpected Vec");
 }

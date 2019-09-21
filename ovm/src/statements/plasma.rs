@@ -33,11 +33,11 @@ mod tests {
     use crate::property_executor::PropertyExecutor;
     use crate::types::{Integer, PlasmaDataBlock, PropertyInput, StateUpdate};
     use crate::DeciderManager;
+    use abi_utils::Encodable;
     use bytes::Bytes;
     use ethereum_types::{Address, H256};
     use ethsign::SecretKey;
     use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
-    use plasma_core::data_structure::abi::Encodable;
     use plasma_core::data_structure::{Range, Transaction, TransactionParams};
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
     use plasma_db::traits::kvs::KeyValueStore;
