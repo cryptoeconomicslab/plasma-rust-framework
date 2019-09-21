@@ -27,6 +27,14 @@ impl<'a, KVS: KeyValueStore> WalletManager<'a, KVS> {
         (session, secret_key)
     }
 
+    pub fn import_key(&mut self, secret_key_raw: &[u8]) -> (Bytes, EthSecretKey) {
+        let session_raw = rand::thread_rng().gen::<[u8; 32]>().to_vec();
+        let session = Bytes::from(session_raw);
+        let _ = self.db.put_private_key(&session, secret_key_raw); // TODO: error handling
+
+        (session, EthSecretKey::from_raw(&secret_key_raw).unwrap())
+    }
+
     pub fn get_key(&self, session: &Bytes) -> Option<EthSecretKey> {
         match self
             .db

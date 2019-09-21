@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate clap;
 
+use bytes::Bytes;
 use clap::{App, Arg, SubCommand};
 use ethereum_types::Address;
 use futures::future;
@@ -12,11 +13,11 @@ fn main() {
         .author("CryptoeconomicsLab. Inc")
         .about("Does awesome things")
         .arg(
-            Arg::with_name("from")
-                .short("f")
-                .value_name("from")
+            Arg::with_name("session")
+                .short("ss")
+                .value_name("session")
                 .takes_value(true)
-                .help("from address"),
+                .help("session string"),
         )
         .subcommand(
             SubCommand::with_name("balance")
@@ -27,6 +28,18 @@ fn main() {
             SubCommand::with_name("init")
                 .about("initialize")
                 .version("1.0"),
+        )
+        .subcommand(
+            SubCommand::with_name("import")
+                .about("import")
+                .version("1.0")
+                .arg(
+                    Arg::with_name("secret_key")
+                        .short("sk")
+                        .value_name("secret_key")
+                        .takes_value(true)
+                        .help("hex secret key"),
+                ),
         )
         .subcommand(
             SubCommand::with_name("send")
@@ -59,23 +72,30 @@ fn main() {
     let commitment_contract_address_hex =
         hex::decode("9FBDa871d559710256a2502A2517b794B482Db40").unwrap();
     let commitment_contract_address = Address::from_slice(&commitment_contract_address_hex);
-    let account = matches.value_of("from").unwrap();
-    let mut shell = PlasmaClientShell::new(
-        "127.0.0.1:8080".to_string(),
-        commitment_contract_address,
-        &get_private_key(account.to_string()),
-    );
+    let session_str = value_t!(matches, "session", String).unwrap();
+    let mut shell =
+        PlasmaClientShell::new("127.0.0.1:8080".to_string(), commitment_contract_address);
 
     if matches.subcommand_matches("balance").is_some() {
         tokio::run(future::lazy(move || {
             shell.connect();
-            println!("Your balance is {:?} ETH", shell.get_balance());
+            println!(
+                "Your balance is {:?} ETH",
+                shell.get_balance(&string_to_session(session_str))
+            );
             Ok(())
         }));
     } else if matches.subcommand_matches("init").is_some() {
         tokio::run(future::lazy(move || {
             shell.connect();
             shell.initialize();
+            Ok(())
+        }));
+    } else if matches.subcommand_matches("import").is_some() {
+        let secrey_key = value_t!(matches, "secret_key", String).unwrap();
+        tokio::run(future::lazy(move || {
+            shell.connect();
+            shell.import_account(&secrey_key);
             Ok(())
         }));
     } else if let Some(matches) = matches.subcommand_matches("send") {
@@ -85,19 +105,13 @@ fn main() {
         println!("Send {:?}-{:?} ETH to {:?} ", start, end, to_address);
         tokio::run(future::lazy(move || {
             shell.connect();
-            shell.send_transaction(&to_address, start, end);
+            shell.send_transaction(&string_to_session(session_str), &to_address, start, end);
             println!("Sent!!!");
             Ok(())
         }));
     }
 }
 
-fn get_private_key(account: String) -> String {
-    if account == "627306090abab3a6e1400e9345bc60c78a8bef57" {
-        "c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3".to_string()
-    } else if account == "f17f52151ebef6c7334fad080c5704d77216b732" {
-        "ae6ae8e5ccbfb04590405997ee2d52d2b330726137b875053c36d94e974d162f".to_string()
-    } else {
-        "0dbbe8e4ae425a6d2687f1a7e3ba17bc98c673636790f1b8ad91193c05875ef1".to_string()
-    }
+fn string_to_session(session: String) -> Bytes {
+    Bytes::from(hex::decode(session).unwrap())
 }

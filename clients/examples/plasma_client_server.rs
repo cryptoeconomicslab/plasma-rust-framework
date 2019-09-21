@@ -1,4 +1,5 @@
 use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer, Result};
+use bytes::Bytes;
 use chrono::{DateTime, Local};
 use env_logger;
 use ethereum_types::Address;
@@ -89,6 +90,7 @@ struct SendPayment {
     to: Address,
     amount: u64,
     token_id: u64,
+    session: Vec<u8>,
 }
 
 fn send_payment(
@@ -96,13 +98,14 @@ fn send_payment(
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     let to_address = body.to.to_string();
-    plasma_client.send_transaction(&to_address, 0, 10);
+    plasma_client.send_transaction(&Bytes::from(body.session.clone()), &to_address, 0, 10);
 
     Ok(HttpResponse::Ok().json(SendPayment {
         from: body.from,
         to: body.to,
         amount: body.amount,
         token_id: body.token_id,
+        session: body.session.clone(),
     }))
 }
 
@@ -236,7 +239,6 @@ pub fn main() {
         let client = web::Data::new(PlasmaClientShell::new(
             "127.0.0.1:8080".to_owned(),
             commitment_contract_address,
-            "659cbb0e2411a44db63778987b1e22153c086a95eb6b18bdf89de078917abc63",
         ));
         App::new()
             .wrap(Logger::default())
