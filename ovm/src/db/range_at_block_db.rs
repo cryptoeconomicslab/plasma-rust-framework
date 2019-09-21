@@ -1,9 +1,9 @@
 use crate::error::Error;
 use crate::types::{Integer, PlasmaDataBlock};
 use abi_derive::{AbiDecodable, AbiEncodable};
+use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
-use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::Range;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::traits::rangestore::RangeStore;

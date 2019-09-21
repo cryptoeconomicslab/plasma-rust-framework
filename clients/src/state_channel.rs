@@ -1,3 +1,4 @@
+use abi_utils::Encodable;
 use bytes::Bytes;
 use ethereum_types::Address;
 use ethsign::SecretKey;
@@ -6,7 +7,6 @@ use ovm::deciders::SignVerifier;
 use ovm::property_executor::PropertyExecutor;
 use ovm::statements::create_state_channel_property;
 use ovm::types::{Decision, ImplicationProofElement, Property};
-use plasma_core::data_structure::abi::Encodable;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 

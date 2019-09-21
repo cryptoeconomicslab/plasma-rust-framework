@@ -1,12 +1,11 @@
 extern crate ethabi;
 
-use super::abi::{Decodable, Encodable};
-use super::error::{Error, ErrorKind};
+use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
-use ethabi::Token;
+use ethabi::{ParamType, Token};
 use ethereum_types::Address;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, AbiDecodable, AbiEncodable)]
 /// StateObject represents state of assets
 /// See http://spec.plasma.group/en/latest/src/01-core/state-system.html#state-objects
 pub struct StateObject {
@@ -26,43 +25,10 @@ impl StateObject {
     }
 }
 
-impl Encodable for StateObject {
-    fn to_abi(&self) -> Vec<u8> {
-        ethabi::encode(&self.to_tuple())
-    }
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![
-            Token::Address(self.predicate),
-            Token::Bytes(self.data.to_vec()),
-        ]
-    }
-}
-
-impl Decodable for StateObject {
-    type Ok = Self;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, Error> {
-        let predicate = tuple[0].clone().to_address();
-        let data = tuple[1].clone().to_bytes();
-        if let (Some(predicate), Some(data)) = (predicate, data) {
-            Ok(StateObject::new(predicate, Bytes::from(data)))
-        } else {
-            Err(Error::from(ErrorKind::AbiDecode))
-        }
-    }
-    fn from_abi(data: &[u8]) -> Result<Self, Error> {
-        let decoded: Vec<Token> = ethabi::decode(
-            &[ethabi::ParamType::Address, ethabi::ParamType::Bytes],
-            data,
-        )
-        .map_err(|_e| Error::from(ErrorKind::AbiDecode))?;
-        Self::from_tuple(&decoded)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::StateObject;
-    use crate::data_structure::abi::{Decodable, Encodable};
+    use abi_utils::{Decodable, Encodable};
     use bytes::Bytes;
     use ethereum_types::Address;
 

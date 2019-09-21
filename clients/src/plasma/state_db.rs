@@ -1,6 +1,6 @@
+use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
 use ovm::types::StateUpdate;
-use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::Range;
 use plasma_db::error::Error;
 use plasma_db::range::Range as RangeWithValue;

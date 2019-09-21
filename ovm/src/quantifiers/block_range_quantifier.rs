@@ -1,10 +1,10 @@
 use crate::db::RangeAtBlockRecord;
 use crate::property_executor::PropertyExecutor;
 use crate::types::{PlasmaDataBlock, PropertyInput, QuantifierResult, QuantifierResultItem};
+use abi_utils::Decodable;
 use bytes::Bytes;
 use ethereum_types::H256;
 use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
-use plasma_core::data_structure::abi::Decodable;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::traits::rangestore::RangeStore;
 

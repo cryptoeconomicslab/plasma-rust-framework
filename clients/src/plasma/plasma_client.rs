@@ -1,6 +1,7 @@
 use super::command::{Command, NewTransactionEvent};
 use super::plasma_block::PlasmaBlock;
 use super::state_db::StateDb;
+use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
 use contract_wrapper::plasma_contract_adaptor::PlasmaContractAdaptor;
 use ethabi::Contract as ContractABI;
@@ -14,7 +15,6 @@ use ovm::deciders::SignVerifier;
 use ovm::property_executor::PropertyExecutor;
 use ovm::types::{Integer, Property, PropertyInput, StateUpdate};
 use ovm::DeciderManager;
-use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_core::data_structure::{Range, Transaction, TransactionParams};
 use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 use plasma_db::traits::db::DatabaseTrait;

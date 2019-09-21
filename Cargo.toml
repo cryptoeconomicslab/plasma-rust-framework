@@ -9,7 +9,8 @@ path = "src/lib.rs"
 
 [workspace]
 members = [
-	"abi-derive",
+	"abi-utils/abi-derive",
+	"abi-utils/tests",
 	"contract-wrapper",
 	"core",
 	"clients",

@@ -1,12 +1,12 @@
 #[macro_use]
 extern crate futures;
 
+use abi_utils::Decodable;
+use abi_utils::Encodable;
 use bincode::serialize;
 use ethereum_types::Address;
 use futures::{future, Async, Future, Poll, Stream};
 use plasma_clients::plasma::{Command, FetchBlockRequest, PlasmaAggregator};
-use plasma_core::data_structure::abi::Decodable;
-use plasma_core::data_structure::abi::Encodable;
 use plasma_core::data_structure::Transaction;
 use plasma_db::impls::kvs::CoreDbMemoryImpl;
 use pubsub_messaging::{spawn_server, Message, Sender, ServerHandler, WsMessage};

@@ -1,10 +1,10 @@
 use crate::error::Error;
 use crate::utils::static_hash;
 use abi_derive::{AbiDecodable, AbiEncodable};
+use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::Address;
-use plasma_core::data_structure::abi::{Decodable, Encodable};
 use plasma_db::traits::kvs::{BaseDbKey, KeyValueStore};
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]

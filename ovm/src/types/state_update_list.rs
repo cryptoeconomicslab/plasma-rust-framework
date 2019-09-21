@@ -1,7 +1,6 @@
 use super::StateUpdate;
+use abi_utils::{Decodable, Encodable, Error as AbiError};
 use ethabi::{ParamType, Token};
-use plasma_core::data_structure::abi::{Decodable, Encodable};
-use plasma_core::data_structure::error::Error as PlasmaCoreError;
 
 #[derive(Clone, Debug)]
 pub struct StateUpdateList {
@@ -27,7 +26,7 @@ impl Encodable for StateUpdateList {
 
 impl Decodable for StateUpdateList {
     type Ok = StateUpdateList;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
+    fn from_tuple(tuple: &[Token]) -> Result<Self, AbiError> {
         let state_updates = tuple[0].clone().to_array().unwrap();
         let state_update_list: Vec<StateUpdate> = state_updates
             .iter()
@@ -49,8 +48,8 @@ mod tests {
     use crate::types::PropertyInput;
     use crate::types::{Integer, StateUpdate};
     use crate::DeciderManager;
+    use abi_utils::{Decodable, Encodable};
     use ethereum_types::H256;
-    use plasma_core::data_structure::abi::{Decodable, Encodable};
     use plasma_core::data_structure::Range;
 
     #[test]
