@@ -129,6 +129,13 @@ impl PlasmaClientShell {
         let plasma_client = controller.plasma_client.lock().unwrap();
         plasma_client.create_account()
     }
+    /// Imports secret key
+    pub fn import_account(&self, private_key: &str) -> (Bytes, SecretKey) {
+        let raw_key = hex::decode(private_key).unwrap();
+        let controller = self.controller.clone().unwrap();
+        let plasma_client = controller.plasma_client.lock().unwrap();
+        plasma_client.import_key(&raw_key)
+    }
     pub fn send_transaction(&self, session: &Bytes, to_address: &str, start: u64, end: u64) {
         let to_address = Address::from_slice(&hex::decode(to_address).unwrap());
         let controller = self.controller.clone().unwrap();
@@ -269,6 +276,11 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     pub fn create_account(&self) -> (Bytes, SecretKey) {
         let mut wallet = WalletManager::new(self.decider.get_db());
         wallet.generate_key_session()
+    }
+
+    pub fn import_key(&self, secret_key: &[u8]) -> (Bytes, SecretKey) {
+        let mut wallet = WalletManager::new(self.decider.get_db());
+        wallet.import_key(secret_key)
     }
 
     pub fn get_my_address(&self, session: &Bytes) -> Option<Address> {

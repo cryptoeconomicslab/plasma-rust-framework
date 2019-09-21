@@ -30,6 +30,18 @@ fn main() {
                 .version("1.0"),
         )
         .subcommand(
+            SubCommand::with_name("import")
+                .about("import")
+                .version("1.0")
+                .arg(
+                    Arg::with_name("secret_key")
+                        .short("sk")
+                        .value_name("secret_key")
+                        .takes_value(true)
+                        .help("hex secret key"),
+                ),
+        )
+        .subcommand(
             SubCommand::with_name("send")
                 .about("send money")
                 .version("1.0")
@@ -79,6 +91,13 @@ fn main() {
             shell.initialize();
             Ok(())
         }));
+    } else if matches.subcommand_matches("import").is_some() {
+        let secrey_key = value_t!(matches, "secret_key", String).unwrap();
+        tokio::run(future::lazy(move || {
+            shell.connect();
+            shell.import_account(&secrey_key);
+            Ok(())
+        }));
     } else if let Some(matches) = matches.subcommand_matches("send") {
         let to_address = value_t!(matches, "to", String).unwrap();
         let start = value_t!(matches, "start", u64).unwrap();
@@ -95,14 +114,4 @@ fn main() {
 
 fn string_to_session(session: String) -> Bytes {
     Bytes::from(hex::decode(session).unwrap())
-}
-
-fn get_private_key(account: String) -> String {
-    if account == "627306090abab3a6e1400e9345bc60c78a8bef57" {
-        "c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3".to_string()
-    } else if account == "f17f52151ebef6c7334fad080c5704d77216b732" {
-        "ae6ae8e5ccbfb04590405997ee2d52d2b330726137b875053c36d94e974d162f".to_string()
-    } else {
-        "0dbbe8e4ae425a6d2687f1a7e3ba17bc98c673636790f1b8ad91193c05875ef1".to_string()
-    }
 }
