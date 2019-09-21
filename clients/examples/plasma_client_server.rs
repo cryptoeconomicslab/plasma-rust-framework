@@ -10,17 +10,30 @@ use plasma_clients::plasma::{
 };
 use serde::{Deserialize, Serialize};
 
+fn decode_session(session: String) -> Result<Bytes, ()> {
+    if let Ok(s) = hex::decode(session) {
+        Ok(Bytes::from(s))
+    } else {
+        Err(())
+    }
+}
+
+fn encode_session(raw: Bytes) -> String {
+    hex::encode(raw.to_vec())
+}
+
 // Create Account
 #[derive(Serialize)]
 struct CreateAccountResponse {
     address: Address,
-    session_key: String,
+    session: String,
 }
 
-fn create_account() -> Result<HttpResponse> {
+fn create_account(plasma_client: web::Data<PlasmaClientShell>) -> Result<HttpResponse> {
+    let (session, key) = plasma_client.create_account();
     Ok(HttpResponse::Ok().json(CreateAccountResponse {
-        address: Address::zero(),
-        session_key: "test_session_key".to_string(),
+        address: Address::from(key.public().address()),
+        session: encode_session(session),
     }))
 }
 
@@ -28,7 +41,7 @@ fn create_account() -> Result<HttpResponse> {
 #[derive(Deserialize, Debug)]
 struct GetBalanceRequest {
     address: Address,
-    session: Vec<u8>,
+    session: String,
 }
 
 #[derive(Serialize)]
@@ -42,7 +55,8 @@ fn get_balance(
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     info!("BODY: {:?}", body);
-    let balance = plasma_client.get_balance(&Bytes::from(body.session.clone()));
+    let session = decode_session(body.session.clone()).unwrap();
+    let balance = plasma_client.get_balance(&session);
     Ok(HttpResponse::Ok().json(vec![Balance {
         token_id: 1,
         balance,
@@ -95,7 +109,7 @@ struct SendPayment {
     to: Address,
     amount: u64,
     token_id: u64,
-    session: Vec<u8>,
+    session: String,
 }
 
 fn send_payment(
@@ -103,8 +117,9 @@ fn send_payment(
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     if let Some(range) = plasma_client.search_range(body.amount) {
+        let session = decode_session(body.session.clone()).unwrap();
         plasma_client.send_transaction(
-            &Bytes::from(body.session.clone()),
+            &session,
             body.to,
             range.get_start(),
             range.get_start() + body.amount,
