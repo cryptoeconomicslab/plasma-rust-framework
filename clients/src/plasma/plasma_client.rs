@@ -16,7 +16,7 @@ use ovm::deciders::SignVerifier;
 use ovm::property_executor::PropertyExecutor;
 use ovm::types::{Integer, Property, PropertyInput, StateUpdate};
 use ovm::DeciderManager;
-use plasma_core::data_structure::{Range, Transaction, TransactionParams};
+use plasma_core::data_structure::{Metadata, Range, Transaction, TransactionParams};
 use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -141,10 +141,12 @@ impl PlasmaClientShell {
     }
     pub fn send_transaction(&self, session: &Bytes, to_address: Address, start: u64, end: u64) {
         let controller = self.controller.clone().unwrap();
+        let metadata = Metadata::new(self.get_my_address(session).unwrap(), to_address);
         let tx = controller.plasma_client.lock().unwrap().create_transaction(
             session,
             Range::new(start, end),
             Bytes::from(Self::create_ownership_state_object(to_address).to_abi()),
+            metadata,
         );
         println!("{:?}", tx);
         let command = Command {
@@ -179,6 +181,9 @@ impl PlasmaClientShell {
             .fold(0, |acc, s| {
                 acc + s.get_range().get_end() - s.get_range().get_start()
             })
+    }
+    pub fn query_transactions() -> Vec<Transaction> {
+        vec![]
     }
 }
 
@@ -302,6 +307,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         session: &Bytes,
         range: Range,
         parameters: Bytes,
+        metadata: Metadata,
     ) -> Transaction {
         let transaction_params =
             TransactionParams::new(self.plasma_contract_address, range, parameters);
@@ -310,7 +316,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         if let Some(secret_key) = wallet.get_key(session) {
             let signature =
                 SignVerifier::sign(&secret_key, &Bytes::from(transaction_params.to_abi()));
-            Transaction::from_params(transaction_params, signature)
+            Transaction::from_params(transaction_params, signature, metadata)
         } else {
             panic!("secret key not found");
         }

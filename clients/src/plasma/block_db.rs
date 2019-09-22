@@ -127,7 +127,7 @@ mod tests {
     use super::*;
     use ethereum_types::Address;
     use ovm::types::{Integer, Property, StateUpdate};
-    use plasma_core::data_structure::{Range, Transaction};
+    use plasma_core::data_structure::{Metadata, Range, Transaction};
     use plasma_db::{impls::kvs::CoreDbMemoryImpl, traits::DatabaseTrait, RangeDbImpl};
 
     #[test]
@@ -150,6 +150,7 @@ mod tests {
                     Range::new(0, 5),
                     Bytes::default(),
                     Bytes::default(),
+                    Metadata::default(),
                 ),
             )],
         );
@@ -179,6 +180,7 @@ mod tests {
                     Range::new(14, 15),
                     Bytes::default(),
                     Bytes::default(),
+                    Metadata::default(),
                 ),
             )],
         );
