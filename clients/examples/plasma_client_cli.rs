@@ -91,11 +91,12 @@ fn main() {
             shell.initialize();
             Ok(())
         }));
-    } else if matches.subcommand_matches("import").is_some() {
+    } else if let Some(matches) = matches.subcommand_matches("import") {
         let secrey_key = value_t!(matches, "secret_key", String).unwrap();
         tokio::run(future::lazy(move || {
             shell.connect();
-            shell.import_account(&secrey_key);
+            let (session, _) = shell.import_account(&secrey_key);
+            println!("session = {:?}", hex::encode(session));
             Ok(())
         }));
     } else if let Some(matches) = matches.subcommand_matches("send") {
