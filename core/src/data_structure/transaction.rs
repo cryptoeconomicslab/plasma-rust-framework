@@ -132,7 +132,6 @@ impl Transaction {
             Token::Address(self.plasma_contract_address),
             Token::Tuple(self.range.to_tuple()),
             Token::Bytes(self.parameters.to_vec()),
-            Token::Bytes(self.metadata.to_abi()),
         ])
     }
     /// ### Transaction.create_method_id()

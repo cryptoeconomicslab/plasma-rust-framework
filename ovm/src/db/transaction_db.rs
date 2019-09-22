@@ -107,6 +107,6 @@ mod tests {
 
         let result = tx_db.query_transaction(filter);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap().len(), 1);
+        assert_eq!(result.unwrap().len(), 2);
     }
 }

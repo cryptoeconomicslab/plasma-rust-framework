@@ -471,6 +471,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
 
     fn get_related_transactions(&self, session: &Bytes) -> Vec<Transaction> {
         let address = self.get_my_address(session).unwrap();
+        println!("{:?}", address);
         let transaction_db = TransactionDb::new(self.decider.get_range_db());
         let latest_block_number = self.get_latest_block_number();
 

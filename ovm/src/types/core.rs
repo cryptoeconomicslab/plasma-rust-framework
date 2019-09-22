@@ -211,6 +211,7 @@ impl QuantifierResultItem {
     }
 }
 
+#[derive(Debug)]
 pub struct QuantifierResult {
     results: Vec<QuantifierResultItem>,
     all_results_quantified: bool,

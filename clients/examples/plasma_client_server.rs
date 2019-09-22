@@ -95,16 +95,33 @@ fn get_payment_history(
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     info!("BODY: {:?}", body);
-    let txs =
-        plasma_client.get_related_transactions(&decode_session(body.session.clone()).unwrap());
+    let session = decode_session(body.session.clone()).unwrap();
+    let my_address = plasma_client.get_my_address(&session).unwrap();
+    let txs = plasma_client.get_related_transactions(&session);
     println!("{:?}", txs);
-    Ok(HttpResponse::Ok().json(vec![PaymentHistory {
-        history_type: PaymentHistoryType::SEND,
-        amount: 10,
-        address: Address::zero(),
-        timestamp: Local::now(),
-        status: PaymentHistoryStatus::CONFIRMED,
-    }]))
+    let history: Vec<PaymentHistory> = txs
+        .into_iter()
+        .map(|tx| {
+            let metadata = tx.get_metadata();
+            let send = metadata.get_from() == my_address;
+            PaymentHistory {
+                history_type: if send {
+                    PaymentHistoryType::SEND
+                } else {
+                    PaymentHistoryType::RECEIVE
+                },
+                amount: tx.get_range().get_amount(),
+                address: if send {
+                    metadata.get_to()
+                } else {
+                    metadata.get_from()
+                },
+                timestamp: Local::now(),
+                status: PaymentHistoryStatus::CONFIRMED,
+            }
+        })
+        .collect();
+    Ok(HttpResponse::Ok().json(history))
 }
 
 // Send Payment

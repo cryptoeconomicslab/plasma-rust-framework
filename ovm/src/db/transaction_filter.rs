@@ -28,7 +28,7 @@ impl TransactionFilter {
         let to_address = transaction.get_metadata().get_to();
 
         (self.from_address.is_none() || self.from_address.unwrap() == from_address)
-            && (self.to_address.is_none() || self.to_address.unwrap() == to_address)
+            || (self.to_address.is_none() || self.to_address.unwrap() == to_address)
     }
 
     pub fn query(&self, transactions: Vec<Transaction>) -> Vec<Transaction> {
@@ -162,7 +162,7 @@ mod tests {
             .address_from(address)
             .build();
 
-        assert_eq!(filter.query(transactions).len(), 1);
+        assert_eq!(filter.query(transactions).len(), 2);
     }
 
     #[test]
@@ -195,7 +195,7 @@ mod tests {
             .address_from(address)
             .build();
 
-        assert_eq!(filter.query(transactions).len(), 1);
+        assert_eq!(filter.query(transactions).len(), 2);
     }
 
 }
