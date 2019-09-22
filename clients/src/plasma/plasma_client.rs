@@ -11,7 +11,7 @@ use ethereum_types::Address;
 use ethsign::SecretKey;
 use event_watcher::event_db::EventDbImpl;
 use event_watcher::event_watcher::{EventHandler, EventWatcher, Log};
-use ovm::db::{RangeAtBlockDb, SignedByDb, TransactionDb};
+use ovm::db::{RangeAtBlockDb, SignedByDb, TransactionDb, TransactionFilterBuilder};
 use ovm::deciders::SignVerifier;
 use ovm::property_executor::PropertyExecutor;
 use ovm::types::{Integer, Property, PropertyInput, StateUpdate};
@@ -182,8 +182,11 @@ impl PlasmaClientShell {
                 acc + s.get_range().get_end() - s.get_range().get_start()
             })
     }
-    pub fn query_transactions() -> Vec<Transaction> {
-        vec![]
+    pub fn get_related_transactions(&self, session: &Bytes) -> Vec<Transaction> {
+        self.controller
+            .clone()
+            .unwrap()
+            .get_related_transactions(session)
     }
 }
 
@@ -218,6 +221,12 @@ impl PlasmaClientController {
     }
     fn search_range(&self, amount: u64) -> Option<Range> {
         self.plasma_client.lock().unwrap().search_range(amount)
+    }
+    fn get_related_transactions(&self, session: &Bytes) -> Vec<Transaction> {
+        self.plasma_client
+            .lock()
+            .unwrap()
+            .get_related_transactions(session)
     }
 }
 
@@ -399,6 +408,20 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
             );
         }
         self.update_state_updates(block.get_state_updates().to_vec());
+        let _ = self.decider.get_db().put(
+            &Bytes::from(&b"latest_block_number"[..]).into(),
+            &Bytes::from(Integer::new(block.get_block_number())),
+        );
+    }
+
+    fn get_latest_block_number(&self) -> u64 {
+        let result = self
+            .decider
+            .get_db()
+            .get(&Bytes::from(&b"latest_block_number"[..]).into())
+            .unwrap()
+            .unwrap();
+        Integer::from(Bytes::from(result)).0
     }
 
     pub fn handle_new_transaction(&self, event: &NewTransactionEvent) {
@@ -444,5 +467,21 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
             .iter()
             .map(|su| su.get_range())
             .find(|range| amount <= range.get_end() - range.get_start())
+    }
+
+    fn get_related_transactions(&self, session: &Bytes) -> Vec<Transaction> {
+        let address = self.get_my_address(session).unwrap();
+        let transaction_db = TransactionDb::new(self.decider.get_range_db());
+        let latest_block_number = self.get_latest_block_number();
+
+        let filter = TransactionFilterBuilder::new()
+            .address_to(address)
+            .address_from(address)
+            .block_from(0)
+            .block_to(latest_block_number)
+            .range(Range::new(0, 1000)) // TODO: max range?
+            .build();
+
+        transaction_db.query_transaction(filter).unwrap()
     }
 }

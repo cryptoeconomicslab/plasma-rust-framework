@@ -90,8 +90,14 @@ struct PaymentHistory {
     status: PaymentHistoryStatus,
 }
 
-fn get_payment_history(body: web::Json<GetPaymentHistoryRequest>) -> Result<HttpResponse> {
+fn get_payment_history(
+    body: web::Json<GetPaymentHistoryRequest>,
+    plasma_client: web::Data<PlasmaClientShell>,
+) -> Result<HttpResponse> {
     info!("BODY: {:?}", body);
+    let txs =
+        plasma_client.get_related_transactions(&decode_session(body.session.clone()).unwrap());
+    println!("{:?}", txs);
     Ok(HttpResponse::Ok().json(vec![PaymentHistory {
         history_type: PaymentHistoryType::SEND,
         amount: 10,
