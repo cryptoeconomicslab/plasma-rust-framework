@@ -184,6 +184,7 @@ mod tests {
         );
         println!("{:?}", plasma_block.to_tuple());
         let decoded = PlasmaBlock::from_abi(&plasma_block.to_abi()).unwrap();
+        println!("{:?}", decoded.to_tuple());
 
         assert_eq!(plasma_block.get_block_number(), decoded.get_block_number());
         assert_eq!(
