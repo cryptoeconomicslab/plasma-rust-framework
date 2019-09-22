@@ -40,7 +40,6 @@ fn create_account(plasma_client: web::Data<PlasmaClientShell>) -> Result<HttpRes
 // Get Balance
 #[derive(Deserialize, Debug)]
 struct GetBalanceRequest {
-    address: Address,
     session: String,
 }
 
@@ -79,7 +78,7 @@ enum PaymentHistoryStatus {
 
 #[derive(Deserialize, Debug)]
 struct GetPaymentHistoryRequest {
-    address: Address,
+    session: String,
 }
 
 #[derive(Serialize)]
@@ -269,7 +268,6 @@ pub fn main() {
         let mut client =
             PlasmaClientShell::new("127.0.0.1:8080".to_owned(), commitment_contract_address);
         client.connect();
-        client.initialize();
 
         let data = web::Data::new(client);
         App::new()
