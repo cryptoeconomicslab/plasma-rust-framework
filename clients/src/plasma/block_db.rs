@@ -154,23 +154,45 @@ mod tests {
             )],
         );
 
-        println!(
-            "{}: {:?}",
-            plasma_block.get_block_number(),
-            plasma_block.get_transactions()
-        );
-
         let _ = block_db.save_block(&plasma_block);
         let result = block_db.get_block(Integer::new(1));
 
         assert!(result.is_ok());
         let block = result.unwrap();
-        println!(
-            "{}: {:?}",
-            block.get_block_number(),
-            block.get_transactions()
-        );
         assert_eq!(block.get_transactions().len(), 1);
         assert_eq!(block.get_state_updates().len(), 1);
+    }
+
+    #[test]
+    fn test_abi_plasma_block() {
+        let plasma_block = PlasmaBlock::new(
+            1,
+            vec![StateUpdate::new(
+                Integer::new(7),
+                Range::new(12, 13),
+                Property::new(Address::zero(), vec![]),
+            )],
+            vec![NewTransactionEvent::new(
+                Integer::new(8),
+                Transaction::new(
+                    Address::zero(),
+                    Range::new(14, 15),
+                    Bytes::default(),
+                    Bytes::default(),
+                ),
+            )],
+        );
+        println!("{:?}", plasma_block.to_tuple());
+        let decoded = PlasmaBlock::from_abi(&plasma_block.to_abi()).unwrap();
+
+        assert_eq!(plasma_block.get_block_number(), decoded.get_block_number());
+        assert_eq!(
+            plasma_block.get_state_updates().len(),
+            decoded.get_state_updates().len()
+        );
+        assert_eq!(
+            plasma_block.get_transactions().len(),
+            decoded.get_transactions().len()
+        );
     }
 }
