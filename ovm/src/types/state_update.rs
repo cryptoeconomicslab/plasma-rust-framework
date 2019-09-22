@@ -7,6 +7,7 @@ use abi_derive::{AbiDecodable, AbiEncodable};
 use abi_utils::{Decodable, Encodable, Integer};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
+use ethereum_types::Address;
 use plasma_core::data_structure::error::{
     Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind,
 };
@@ -17,17 +18,28 @@ use tiny_keccak::Keccak;
 #[derive(Clone, Debug, AbiEncodable, AbiDecodable)]
 pub struct StateUpdate {
     block_number: Integer,
+    deposit_contract_address: Address,
     range: Range,
     property: Property,
 }
 
 impl StateUpdate {
-    pub fn new(block_number: Integer, range: Range, property: Property) -> Self {
+    pub fn new(
+        block_number: Integer,
+        deposit_contract_address: Address,
+        range: Range,
+        property: Property,
+    ) -> Self {
         Self {
             block_number,
+            deposit_contract_address,
             range,
             property,
         }
+    }
+
+    pub fn get_deposit_contract_address(&self) -> Address {
+        self.deposit_contract_address
     }
 
     pub fn get_range(&self) -> Range {

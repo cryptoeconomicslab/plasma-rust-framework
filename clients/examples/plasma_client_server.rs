@@ -98,7 +98,7 @@ fn send_payment(
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     let to_address = body.to.to_string();
-    plasma_client.send_transaction(&Bytes::from(body.session.clone()), &to_address, 0, 10);
+    plasma_client.send_transaction(&Bytes::from(body.session.clone()), &to_address, None, 0, 10);
 
     Ok(HttpResponse::Ok().json(SendPayment {
         from: body.from,

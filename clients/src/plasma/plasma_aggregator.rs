@@ -139,9 +139,11 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
 
     pub fn insert_test_ranges(&mut self) {
         let mut state_db = StateDb::new(self.decider.get_range_db());
+        let eth_token_address = Address::zero();
         for i in 0..3 {
             let state_update = StateUpdate::new(
                 Integer::new(0),
+                eth_token_address,
                 Range::new(i * 20, (i + 1) * 20),
                 PlasmaClientShell::create_ownership_state_object(Address::from_slice(
                     &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),
