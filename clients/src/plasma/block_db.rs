@@ -145,7 +145,7 @@ mod tests {
                 Property::new(Address::zero(), vec![]),
             )],
             vec![NewTransactionEvent::new(
-                Integer::new(0),
+                vec![Integer::new(0)],
                 Transaction::new(
                     Address::zero(),
                     Range::new(0, 5),
@@ -176,7 +176,7 @@ mod tests {
                 Property::new(Address::zero(), vec![]),
             )],
             vec![NewTransactionEvent::new(
-                Integer::new(8),
+                vec![Integer::new(8)],
                 Transaction::new(
                     Address::zero(),
                     Range::new(14, 15),

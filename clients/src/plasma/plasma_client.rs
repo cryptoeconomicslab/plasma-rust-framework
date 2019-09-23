@@ -402,7 +402,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
                 .is_ok());
         }
         for tx in block.get_transactions().iter() {
-            transaction_db.put_transaction(tx.prev_state_block_number.0, tx.transaction.clone());
+            for previous_block_number in tx.clone().prev_state_block_numbers {
+                transaction_db.put_transaction(previous_block_number.0, tx.transaction.clone());
+            }
             let message = Bytes::from(tx.transaction.to_body_abi());
             assert!(signed_by_db
                 .store_witness(
@@ -445,7 +447,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         println!("handle_new_transaction");
         // println!("handle_new_transaction {:?}", event);
         let transaction_db = TransactionDb::new(self.decider.get_range_db());
-        transaction_db.put_transaction(event.prev_state_block_number.0, event.transaction.clone());
+        for previous_block_number in event.clone().prev_state_block_numbers {
+            transaction_db.put_transaction(previous_block_number.0, event.transaction.clone());
+        }
     }
 
     pub fn insert_test_ranges(&mut self) {

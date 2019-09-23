@@ -80,8 +80,11 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         if state_updates.is_empty() {
             return Err(Error::from(ErrorKind::InvalidTransaction));
         }
-        let prev_state = &state_updates[0];
-        transaction_db.put_transaction(prev_state.get_block_number().0, transaction.clone());
+        // Store witness
+        // TODO: if one of these Database operation failed, need to roll back all of them.
+        for prev_state in state_updates.clone() {
+            transaction_db.put_transaction(prev_state.get_block_number().0, transaction.clone());
+        }
         let message = Bytes::from(transaction.to_body_abi());
         assert!(signed_by_db
             .store_witness(
@@ -90,33 +93,25 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
                 transaction.get_signature().clone(),
             )
             .is_ok());
-
-        if !prev_state.get_range().is_subrange(&transaction.get_range()) {
-            return Err(Error::from(ErrorKind::InvalidTransaction));
+        // Check that the transaction deprecate all previous state_updates within same coin range.
+        for prev_state in state_updates.clone() {
+            // Current execute_state_transition returns next state_update which has the same range as transaction.
+            // It means same next_state is added to storage multiple times and it's overwrite.
+            if let Ok(next_state) = prev_state.execute_state_transition(
+                &self.decider,
+                &transaction,
+                Integer(next_block_number),
+            ) {
+                self.block_manager.enqueue_state_update(&next_state)?;
+                state_db.put_verified_state_update(&next_state)?;
+            } else {
+                return Err(Error::from(ErrorKind::InvalidTransaction));
+            }
         }
-        // TODO: if one of these Database operation failed, need to roll back all of them.
-        if let Ok(next_state) = prev_state.execute_state_transition(
-            &self.decider,
-            &transaction,
-            Integer(next_block_number),
-        ) {
-            let res = self.block_manager.enqueue_state_update(&next_state);
-            if res.is_err() {
-                return Err(Error::from(ErrorKind::InvalidTransaction));
-            }
-            let new_tx =
-                NewTransactionEvent::new(prev_state.get_block_number(), transaction.clone());
-            let res_tx = self.block_manager.enqueue_tx(new_tx.clone());
-            if res_tx.is_err() {
-                return Err(Error::from(ErrorKind::InvalidTransaction));
-            }
-            let res_new_state = state_db.put_verified_state_update(&next_state);
-            if res_new_state.is_err() {
-                return Err(Error::from(ErrorKind::InvalidTransaction));
-            }
-            return Ok(new_tx.clone());
-        }
-        Err(Error::from(ErrorKind::InvalidTransaction))
+        let prev_block_numbers = state_updates.iter().map(|s| s.get_block_number()).collect();
+        let new_tx = NewTransactionEvent::new(prev_block_numbers, transaction.clone());
+        self.block_manager.enqueue_tx(new_tx.clone())?;
+        Ok(new_tx)
     }
 
     pub fn submit_next_block(&mut self) -> Result<(), Error> {
@@ -174,5 +169,40 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
 
     pub fn get_plasma_block_of_block(&self, block_number: Integer) -> Result<PlasmaBlock, Error> {
         self.block_manager.get_block_range(block_number)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use abi_utils::abi::Encodable;
+    use ethereum_types::Address;
+    use ethsign::SecretKey;
+    use ovm::deciders::SignVerifier;
+    use plasma_core::data_structure::{Metadata, Range, Transaction, TransactionParams};
+    use plasma_db::impls::kvs::CoreDbMemoryImpl;
+
+    #[test]
+    fn test_ingest() {
+        let mut aggregator: PlasmaAggregator<CoreDbMemoryImpl> = PlasmaAggregator::new(
+            Address::zero(),
+            Address::zero(),
+            Address::zero(),
+            "c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3",
+        );
+        let secret_key_raw =
+            hex::decode("c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3")
+                .unwrap();
+        let secret_key = SecretKey::from_raw(&secret_key_raw).unwrap();
+        let test_range = Range::new(5, 15);
+        let parameters = PlasmaClientShell::create_ownership_state_object(Address::zero()).to_abi();
+        aggregator.insert_test_ranges();
+        let transaction_params =
+            TransactionParams::new(Address::zero(), test_range, Bytes::from(parameters));
+        let signature = SignVerifier::sign(&secret_key, &Bytes::from(transaction_params.to_abi()));
+        let transaction =
+            Transaction::from_params(transaction_params, signature, Metadata::default());
+        let result = aggregator.ingest_transaction(transaction);
+        assert!(result.is_ok());
     }
 }
