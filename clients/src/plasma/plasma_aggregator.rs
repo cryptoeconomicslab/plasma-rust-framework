@@ -95,11 +95,14 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             .is_ok());
         // Check that the transaction deprecate all previous state_updates within same coin range.
         for prev_state in state_updates.clone() {
+            // Current execute_state_transition returns next state_update which has the same range as transaction.
+            // It means same next_state is added to storage multiple times and it's overwrite.
             if let Ok(next_state) = prev_state.execute_state_transition(
                 &self.decider,
                 &transaction,
                 Integer(next_block_number),
             ) {
+
                 self.block_manager.enqueue_state_update(&next_state)?;
                 state_db.put_verified_state_update(&next_state)?;
             } else {
