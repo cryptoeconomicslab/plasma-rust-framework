@@ -275,14 +275,14 @@ impl EventHandler for PlasmaClientController {
 
 /// Plasma Client on OVM.
 pub struct PlasmaClient<KVS: KeyValueStore> {
-    plasma_contract_address: Address,
+    deposit_contract_address: Address,
     decider: PropertyExecutor<KVS>,
 }
 
 impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
-    pub fn new(plasma_contract_address: Address) -> Self {
+    pub fn new(deposit_contract_address: Address) -> Self {
         PlasmaClient {
-            plasma_contract_address,
+            deposit_contract_address,
             decider: Default::default(),
         }
     }
@@ -298,7 +298,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let contract_abi = ContractABI::load(reader).unwrap();
         let plasma_contract = PlasmaContractAdaptor::new(
             "http://127.0.0.1:9545",
-            &self.plasma_contract_address.to_string(),
+            &self.deposit_contract_address.to_string(),
             contract_abi,
         )
         .unwrap();
@@ -364,7 +364,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let contract_abi = ContractABI::load(reader).unwrap();
         let plasma_contract = PlasmaContractAdaptor::new(
             "http://127.0.0.1:9545",
-            &self.plasma_contract_address.to_string(),
+            &self.deposit_contract_address.to_string(),
             contract_abi,
         )
         .unwrap();

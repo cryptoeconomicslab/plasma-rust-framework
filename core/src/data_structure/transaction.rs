@@ -2,84 +2,45 @@ extern crate ethereum_types;
 extern crate tiny_keccak;
 
 use super::{Metadata, Range};
-use abi_utils::{Decodable, Encodable, Error as AbiError, ErrorKind as AbiErrorKind};
+use abi_derive::{AbiDecodable, AbiEncodable};
+use abi_utils::abi::Encodable;
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::Address;
 use tiny_keccak::Keccak;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, AbiEncodable, AbiDecodable)]
 /// Transaction without signature
 pub struct TransactionParams {
-    plasma_contract_address: Address,
+    deposit_contract_address: Address,
     range: Range,
     parameters: Bytes,
 }
 
 impl TransactionParams {
-    pub fn new(plasma_contract_address: Address, range: Range, parameters: Bytes) -> Self {
+    pub fn new(deposit_contract_address: Address, range: Range, parameters: Bytes) -> Self {
         TransactionParams {
-            plasma_contract_address,
+            deposit_contract_address,
             range,
             parameters,
         }
     }
 }
 
-// TODO: use AbiEncodable
-impl Encodable for TransactionParams {
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![
-            Token::Address(self.plasma_contract_address),
-            Token::Tuple(self.range.to_tuple()),
-            Token::Bytes(self.parameters.to_vec()),
-        ]
-    }
-}
-
-// TODO: use AbiDecodable
-impl Decodable for TransactionParams {
-    type Ok = Self;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, AbiError> {
-        let plasma_contract_address = tuple[0].clone().to_address();
-        let range = tuple[1].clone().to_tuple();
-        let parameters = tuple[2].clone().to_bytes();
-        if let (Some(plasma_contract_address), Some(range), Some(parameters)) =
-            (plasma_contract_address, range, parameters)
-        {
-            Ok(TransactionParams {
-                plasma_contract_address,
-                range: Range::from_tuple(&range).ok().unwrap(),
-                parameters: Bytes::from(parameters),
-            })
-        } else {
-            Err(AbiError::from(AbiErrorKind::AbiDecode))
-        }
-    }
-
-    fn get_param_types() -> Vec<ParamType> {
-        vec![
-            ParamType::Address,
-            ParamType::Tuple(vec![ParamType::Uint(8), ParamType::Uint(8)]),
-            ParamType::Bytes,
-            ParamType::Bytes,
-        ]
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, AbiEncodable, AbiDecodable)]
 /// ## struct Transaction
-/// - has a `plasma_contract_address`
+/// - has a `deposit_contract_address`
 /// - has a `start` (A range element)
 /// - has a `end` (A range element)
 /// - has a `method_id` (like ABI)
 /// - has many `parameters`
 /// - has a `signature` (for now)
+/// - has a `metadata`
 /// - Traits
 ///   - Encodable
 ///   - Decodable
 pub struct Transaction {
-    plasma_contract_address: Address,
+    deposit_contract_address: Address,
     range: Range,
     parameters: Bytes,
     signature: Bytes,
@@ -90,17 +51,17 @@ impl Transaction {
     /// ### Transaction.new
     /// A constructor of a Transaction struct
     /// ```ignore
-    /// let tx = Transaction.new(plasma_contract_address, start, end ,method_id, &parameters, &witness);
+    /// let tx = Transaction.new(deposit_contract_address, start, end ,method_id, &parameters, &witness);
     /// ```
     pub fn new(
-        plasma_contract_address: Address,
+        deposit_contract_address: Address,
         range: Range,
         parameters: Bytes,
         signature: Bytes,
         metadata: Metadata,
     ) -> Transaction {
         Transaction {
-            plasma_contract_address,
+            deposit_contract_address,
             range,
             parameters,
             signature,
@@ -114,7 +75,7 @@ impl Transaction {
         metadata: Metadata,
     ) -> Transaction {
         Transaction::new(
-            transaction_params.plasma_contract_address,
+            transaction_params.deposit_contract_address,
             transaction_params.range,
             transaction_params.parameters,
             signature,
@@ -129,7 +90,7 @@ impl Transaction {
     /// ```
     pub fn to_body_abi(&self) -> Vec<u8> {
         ethabi::encode(&[
-            Token::Address(self.plasma_contract_address),
+            Token::Address(self.deposit_contract_address),
             Token::Tuple(self.range.to_tuple()),
             Token::Bytes(self.parameters.to_vec()),
         ])
@@ -157,79 +118,14 @@ impl Transaction {
     pub fn get_parameters(&self) -> &Bytes {
         &self.parameters
     }
-    pub fn get_plasma_contract_address(&self) -> Address {
-        self.plasma_contract_address
+    pub fn get_deposit_contract_address(&self) -> Address {
+        self.deposit_contract_address
     }
     pub fn get_signature(&self) -> &Bytes {
         &self.signature
     }
     pub fn get_metadata(&self) -> &Metadata {
         &self.metadata
-    }
-}
-
-impl Encodable for Transaction {
-    /// ### tx.to_abi()
-    /// A function to convert the transaction instance to the full abi bytes
-    /// ```ignore
-    /// let abi = tx.to_abi()
-    /// ```
-    fn to_tuple(&self) -> Vec<Token> {
-        vec![
-            Token::Address(self.plasma_contract_address),
-            Token::Tuple(self.range.to_tuple()),
-            Token::Bytes(self.parameters.to_vec()),
-            Token::Bytes(self.signature.to_vec()),
-            Token::Bytes(self.metadata.to_abi()),
-        ]
-    }
-}
-
-impl Decodable for Transaction {
-    type Ok = Self;
-    fn from_tuple(tuple: &[Token]) -> Result<Self, AbiError> {
-        let plasma_contract_address = tuple[0].clone().to_address();
-        let range = tuple[1].clone().to_tuple();
-        let parameters = tuple[2].clone().to_bytes();
-        let signature = tuple[3].clone().to_bytes();
-        let metadata = tuple[4].clone().to_bytes();
-        if let (
-            Some(plasma_contract_address),
-            Some(range),
-            Some(parameters),
-            Some(signature),
-            Some(metadata),
-        ) = (
-            plasma_contract_address,
-            range,
-            parameters,
-            signature,
-            metadata,
-        ) {
-            Ok(Transaction::new(
-                plasma_contract_address,
-                Range::from_tuple(&range).ok().unwrap(),
-                Bytes::from(parameters),
-                Bytes::from(signature),
-                Metadata::from_abi(&metadata).ok().unwrap(),
-            ))
-        } else {
-            Err(AbiError::from(AbiErrorKind::AbiDecode))
-        }
-    }
-    /// ### Transaction.from_abi()
-    /// A static function to convert the abi into a tx instance
-    /// ```ignore
-    /// let tx = Transaction.from_abi(&abi)
-    /// ```
-    fn get_param_types() -> Vec<ParamType> {
-        vec![
-            ParamType::Address,
-            ParamType::Tuple(vec![ParamType::Uint(8), ParamType::Uint(8)]),
-            ParamType::Bytes,
-            ParamType::Bytes,
-            ParamType::Bytes,
-        ]
     }
 }
 

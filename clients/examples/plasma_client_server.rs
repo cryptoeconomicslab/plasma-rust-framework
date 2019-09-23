@@ -93,6 +93,7 @@ struct PaymentHistory {
     address: Address,
     timestamp: DateTime<Local>,
     status: PaymentHistoryStatus,
+    token_address: Address,
 }
 
 fn get_payment_history(
@@ -122,6 +123,7 @@ fn get_payment_history(
                 },
                 timestamp: Local::now(),
                 status: PaymentHistoryStatus::CONFIRMED,
+                token_address: Address::zero(),
             }
         })
         .collect();
