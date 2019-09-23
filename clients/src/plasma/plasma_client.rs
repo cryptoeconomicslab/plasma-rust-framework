@@ -124,8 +124,11 @@ impl PlasmaClientShell {
         );
         tokio::spawn(watcher);
     }
-    pub fn search_range(&self, amount: u64) -> Option<Range> {
-        self.controller.clone().unwrap().search_range(amount)
+    pub fn search_range(&self, deposit_contract_address: Address, amount: u64) -> Option<Range> {
+        self.controller
+            .clone()
+            .unwrap()
+            .search_range(deposit_contract_address, amount)
     }
     /// Creates new account
     pub fn create_account(&self) -> (Bytes, SecretKey) {
@@ -235,8 +238,11 @@ impl PlasmaClientController {
         let mut plasma_client = self.plasma_client.lock().unwrap();
         plasma_client.insert_test_ranges()
     }
-    fn search_range(&self, amount: u64) -> Option<Range> {
-        self.plasma_client.lock().unwrap().search_range(amount)
+    fn search_range(&self, deposit_contract_address: Address, amount: u64) -> Option<Range> {
+        self.plasma_client
+            .lock()
+            .unwrap()
+            .search_range(deposit_contract_address, amount)
     }
     fn get_related_transactions(&self, session: &Bytes) -> Vec<Transaction> {
         self.plasma_client
@@ -481,9 +487,10 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     }
 
     /// return range if enough amount is exists.
-    pub fn search_range(&self, amount: u64) -> Option<Range> {
+    pub fn search_range(&self, deposit_contract_address: Address, amount: u64) -> Option<Range> {
         self.get_state_updates()
             .iter()
+            .filter(|su| su.get_deposit_contract_address() == deposit_contract_address)
             .map(|su| su.get_range())
             .find(|range| amount <= range.get_end() - range.get_start())
     }
