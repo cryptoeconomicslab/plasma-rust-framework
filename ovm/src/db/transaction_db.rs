@@ -56,7 +56,6 @@ where
         let mut result = vec![];
         for i in from_block..=to_block {
             let txs = self.get_transactions(i, range)?;
-            println!("{:?}", txs);
             result.append(&mut transaction_filter.query(txs));
         }
 
