@@ -172,6 +172,7 @@ impl PlasmaClientShell {
         //        controller.fetch_block(Integer(0));
         controller.initialize()
     }
+    /// Gets balances as HashMap which key is token address and value is balance
     pub fn get_balance(&self, session: &Bytes) -> HashMap<Address, u64> {
         let controller = self.controller.clone().unwrap();
         let plasma_client = controller.plasma_client.lock().unwrap();
