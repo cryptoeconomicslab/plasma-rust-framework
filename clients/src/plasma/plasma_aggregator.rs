@@ -102,7 +102,6 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
                 &transaction,
                 Integer(next_block_number),
             ) {
-
                 self.block_manager.enqueue_state_update(&next_state)?;
                 state_db.put_verified_state_update(&next_state)?;
             } else {
@@ -206,5 +205,4 @@ mod tests {
         let result = aggregator.ingest_transaction(transaction);
         assert!(result.is_ok());
     }
-
 }
