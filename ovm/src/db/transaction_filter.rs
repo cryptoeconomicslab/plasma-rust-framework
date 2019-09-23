@@ -197,5 +197,4 @@ mod tests {
 
         assert_eq!(filter.query(transactions).len(), 2);
     }
-
 }

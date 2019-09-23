@@ -21,7 +21,7 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
         BlockDb { db: range_db }
     }
 
-    pub fn enqueue_state_update(&self, state_update: StateUpdate) -> Result<(), Error> {
+    pub fn enqueue_state_update(&self, state_update: &StateUpdate) -> Result<(), Error> {
         let range = state_update.get_range();
 
         self.db

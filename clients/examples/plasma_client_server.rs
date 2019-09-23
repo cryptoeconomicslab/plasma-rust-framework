@@ -98,7 +98,6 @@ fn get_payment_history(
     let session = decode_session(body.session.clone()).unwrap();
     let my_address = plasma_client.get_my_address(&session).unwrap();
     let txs = plasma_client.get_related_transactions(&session);
-    println!("{:?}", txs);
     let history: Vec<PaymentHistory> = txs
         .into_iter()
         .map(|tx| {

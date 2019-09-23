@@ -457,7 +457,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let mut state_db = StateDb::new(range_db);
 
         for s in state_updates.iter() {
-            let _ = state_db.put_verified_state_update(s.clone());
+            let _ = state_db.put_verified_state_update(&s);
         }
     }
 
