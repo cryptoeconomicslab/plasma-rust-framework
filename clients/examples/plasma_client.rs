@@ -14,7 +14,7 @@ fn main() {
         println!("{:?}", shell.get_balance(&Bytes::from("")));
         shell.send_transaction(
             &Bytes::from(""),
-            "2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e",
+            Address::from_slice(&hex::decode("2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e").unwrap()),
             None,
             0,
             10,

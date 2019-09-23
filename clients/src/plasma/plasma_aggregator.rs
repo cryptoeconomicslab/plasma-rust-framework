@@ -70,7 +70,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         let transaction_db = TransactionDb::new(self.decider.get_range_db());
         let signed_by_db = SignedByDb::new(self.decider.get_db());
         let next_block_number = self.block_manager.get_current_block_number();
-        let state_db = StateDb::new(self.decider.get_range_db());
+        let mut state_db = StateDb::new(self.decider.get_range_db());
         let state_updates = state_db
             .get_verified_state_updates(
                 transaction.get_range().get_start(),
@@ -94,12 +94,13 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         if !prev_state.get_range().is_subrange(&transaction.get_range()) {
             return Err(Error::from(ErrorKind::InvalidTransaction));
         }
+        // TODO: if one of these Database operation failed, need to roll back all of them.
         if let Ok(next_state) = prev_state.execute_state_transition(
-            &mut self.decider,
+            &self.decider,
             &transaction,
             Integer(next_block_number),
         ) {
-            let res = self.block_manager.enqueue_state_update(next_state);
+            let res = self.block_manager.enqueue_state_update(&next_state);
             if res.is_err() {
                 return Err(Error::from(ErrorKind::InvalidTransaction));
             }
@@ -107,6 +108,10 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
                 NewTransactionEvent::new(prev_state.get_block_number(), transaction.clone());
             let res_tx = self.block_manager.enqueue_tx(new_tx.clone());
             if res_tx.is_err() {
+                return Err(Error::from(ErrorKind::InvalidTransaction));
+            }
+            let res_new_state = state_db.put_verified_state_update(&next_state);
+            if res_new_state.is_err() {
                 return Err(Error::from(ErrorKind::InvalidTransaction));
             }
             return Ok(new_tx.clone());
@@ -149,7 +154,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
                     &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),
                 )),
             );
-            assert!(state_db.put_verified_state_update(state_update).is_ok());
+            assert!(state_db.put_verified_state_update(&state_update).is_ok());
         }
     }
 

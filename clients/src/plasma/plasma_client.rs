@@ -11,12 +11,12 @@ use ethereum_types::Address;
 use ethsign::SecretKey;
 use event_watcher::event_db::EventDbImpl;
 use event_watcher::event_watcher::{EventHandler, EventWatcher, Log};
-use ovm::db::{RangeAtBlockDb, SignedByDb, TransactionDb};
+use ovm::db::{RangeAtBlockDb, SignedByDb, TransactionDb, TransactionFilterBuilder};
 use ovm::deciders::SignVerifier;
 use ovm::property_executor::PropertyExecutor;
 use ovm::types::{Integer, Property, PropertyInput, StateUpdate};
 use ovm::DeciderManager;
-use plasma_core::data_structure::{Range, Transaction, TransactionParams};
+use plasma_core::data_structure::{Metadata, Range, Transaction, TransactionParams};
 use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
@@ -124,6 +124,9 @@ impl PlasmaClientShell {
         );
         tokio::spawn(watcher);
     }
+    pub fn search_range(&self, amount: u64) -> Option<Range> {
+        self.controller.clone().unwrap().search_range(amount)
+    }
     /// Creates new account
     pub fn create_account(&self) -> (Bytes, SecretKey) {
         let controller = self.controller.clone().unwrap();
@@ -140,22 +143,20 @@ impl PlasmaClientShell {
     pub fn send_transaction(
         &self,
         session: &Bytes,
-        to_address: &str,
-        deposit_contract_address: Option<String>,
+        to_address: Address,
+        deposit_contract_address: Option<Address>,
         start: u64,
         end: u64,
     ) {
-        let to_address = Address::from_slice(&hex::decode(to_address).unwrap());
-        let deposit_contract_address = deposit_contract_address
-            .map(|d| hex::decode(d).unwrap())
-            .map(|v| Address::from_slice(&v))
-            .unwrap_or_else(Address::zero);
+        let deposit_contract_address = deposit_contract_address.unwrap_or_else(Address::zero);
         let controller = self.controller.clone().unwrap();
+        let metadata = Metadata::new(self.get_my_address(session).unwrap(), to_address);
         let tx = controller.plasma_client.lock().unwrap().create_transaction(
             session,
             deposit_contract_address,
             Range::new(start, end),
             Bytes::from(Self::create_ownership_state_object(to_address).to_abi()),
+            metadata,
         );
         println!("{:?}", tx);
         let command = Command {
@@ -196,6 +197,12 @@ impl PlasmaClientShell {
             });
         balances
     }
+    pub fn get_related_transactions(&self, session: &Bytes) -> Vec<Transaction> {
+        self.controller
+            .clone()
+            .unwrap()
+            .get_related_transactions(session)
+    }
 }
 
 #[derive(Clone)]
@@ -226,6 +233,15 @@ impl PlasmaClientController {
     fn initialize(&self) {
         let mut plasma_client = self.plasma_client.lock().unwrap();
         plasma_client.insert_test_ranges()
+    }
+    fn search_range(&self, amount: u64) -> Option<Range> {
+        self.plasma_client.lock().unwrap().search_range(amount)
+    }
+    fn get_related_transactions(&self, session: &Bytes) -> Vec<Transaction> {
+        self.plasma_client
+            .lock()
+            .unwrap()
+            .get_related_transactions(session)
     }
 }
 
@@ -316,6 +332,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         deposit_contract_address: Address,
         range: Range,
         parameters: Bytes,
+        metadata: Metadata,
     ) -> Transaction {
         let transaction_params =
             TransactionParams::new(deposit_contract_address, range, parameters);
@@ -324,7 +341,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         if let Some(secret_key) = wallet.get_key(session) {
             let signature =
                 SignVerifier::sign(&secret_key, &Bytes::from(transaction_params.to_abi()));
-            Transaction::from_params(transaction_params, signature)
+            Transaction::from_params(transaction_params, signature, metadata)
         } else {
             panic!("secret key not found");
         }
@@ -407,6 +424,20 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
             );
         }
         self.update_state_updates(block.get_state_updates().to_vec());
+        let _ = self.decider.get_db().put(
+            &Bytes::from(&b"latest_block_number"[..]).into(),
+            &Bytes::from(Integer::new(block.get_block_number())),
+        );
+    }
+
+    fn get_latest_block_number(&self) -> u64 {
+        let result = self
+            .decider
+            .get_db()
+            .get(&Bytes::from(&b"latest_block_number"[..]).into())
+            .unwrap()
+            .unwrap();
+        Integer::from(Bytes::from(result)).0
     }
 
     pub fn handle_new_transaction(&self, event: &NewTransactionEvent) {
@@ -444,7 +475,32 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let mut state_db = StateDb::new(range_db);
 
         for s in state_updates.iter() {
-            let _ = state_db.put_verified_state_update(s.clone());
+            let _ = state_db.put_verified_state_update(&s);
         }
+    }
+
+    /// return range if enough amount is exists.
+    pub fn search_range(&self, amount: u64) -> Option<Range> {
+        self.get_state_updates()
+            .iter()
+            .map(|su| su.get_range())
+            .find(|range| amount <= range.get_end() - range.get_start())
+    }
+
+    fn get_related_transactions(&self, session: &Bytes) -> Vec<Transaction> {
+        let address = self.get_my_address(session).unwrap();
+        println!("{:?}", address);
+        let transaction_db = TransactionDb::new(self.decider.get_range_db());
+        let latest_block_number = self.get_latest_block_number();
+
+        let filter = TransactionFilterBuilder::new()
+            .address_to(address)
+            .address_from(address)
+            .block_from(0)
+            .block_to(latest_block_number)
+            .range(Range::new(0, 1000)) // TODO: max range?
+            .build();
+
+        transaction_db.query_transaction(filter).unwrap()
     }
 }
