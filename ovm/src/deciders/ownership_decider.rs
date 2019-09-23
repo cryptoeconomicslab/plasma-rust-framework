@@ -61,6 +61,7 @@ impl OwnershipDecider {
     ) -> StateUpdate {
         StateUpdate::new(
             next_block_number,
+            transaction.get_plasma_contract_address(),
             transaction.get_range(),
             Property::from_abi(transaction.get_parameters()).unwrap(),
         )

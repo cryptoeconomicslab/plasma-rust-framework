@@ -47,6 +47,13 @@ fn main() {
                 .about("send money")
                 .version("1.0")
                 .arg(
+                    Arg::with_name("token")
+                        .short("d")
+                        .value_name("token")
+                        .takes_value(true)
+                        .help("deposit contract address"),
+                )
+                .arg(
                     Arg::with_name("start")
                         .short("s")
                         .value_name("start")
@@ -78,11 +85,15 @@ fn main() {
         PlasmaClientShell::new("127.0.0.1:8080".to_string(), commitment_contract_address);
 
     if matches.subcommand_matches("balance").is_some() {
+        let eth_address = Address::zero();
         tokio::run(future::lazy(move || {
             shell.connect();
             println!(
                 "Your balance is {:?} ETH",
-                shell.get_balance(&string_to_session(session_str))
+                shell
+                    .get_balance(&string_to_session(session_str))
+                    .get(&eth_address)
+                    .unwrap_or(&0)
             );
             Ok(())
         }));
@@ -101,14 +112,26 @@ fn main() {
             Ok(())
         }));
     } else if let Some(matches) = matches.subcommand_matches("send") {
+        let token_address_opt = value_t!(matches, "token", String)
+            .map(|a| Address::from_slice(&hex::decode(&a).unwrap()))
+            .ok();
         let to_address =
             Address::from_slice(&hex::decode(&value_t!(matches, "to", String).unwrap()).unwrap());
         let start = value_t!(matches, "start", u64).unwrap();
         let end = value_t!(matches, "end", u64).unwrap();
-        println!("Send {:?}-{:?} ETH to {:?} ", start, end, to_address);
+        println!(
+            "Send {:?}-{:?} token={:?} to {:?} ",
+            start, end, token_address_opt, to_address
+        );
         tokio::run(future::lazy(move || {
             shell.connect();
-            shell.send_transaction(&string_to_session(session_str), to_address, start, end);
+            shell.send_transaction(
+                &string_to_session(session_str),
+                to_address,
+                token_address_opt,
+                start,
+                end,
+            );
             println!("Sent!!!");
             Ok(())
         }));

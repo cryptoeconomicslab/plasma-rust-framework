@@ -66,11 +66,13 @@ mod tests {
             PropertyInput::Placeholder(Bytes::from("state_update")),
             PropertyInput::ConstantAddress(alice),
         ]);
+        let deposit_contract_address: Address = Address::zero();
         let mut leaves = vec![];
         let mut first_state_update_opt: Option<StateUpdate> = None;
         for i in 0..100 {
             let state_update = StateUpdate::new(
                 block_number,
+                deposit_contract_address,
                 Range::new(i * 30, i * 30 + 100),
                 property.clone(),
             );

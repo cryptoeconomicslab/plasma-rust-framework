@@ -21,6 +21,7 @@ use plasma_db::impls::kvs::CoreDbLevelDbImpl;
 use plasma_db::traits::db::DatabaseTrait;
 use plasma_db::traits::kvs::KeyValueStore;
 use pubsub_messaging::{connect, Client as PubsubClient, ClientHandler, Message, Sender};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::sync::{Arc, Mutex};
@@ -139,11 +140,20 @@ impl PlasmaClientShell {
         let plasma_client = controller.plasma_client.lock().unwrap();
         plasma_client.import_key(&raw_key)
     }
-    pub fn send_transaction(&self, session: &Bytes, to_address: Address, start: u64, end: u64) {
+    pub fn send_transaction(
+        &self,
+        session: &Bytes,
+        to_address: Address,
+        deposit_contract_address: Option<Address>,
+        start: u64,
+        end: u64,
+    ) {
+        let deposit_contract_address = deposit_contract_address.unwrap_or_else(Address::zero);
         let controller = self.controller.clone().unwrap();
         let metadata = Metadata::new(self.get_my_address(session).unwrap(), to_address);
         let tx = controller.plasma_client.lock().unwrap().create_transaction(
             session,
+            deposit_contract_address,
             Range::new(start, end),
             Bytes::from(Self::create_ownership_state_object(to_address).to_abi()),
             metadata,
@@ -162,11 +172,12 @@ impl PlasmaClientShell {
         //        controller.fetch_block(Integer(0));
         controller.initialize()
     }
-    pub fn get_balance(&self, session: &Bytes) -> u64 {
+    /// Gets balances as HashMap which key is token address and value is balance
+    pub fn get_balance(&self, session: &Bytes) -> HashMap<Address, u64> {
         let controller = self.controller.clone().unwrap();
         let plasma_client = controller.plasma_client.lock().unwrap();
         let my_address = plasma_client.get_my_address(session).unwrap();
-        plasma_client
+        let balances: HashMap<Address, u64> = plasma_client
             .get_state_updates()
             .iter()
             .filter(|s| {
@@ -178,9 +189,14 @@ impl PlasmaClientShell {
                 }
                 false
             })
-            .fold(0, |acc, s| {
-                acc + s.get_range().get_end() - s.get_range().get_start()
-            })
+            .fold(HashMap::new(), |mut acc, s| {
+                let deposit_contract = s.get_deposit_contract_address();
+                let b = acc.get(&deposit_contract).unwrap_or(&0);
+                let new_balance = b + s.get_range().get_end() - s.get_range().get_start();
+                acc.insert(deposit_contract, new_balance);
+                acc
+            });
+        balances
     }
     pub fn get_related_transactions(&self, session: &Bytes) -> Vec<Transaction> {
         self.controller
@@ -314,12 +330,13 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     pub fn create_transaction(
         &self,
         session: &Bytes,
+        deposit_contract_address: Address,
         range: Range,
         parameters: Bytes,
         metadata: Metadata,
     ) -> Transaction {
         let transaction_params =
-            TransactionParams::new(self.plasma_contract_address, range, parameters);
+            TransactionParams::new(deposit_contract_address, range, parameters);
 
         let wallet = WalletManager::new(self.decider.get_db());
         if let Some(secret_key) = wallet.get_key(session) {
@@ -433,9 +450,11 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
 
     pub fn insert_test_ranges(&mut self) {
         let mut state_updates = vec![];
+        let eth_token_address = Address::zero();
         for i in 0..3 {
             state_updates.push(StateUpdate::new(
                 Integer::new(0),
+                eth_token_address,
                 Range::new(i * 20, (i + 1) * 20),
                 PlasmaClientShell::create_ownership_state_object(Address::from_slice(
                     &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),

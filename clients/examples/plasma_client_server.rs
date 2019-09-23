@@ -45,7 +45,7 @@ struct GetBalanceRequest {
 
 #[derive(Serialize)]
 struct Balance {
-    token_id: u64,
+    token_address: Address,
     balance: u64,
 }
 
@@ -55,11 +55,16 @@ fn get_balance(
 ) -> Result<HttpResponse> {
     info!("BODY: {:?}", body);
     let session = decode_session(body.session.clone()).unwrap();
-    let balance = plasma_client.get_balance(&session);
-    Ok(HttpResponse::Ok().json(vec![Balance {
-        token_id: 1,
-        balance,
-    }]))
+    let balance: Vec<Balance> = plasma_client
+        .get_balance(&session)
+        .iter()
+        .map(|(k, v)| Balance {
+            token_address: *k,
+            balance: *v,
+        })
+        .collect();
+
+    Ok(HttpResponse::Ok().json(balance))
 }
 
 // Get Payment History
@@ -142,6 +147,7 @@ fn send_payment(
         plasma_client.send_transaction(
             &session,
             body.to,
+            None,
             range.get_start(),
             range.get_start() + body.amount,
         );

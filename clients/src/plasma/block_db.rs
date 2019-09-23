@@ -140,6 +140,7 @@ mod tests {
             1,
             vec![StateUpdate::new(
                 Integer::new(1),
+                Address::zero(),
                 Range::new(0, 5),
                 Property::new(Address::zero(), vec![]),
             )],
@@ -170,6 +171,7 @@ mod tests {
             1,
             vec![StateUpdate::new(
                 Integer::new(7),
+                Address::zero(),
                 Range::new(12, 13),
                 Property::new(Address::zero(), vec![]),
             )],

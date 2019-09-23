@@ -49,7 +49,7 @@ mod tests {
     use crate::types::{Integer, StateUpdate};
     use crate::DeciderManager;
     use abi_utils::{Decodable, Encodable};
-    use ethereum_types::H256;
+    use ethereum_types::{Address, H256};
     use plasma_core::data_structure::Range;
 
     #[test]
@@ -58,7 +58,13 @@ mod tests {
             DeciderManager::preimage_exists_decider(vec![
                 PropertyInput::ConstantH256(H256::zero()),
             ]);
-        let state_update = StateUpdate::new(Integer(10), Range::new(0, 100), property);
+        let deposit_contract_address: Address = Address::zero();
+        let state_update = StateUpdate::new(
+            Integer(10),
+            deposit_contract_address,
+            Range::new(0, 100),
+            property,
+        );
         let state_update_list = StateUpdateList::new(vec![state_update]);
         let encoded = state_update_list.to_abi();
         let decoded = StateUpdateList::from_abi(&encoded).unwrap();
