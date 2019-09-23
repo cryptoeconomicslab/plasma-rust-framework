@@ -1,9 +1,9 @@
 use super::plasma_block::PlasmaBlock;
 use abi_derive::{AbiDecodable, AbiEncodable};
-use abi_utils::Encodable;
+use abi_utils::{Encodable, Integer};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
-use ovm::types::{Integer, StateUpdateList};
+use ovm::types::StateUpdateList;
 use plasma_core::data_structure::Transaction;
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
@@ -53,6 +53,7 @@ impl FetchBlockRequest {
     }
 }
 
+/// prev_state_block_number is the block numbers which the transaction deprecated
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct NewTransactionEvent {
     pub prev_state_block_number: Integer,

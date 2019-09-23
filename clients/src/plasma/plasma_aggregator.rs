@@ -176,3 +176,39 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         self.block_manager.get_block_range(block_number)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use abi_utils::abi::Encodable;
+    use ethereum_types::Address;
+    use ethsign::SecretKey;
+    use ovm::deciders::SignVerifier;
+    use plasma_core::data_structure::{Metadata, Range, Transaction, TransactionParams};
+    use plasma_db::{impls::kvs::CoreDbMemoryImpl};
+
+    #[test]
+    fn test_ingest() {
+        let mut aggregator: PlasmaAggregator<CoreDbMemoryImpl> = PlasmaAggregator::new(
+            Address::zero(),
+            Address::zero(),
+            Address::zero(),
+            "c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3",
+        );
+        let secret_key_raw =
+            hex::decode("c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3")
+                .unwrap();
+        let secret_key = SecretKey::from_raw(&secret_key_raw).unwrap();
+        let test_range = Range::new(5, 15);
+        let parameters = PlasmaClientShell::create_ownership_state_object(Address::zero()).to_abi();
+        aggregator.insert_test_ranges();
+        let transaction_params =
+            TransactionParams::new(Address::zero(), test_range, Bytes::from(parameters));
+        let signature = SignVerifier::sign(&secret_key, &Bytes::from(transaction_params.to_abi()));
+        let transaction =
+            Transaction::from_params(transaction_params, signature, Metadata::default());
+        let result = aggregator.ingest_transaction(transaction);
+        assert!(result.is_ok());
+    }
+
+}
