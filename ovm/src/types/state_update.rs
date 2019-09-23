@@ -73,7 +73,7 @@ impl StateUpdate {
 
     pub fn verify_state_transition<T: KeyValueStore>(
         &self,
-        decider: &mut PropertyExecutor<T>,
+        decider: &PropertyExecutor<T>,
         transaction: &Transaction,
     ) -> bool {
         let property = self.get_property();
@@ -93,7 +93,7 @@ impl StateUpdate {
     /// validate transaction and state update.
     pub fn execute_state_transition<T: KeyValueStore>(
         &self,
-        decider: &mut PropertyExecutor<T>,
+        decider: &PropertyExecutor<T>,
         transaction: &Transaction,
         next_block_number: Integer,
     ) -> Result<Self, PlasmaCoreError> {

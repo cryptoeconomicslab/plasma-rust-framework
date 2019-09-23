@@ -37,7 +37,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
         block_db.get_pending_state_updates().unwrap()
     }
 
-    pub fn enqueue_state_update(&self, state_update: StateUpdate) -> Result<(), Error> {
+    pub fn enqueue_state_update(&self, state_update: &StateUpdate) -> Result<(), Error> {
         let block_db = BlockDb::from(&self.db);
         block_db
             .enqueue_state_update(state_update)

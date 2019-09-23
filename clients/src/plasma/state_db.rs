@@ -39,7 +39,7 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
         Ok(res)
     }
 
-    pub fn put_verified_state_update(&mut self, state_update: StateUpdate) -> Result<(), Error> {
+    pub fn put_verified_state_update(&mut self, state_update: &StateUpdate) -> Result<(), Error> {
         let start = state_update.get_range().get_start();
         let end = state_update.get_range().get_end();
 

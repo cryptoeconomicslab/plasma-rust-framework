@@ -120,7 +120,13 @@ impl Encodable for PlasmaBlock {
             Token::Array(
                 self.state_updates
                     .iter()
-                    .map(|s| Token::Tuple(s.to_tuple()))
+                    .map(|s| Token::Bytes(s.to_abi()))
+                    .collect(),
+            ),
+            Token::Array(
+                self.transactions
+                    .iter()
+                    .map(|t| Token::Bytes(t.to_abi()))
                     .collect(),
             ),
         ]
@@ -132,22 +138,35 @@ impl Decodable for PlasmaBlock {
     fn from_tuple(tuple: &[Token]) -> Result<Self, PlasmaCoreError> {
         let block_number = tuple[0].clone().to_uint();
         let state_updates = tuple[1].clone().to_array();
-        if let (Some(block_number), Some(state_updates)) = (block_number, state_updates) {
+        let transactions = tuple[2].clone().to_array();
+        if let (Some(block_number), Some(state_updates), Some(transactions)) =
+            (block_number, state_updates, transactions)
+        {
             let state_updates: Result<Vec<_>, _> = state_updates
                 .iter()
                 .map(|s| {
-                    if let Token::Tuple(v) = s {
-                        StateUpdate::from_tuple(v)
+                    if let Token::Bytes(v) = s {
+                        StateUpdate::from_abi(v)
                     } else {
                         Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
                     }
                 })
                 .collect();
-            if let Ok(s) = state_updates {
+            let transactions: Result<Vec<_>, _> = transactions
+                .iter()
+                .map(|tx| {
+                    if let Token::Bytes(t) = tx {
+                        NewTransactionEvent::from_abi(t)
+                    } else {
+                        Err(PlasmaCoreError::from(PlasmaCoreErrorKind::AbiDecode))
+                    }
+                })
+                .collect();
+            if let (Ok(s), Ok(t)) = (state_updates, transactions) {
                 Ok(PlasmaBlock {
                     block_number: Integer(block_number.as_u64()),
                     state_updates: s,
-                    transactions: vec![],
+                    transactions: t,
                     tree: None,
                 })
             } else {
@@ -161,7 +180,8 @@ impl Decodable for PlasmaBlock {
     fn get_param_types() -> Vec<ParamType> {
         vec![
             ParamType::Uint(64),
-            ParamType::Array(Box::new(ParamType::Tuple(StateUpdate::get_param_types()))),
+            ParamType::Array(Box::new(ParamType::Bytes)),
+            ParamType::Array(Box::new(ParamType::Bytes)),
         ]
     }
 }

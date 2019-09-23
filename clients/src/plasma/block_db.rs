@@ -4,9 +4,10 @@ use super::plasma_block::PlasmaBlock;
 use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
 use ovm::types::{Integer, StateUpdate};
-use plasma_db::traits::kvs::KeyValueStore;
-use plasma_db::traits::rangestore::RangeStore;
-use plasma_db::RangeDbImpl;
+use plasma_db::{
+    traits::{kvs::KeyValueStore, rangestore::RangeStore},
+    RangeDbImpl,
+};
 
 const MIN_RANGE: u64 = 0;
 const MAX_RANGE: u64 = std::u64::MAX;
@@ -20,7 +21,7 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
         BlockDb { db: range_db }
     }
 
-    pub fn enqueue_state_update(&self, state_update: StateUpdate) -> Result<(), Error> {
+    pub fn enqueue_state_update(&self, state_update: &StateUpdate) -> Result<(), Error> {
         let range = state_update.get_range();
 
         self.db
@@ -117,5 +118,84 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
             .bucket(&Bytes::from("blocks").into())
             .put(&index.into(), &block.to_abi())?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::{command::NewTransactionEvent, plasma_block::PlasmaBlock};
+    use super::*;
+    use ethereum_types::Address;
+    use ovm::types::{Integer, Property, StateUpdate};
+    use plasma_core::data_structure::{Metadata, Range, Transaction};
+    use plasma_db::{impls::kvs::CoreDbMemoryImpl, traits::DatabaseTrait, RangeDbImpl};
+
+    #[test]
+    fn test_save_and_load_block() {
+        let db = CoreDbMemoryImpl::open("test");
+        let range_db = RangeDbImpl::from(db);
+        let block_db = BlockDb::from(&range_db);
+
+        let plasma_block = PlasmaBlock::new(
+            1,
+            vec![StateUpdate::new(
+                Integer::new(1),
+                Address::zero(),
+                Range::new(0, 5),
+                Property::new(Address::zero(), vec![]),
+            )],
+            vec![NewTransactionEvent::new(
+                Integer::new(0),
+                Transaction::new(
+                    Address::zero(),
+                    Range::new(0, 5),
+                    Bytes::default(),
+                    Bytes::default(),
+                    Metadata::default(),
+                ),
+            )],
+        );
+
+        let _ = block_db.save_block(&plasma_block);
+        let result = block_db.get_block(Integer::new(1));
+
+        assert!(result.is_ok());
+        let block = result.unwrap();
+        assert_eq!(block.get_transactions().len(), 1);
+        assert_eq!(block.get_state_updates().len(), 1);
+    }
+
+    #[test]
+    fn test_abi_plasma_block() {
+        let plasma_block = PlasmaBlock::new(
+            1,
+            vec![StateUpdate::new(
+                Integer::new(7),
+                Address::zero(),
+                Range::new(12, 13),
+                Property::new(Address::zero(), vec![]),
+            )],
+            vec![NewTransactionEvent::new(
+                Integer::new(8),
+                Transaction::new(
+                    Address::zero(),
+                    Range::new(14, 15),
+                    Bytes::default(),
+                    Bytes::default(),
+                    Metadata::default(),
+                ),
+            )],
+        );
+        let decoded = PlasmaBlock::from_abi(&plasma_block.to_abi()).unwrap();
+
+        assert_eq!(plasma_block.get_block_number(), decoded.get_block_number());
+        assert_eq!(
+            plasma_block.get_state_updates().len(),
+            decoded.get_state_updates().len()
+        );
+        assert_eq!(
+            plasma_block.get_transactions().len(),
+            decoded.get_transactions().len()
+        );
     }
 }
