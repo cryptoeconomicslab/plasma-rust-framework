@@ -56,14 +56,14 @@ impl FetchBlockRequest {
 /// prev_state_block_number is the block numbers which the transaction deprecated
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct NewTransactionEvent {
-    pub prev_state_block_number: Integer,
+    pub prev_state_block_numbers: Vec<Integer>,
     pub transaction: Transaction,
 }
 
 impl NewTransactionEvent {
-    pub fn new(prev_state_block_number: Integer, transaction: Transaction) -> Self {
+    pub fn new(prev_state_block_numbers: Vec<Integer>, transaction: Transaction) -> Self {
         Self {
-            prev_state_block_number,
+            prev_state_block_numbers,
             transaction,
         }
     }
