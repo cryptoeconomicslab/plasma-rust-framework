@@ -1,6 +1,7 @@
 use super::command::{Command, NewTransactionEvent};
 use super::plasma_block::PlasmaBlock;
 use super::state_db::StateDb;
+use super::utils::string_to_address;
 use super::wallet_manager::WalletManager;
 use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
@@ -457,16 +458,28 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     pub fn insert_test_ranges(&mut self) {
         let mut state_updates = vec![];
         let eth_token_address = Address::zero();
+        let dai_token_address = string_to_address("0000000000000000000000000000000000000001");
         for i in 0..3 {
             state_updates.push(StateUpdate::new(
                 Integer::new(0),
                 eth_token_address,
                 Range::new(i * 20, (i + 1) * 20),
-                PlasmaClientShell::create_ownership_state_object(Address::from_slice(
-                    &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),
+                PlasmaClientShell::create_ownership_state_object(string_to_address(
+                    "627306090abab3a6e1400e9345bc60c78a8bef57",
                 )),
             ));
         }
+        for i in 0..3 {
+            state_updates.push(StateUpdate::new(
+                Integer::new(0),
+                dai_token_address,
+                Range::new(i * 100, (i + 1) * 100),
+                PlasmaClientShell::create_ownership_state_object(string_to_address(
+                    "627306090abab3a6e1400e9345bc60c78a8bef57",
+                )),
+            ));
+        }
+
         let plasma_block = PlasmaBlock::new(0, state_updates, vec![]);
         self.handle_new_block(plasma_block);
     }

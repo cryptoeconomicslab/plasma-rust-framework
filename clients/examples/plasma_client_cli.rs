@@ -1,11 +1,10 @@
 #[macro_use]
 extern crate clap;
 
-use bytes::Bytes;
 use clap::{App, Arg, SubCommand};
 use ethereum_types::Address;
 use futures::future;
-use plasma_clients::plasma::PlasmaClientShell;
+use plasma_clients::plasma::{utils::*, PlasmaClientShell};
 
 fn main() {
     let matches = App::new("OVM Wallet!!!")
@@ -77,23 +76,27 @@ fn main() {
         )
         .get_matches();
 
-    let commitment_contract_address_hex =
-        hex::decode("9FBDa871d559710256a2502A2517b794B482Db40").unwrap();
-    let commitment_contract_address = Address::from_slice(&commitment_contract_address_hex);
     let session_str = value_t!(matches, "session", String).unwrap();
-    let mut shell =
-        PlasmaClientShell::new("127.0.0.1:8080".to_string(), commitment_contract_address);
+    let mut shell = PlasmaClientShell::new(
+        "127.0.0.1:8080".to_string(),
+        string_to_address("9FBDa871d559710256a2502A2517b794B482Db40"),
+    );
 
     if matches.subcommand_matches("balance").is_some() {
         let eth_address = Address::zero();
+        let dai_address = string_to_address("0000000000000000000000000000000000000001");
         tokio::run(future::lazy(move || {
             shell.connect();
             println!(
-                "Your balance is {:?} ETH",
+                "Balance\n\t{:?} ETH\n\t{:?} DAI",
                 shell
-                    .get_balance(&string_to_session(session_str))
+                    .get_balance(&decode_session(session_str.clone()).unwrap())
                     .get(&eth_address)
-                    .unwrap_or(&0)
+                    .unwrap_or(&0),
+                shell
+                    .get_balance(&decode_session(session_str).unwrap())
+                    .get(&dai_address)
+                    .unwrap_or(&0),
             );
             Ok(())
         }));
@@ -113,10 +116,9 @@ fn main() {
         }));
     } else if let Some(matches) = matches.subcommand_matches("send") {
         let token_address_opt = value_t!(matches, "token", String)
-            .map(|a| Address::from_slice(&hex::decode(&a).unwrap()))
+            .map(|a| string_to_address(&a))
             .ok();
-        let to_address =
-            Address::from_slice(&hex::decode(&value_t!(matches, "to", String).unwrap()).unwrap());
+        let to_address = string_to_address(&value_t!(matches, "to", String).unwrap());
         let start = value_t!(matches, "start", u64).unwrap();
         let end = value_t!(matches, "end", u64).unwrap();
         println!(
@@ -126,7 +128,7 @@ fn main() {
         tokio::run(future::lazy(move || {
             shell.connect();
             shell.send_transaction(
-                &string_to_session(session_str),
+                &decode_session(session_str).unwrap(),
                 to_address,
                 token_address_opt,
                 start,
@@ -136,8 +138,4 @@ fn main() {
             Ok(())
         }));
     }
-}
-
-fn string_to_session(session: String) -> Bytes {
-    Bytes::from(hex::decode(session).unwrap())
 }
