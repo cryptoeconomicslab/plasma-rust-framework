@@ -4,6 +4,7 @@ use super::error::{Error, ErrorKind};
 use super::plasma_block::PlasmaBlock;
 use super::plasma_client::PlasmaClientShell;
 use super::state_db::StateDb;
+use super::utils::*;
 use bytes::Bytes;
 use ethereum_types::Address;
 use ethsign::SecretKey;
@@ -19,7 +20,7 @@ use plasma_db::traits::kvs::KeyValueStore;
 pub struct PlasmaAggregator<KVS: KeyValueStore> {
     aggregator_address: Address,
     commitment_contract_address: Address,
-    plasma_contract_address: Address,
+    deposit_contract_address: Address,
     //_secret_key: SecretKey,
     _raw_key: Vec<u8>,
     _my_address: Address,
@@ -32,7 +33,7 @@ pub struct PlasmaAggregator<KVS: KeyValueStore> {
 impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     pub fn new(
         aggregator_address: Address,
-        plasma_contract_address: Address,
+        deposit_contract_address: Address,
         commitment_contract_address: Address,
         private_key: &str,
     ) -> Self {
@@ -43,7 +44,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
 
         PlasmaAggregator {
             aggregator_address,
-            plasma_contract_address,
+            deposit_contract_address,
             commitment_contract_address,
             _raw_key: raw_key,
             //_secret_key: secret_key,
@@ -129,8 +130,8 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         self.commitment_contract_address
     }
 
-    pub fn get_plasma_contract_address(&self) -> Address {
-        self.plasma_contract_address
+    pub fn get_deposit_contract_address(&self) -> Address {
+        self.deposit_contract_address
     }
 
     pub fn show_queued_state_updates(&self) {
@@ -140,13 +141,25 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     pub fn insert_test_ranges(&mut self) {
         let mut state_db = StateDb::new(self.decider.get_range_db());
         let eth_token_address = Address::zero();
+        let dai_token_address = string_to_address("0000000000000000000000000000000000000001");
         for i in 0..3 {
             let state_update = StateUpdate::new(
                 Integer::new(0),
                 eth_token_address,
                 Range::new(i * 20, (i + 1) * 20),
-                PlasmaClientShell::create_ownership_state_object(Address::from_slice(
-                    &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),
+                PlasmaClientShell::create_ownership_state_object(string_to_address(
+                    "627306090abab3a6e1400e9345bc60c78a8bef57",
+                )),
+            );
+            assert!(state_db.put_verified_state_update(&state_update).is_ok());
+        }
+        for i in 0..3 {
+            let state_update = StateUpdate::new(
+                Integer::new(0),
+                dai_token_address,
+                Range::new(i * 100, (i + 1) * 100),
+                PlasmaClientShell::create_ownership_state_object(string_to_address(
+                    "627306090abab3a6e1400e9345bc60c78a8bef57",
                 )),
             );
             assert!(state_db.put_verified_state_update(&state_update).is_ok());

@@ -1,26 +1,14 @@
 use actix_web::{error, middleware::Logger, web, App, HttpResponse, HttpServer, Result};
-use bytes::Bytes;
 use chrono::{DateTime, Local};
 use env_logger;
 use ethereum_types::Address;
 use log::info;
 use plasma_clients::plasma::{
     error::{Error, ErrorKind},
+    utils::*,
     PlasmaClientShell,
 };
 use serde::{Deserialize, Serialize};
-
-fn decode_session(session: String) -> Result<Bytes, ()> {
-    if let Ok(s) = hex::decode(session) {
-        Ok(Bytes::from(s))
-    } else {
-        Err(())
-    }
-}
-
-fn encode_session(raw: Bytes) -> String {
-    hex::encode(raw.to_vec())
-}
 
 // Create Account
 #[derive(Serialize)]
@@ -93,6 +81,7 @@ struct PaymentHistory {
     address: Address,
     timestamp: DateTime<Local>,
     status: PaymentHistoryStatus,
+    token_address: Address,
 }
 
 fn get_payment_history(
@@ -122,6 +111,7 @@ fn get_payment_history(
                 },
                 timestamp: Local::now(),
                 status: PaymentHistoryStatus::CONFIRMED,
+                token_address: Address::zero(),
             }
         })
         .collect();
@@ -131,6 +121,7 @@ fn get_payment_history(
 // Send Payment
 #[derive(Deserialize, Serialize, Debug)]
 struct SendPayment {
+    deposit_contract_address: Address,
     from: Address,
     to: Address,
     amount: u64,
@@ -142,17 +133,18 @@ fn send_payment(
     body: web::Json<SendPayment>,
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
-    if let Some(range) = plasma_client.search_range(body.amount) {
+    if let Some(range) = plasma_client.search_range(body.deposit_contract_address, body.amount) {
         let session = decode_session(body.session.clone()).unwrap();
         plasma_client.send_transaction(
             &session,
             body.to,
-            None,
+            Some(body.deposit_contract_address),
             range.get_start(),
             range.get_start() + body.amount,
         );
 
         return Ok(HttpResponse::Ok().json(SendPayment {
+            deposit_contract_address: body.deposit_contract_address,
             from: body.from,
             to: body.to,
             session: body.session.clone(),
@@ -288,13 +280,11 @@ pub fn main() {
     std::env::set_var("RUST_LOG", "INFO");
     env_logger::init();
 
-    let commitment_contract_address_hex =
-        hex::decode("9FBDa871d559710256a2502A2517b794B482Db40").unwrap();
-    let commitment_contract_address = Address::from_slice(&commitment_contract_address_hex);
-
     HttpServer::new(move || {
-        let mut client =
-            PlasmaClientShell::new("127.0.0.1:8080".to_owned(), commitment_contract_address);
+        let mut client = PlasmaClientShell::new(
+            "127.0.0.1:8080".to_owned(),
+            string_to_address("9FBDa871d559710256a2502A2517b794B482Db40"),
+        );
         client.connect();
 
         let data = web::Data::new(client);

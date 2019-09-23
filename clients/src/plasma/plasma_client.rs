@@ -1,6 +1,7 @@
 use super::command::{Command, NewTransactionEvent};
 use super::plasma_block::PlasmaBlock;
 use super::state_db::StateDb;
+use super::utils::string_to_address;
 use super::wallet_manager::WalletManager;
 use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
@@ -124,8 +125,11 @@ impl PlasmaClientShell {
         );
         tokio::spawn(watcher);
     }
-    pub fn search_range(&self, amount: u64) -> Option<Range> {
-        self.controller.clone().unwrap().search_range(amount)
+    pub fn search_range(&self, deposit_contract_address: Address, amount: u64) -> Option<Range> {
+        self.controller
+            .clone()
+            .unwrap()
+            .search_range(deposit_contract_address, amount)
     }
     /// Creates new account
     pub fn create_account(&self) -> (Bytes, SecretKey) {
@@ -235,8 +239,11 @@ impl PlasmaClientController {
         let mut plasma_client = self.plasma_client.lock().unwrap();
         plasma_client.insert_test_ranges()
     }
-    fn search_range(&self, amount: u64) -> Option<Range> {
-        self.plasma_client.lock().unwrap().search_range(amount)
+    fn search_range(&self, deposit_contract_address: Address, amount: u64) -> Option<Range> {
+        self.plasma_client
+            .lock()
+            .unwrap()
+            .search_range(deposit_contract_address, amount)
     }
     fn get_related_transactions(&self, session: &Bytes) -> Vec<Transaction> {
         self.plasma_client
@@ -275,14 +282,14 @@ impl EventHandler for PlasmaClientController {
 
 /// Plasma Client on OVM.
 pub struct PlasmaClient<KVS: KeyValueStore> {
-    plasma_contract_address: Address,
+    deposit_contract_address: Address,
     decider: PropertyExecutor<KVS>,
 }
 
 impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
-    pub fn new(plasma_contract_address: Address) -> Self {
+    pub fn new(deposit_contract_address: Address) -> Self {
         PlasmaClient {
-            plasma_contract_address,
+            deposit_contract_address,
             decider: Default::default(),
         }
     }
@@ -298,7 +305,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let contract_abi = ContractABI::load(reader).unwrap();
         let plasma_contract = PlasmaContractAdaptor::new(
             "http://127.0.0.1:9545",
-            &self.plasma_contract_address.to_string(),
+            &self.deposit_contract_address.to_string(),
             contract_abi,
         )
         .unwrap();
@@ -364,7 +371,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let contract_abi = ContractABI::load(reader).unwrap();
         let plasma_contract = PlasmaContractAdaptor::new(
             "http://127.0.0.1:9545",
-            &self.plasma_contract_address.to_string(),
+            &self.deposit_contract_address.to_string(),
             contract_abi,
         )
         .unwrap();
@@ -455,16 +462,28 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     pub fn insert_test_ranges(&mut self) {
         let mut state_updates = vec![];
         let eth_token_address = Address::zero();
+        let dai_token_address = string_to_address("0000000000000000000000000000000000000001");
         for i in 0..3 {
             state_updates.push(StateUpdate::new(
                 Integer::new(0),
                 eth_token_address,
                 Range::new(i * 20, (i + 1) * 20),
-                PlasmaClientShell::create_ownership_state_object(Address::from_slice(
-                    &hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap(),
+                PlasmaClientShell::create_ownership_state_object(string_to_address(
+                    "627306090abab3a6e1400e9345bc60c78a8bef57",
                 )),
             ));
         }
+        for i in 0..3 {
+            state_updates.push(StateUpdate::new(
+                Integer::new(0),
+                dai_token_address,
+                Range::new(i * 100, (i + 1) * 100),
+                PlasmaClientShell::create_ownership_state_object(string_to_address(
+                    "627306090abab3a6e1400e9345bc60c78a8bef57",
+                )),
+            ));
+        }
+
         let plasma_block = PlasmaBlock::new(0, state_updates, vec![]);
         self.handle_new_block(plasma_block);
     }
@@ -485,9 +504,10 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     }
 
     /// return range if enough amount is exists.
-    pub fn search_range(&self, amount: u64) -> Option<Range> {
+    pub fn search_range(&self, deposit_contract_address: Address, amount: u64) -> Option<Range> {
         self.get_state_updates()
             .iter()
+            .filter(|su| su.get_deposit_contract_address() == deposit_contract_address)
             .map(|su| su.get_range())
             .find(|range| amount <= range.get_end() - range.get_start())
     }

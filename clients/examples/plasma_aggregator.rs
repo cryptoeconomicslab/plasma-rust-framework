@@ -6,7 +6,9 @@ use abi_utils::Encodable;
 use bincode::serialize;
 use ethereum_types::Address;
 use futures::{future, Async, Future, Poll, Stream};
-use plasma_clients::plasma::{Command, FetchBlockRequest, PlasmaAggregator};
+use plasma_clients::plasma::{
+    utils::string_to_address, Command, FetchBlockRequest, PlasmaAggregator,
+};
 use plasma_core::data_structure::Transaction;
 use plasma_db::impls::kvs::CoreDbMemoryImpl;
 use pubsub_messaging::{spawn_server, Message, Sender, ServerHandler, WsMessage};
@@ -90,13 +92,10 @@ impl ServerHandler for Handle {
 }
 
 fn main() {
-    let aggregator_address = hex::decode("627306090abab3a6e1400e9345bc60c78a8bef57").unwrap();
-    let commitment_contract_address =
-        hex::decode("9FBDa871d559710256a2502A2517b794B482Db40").unwrap();
     let mut aggregator = PlasmaAggregator::new(
-        Address::from_slice(&aggregator_address),
+        string_to_address("627306090abab3a6e1400e9345bc60c78a8bef57"),
         Address::zero(),
-        Address::from_slice(&commitment_contract_address),
+        string_to_address("9FBDa871d559710256a2502A2517b794B482Db40"),
         "c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3",
     );
     aggregator.insert_test_ranges();
