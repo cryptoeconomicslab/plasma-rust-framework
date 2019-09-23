@@ -26,6 +26,8 @@ pub enum ErrorKind {
     InvalidTransaction,
     #[fail(display = "Merkelizing Error")]
     MerkelizingError,
+    #[fail(display = "Invalid Parameter")]
+    InvalidParameter,
 }
 
 #[derive(Debug)]

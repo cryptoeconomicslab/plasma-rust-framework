@@ -38,7 +38,7 @@ mod tests {
     use ethereum_types::{Address, H256};
     use ethsign::SecretKey;
     use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
-    use plasma_core::data_structure::{Range, Transaction, TransactionParams};
+    use plasma_core::data_structure::{Metadata, Range, Transaction, TransactionParams};
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
     use plasma_db::traits::kvs::KeyValueStore;
 
@@ -113,6 +113,7 @@ mod tests {
                 Range::new(0, 100),
                 Bytes::default(),
                 signature,
+                Metadata::default(),
             ),
         );
     }

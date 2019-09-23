@@ -18,6 +18,9 @@ impl Range {
     pub fn get_end(&self) -> u64 {
         self.end
     }
+    pub fn get_amount(&self) -> u64 {
+        self.end - self.start
+    }
     pub fn get_overlapping_range(&self, b: &Range) -> Range {
         if self.start < b.start && b.start <= self.end {
             Range::new(b.start, self.end)
@@ -27,7 +30,7 @@ impl Range {
             Range::new(0, 0)
         }
     }
-    fn overlap(&self, range: &Range) -> bool {
+    pub fn overlap(&self, range: &Range) -> bool {
         let over1 = self.start <= range.start && range.start <= self.end;
         let over2 = range.start < self.start && self.start <= range.end;
         over1 || over2

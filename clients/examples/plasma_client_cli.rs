@@ -31,11 +31,12 @@ fn main() {
         )
         .subcommand(
             SubCommand::with_name("import")
-                .about("import")
+                .about("import account")
                 .version("1.0")
                 .arg(
                     Arg::with_name("secret_key")
                         .short("sk")
+                        .long("secret")
                         .value_name("secret_key")
                         .takes_value(true)
                         .help("hex secret key"),
@@ -91,21 +92,23 @@ fn main() {
             shell.initialize();
             Ok(())
         }));
-    } else if matches.subcommand_matches("import").is_some() {
-        let secrey_key = value_t!(matches, "secret_key", String).unwrap();
+    } else if let Some(matches) = matches.subcommand_matches("import") {
+        let secret_key = value_t!(matches, "secret_key", String).unwrap();
         tokio::run(future::lazy(move || {
             shell.connect();
-            shell.import_account(&secrey_key);
+            let (session, _key) = shell.import_account(&secret_key);
+            println!("session: {}", hex::encode(session.to_vec()));
             Ok(())
         }));
     } else if let Some(matches) = matches.subcommand_matches("send") {
-        let to_address = value_t!(matches, "to", String).unwrap();
+        let to_address =
+            Address::from_slice(&hex::decode(&value_t!(matches, "to", String).unwrap()).unwrap());
         let start = value_t!(matches, "start", u64).unwrap();
         let end = value_t!(matches, "end", u64).unwrap();
         println!("Send {:?}-{:?} ETH to {:?} ", start, end, to_address);
         tokio::run(future::lazy(move || {
             shell.connect();
-            shell.send_transaction(&string_to_session(session_str), &to_address, start, end);
+            shell.send_transaction(&string_to_session(session_str), to_address, start, end);
             println!("Sent!!!");
             Ok(())
         }));
