@@ -51,7 +51,7 @@ impl From<&Bytes> for BaseDbKey {
 impl From<u64> for BaseDbKey {
     fn from(n: u64) -> Self {
         let mut buf = BytesMut::with_capacity(64);
-        buf.put_u64_le(n);
+        buf.put_u64_be(n);
         BaseDbKey::new(buf.to_vec())
     }
 }
