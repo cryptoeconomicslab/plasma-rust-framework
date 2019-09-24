@@ -3,7 +3,7 @@ use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{Decider, Decision, ImplicationProofElement, PropertyInput};
 use crate::DeciderManager;
-use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
+use merkle_interval_tree::{DoubleLayerTree, DoubleLayerTreeLeaf};
 use plasma_db::traits::kvs::KeyValueStore;
 
 /// IncludedAtBlock is decider which decide inclusion of data in merkle interval tree
@@ -25,17 +25,17 @@ impl Decider for IncludedAtBlockDecider {
         let db: RangeAtBlockDb<T> = RangeAtBlockDb::new(decider.get_range_db());
         let range_at_block_record =
             db.get_witness(block_number, plasma_data_block.get_updated_range())?;
-        let leaf = MerkleIntervalNode::Leaf {
-            end: plasma_data_block.get_updated_range().get_end(),
+        let leaf = DoubleLayerTreeLeaf {
             data: plasma_data_block.get_data().clone(),
+            end: plasma_data_block.get_updated_range().get_end(),
+            address: plasma_data_block.get_deposit_contract_address(),
         };
-        let inclusion_bounds_result = MerkleIntervalTree::verify(
+        let inclusion_bounds_result = DoubleLayerTree::verify(
             &leaf,
-            plasma_data_block.get_index(),
             range_at_block_record.inclusion_proof.clone(),
             plasma_data_block.get_root(),
         );
-        if inclusion_bounds_result.is_err() {
+        if !inclusion_bounds_result {
             return Err(Error::from(ErrorKind::CannotDecide));
         }
         Ok(Decision::new(

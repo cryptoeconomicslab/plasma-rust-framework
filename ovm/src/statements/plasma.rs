@@ -37,7 +37,7 @@ mod tests {
     use bytes::Bytes;
     use ethereum_types::{Address, H256};
     use ethsign::SecretKey;
-    use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
+    use merkle_interval_tree::{DoubleLayerTree, DoubleLayerTreeLeaf};
     use plasma_core::data_structure::{Metadata, Range, Transaction, TransactionParams};
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
     use plasma_db::traits::kvs::KeyValueStore;
@@ -79,7 +79,8 @@ mod tests {
             if i == 0 {
                 first_state_update_opt = Some(state_update.clone());
             }
-            leaves.push(MerkleIntervalNode::Leaf {
+            leaves.push(DoubleLayerTreeLeaf {
+                address: deposit_contract_address,
                 end: i * 30 + 100,
                 data: if inclusion {
                     Bytes::from(state_update.to_abi())
@@ -88,22 +89,21 @@ mod tests {
                 },
             })
         }
-        let tree = MerkleIntervalTree::generate(&leaves);
+        let tree = DoubleLayerTree::generate(&leaves);
         let root = tree.get_root();
-        let inclusion_proof = tree.get_inclusion_proof(0);
-        if let MerkleIntervalNode::Leaf { data, .. } = &leaves[0] {
-            let plasma_data_block: PlasmaDataBlock = PlasmaDataBlock::new(
-                Integer(0),
-                Range::new(0, 100),
-                root.clone(),
-                inclusion,
-                block_number,
-                data.clone(),
-            );
-            assert!(db
-                .store_witness(inclusion_proof, plasma_data_block.clone())
-                .is_ok());
-        }
+        let inclusion_proof = tree.get_inclusion_proof(deposit_contract_address, 0);
+        let plasma_data_block: PlasmaDataBlock = PlasmaDataBlock::new(
+            deposit_contract_address,
+            Range::new(0, 100),
+            root.clone(),
+            inclusion,
+            block_number,
+            leaves[0].data.clone(),
+        );
+        assert!(db
+            .store_witness(inclusion_proof, plasma_data_block.clone())
+            .is_ok());
+
         let tx_body =
             TransactionParams::new(Address::zero(), Range::new(0, 100), Bytes::default()).to_abi();
         let signature = SignatureVerifier::sign(&secret_key, &Bytes::from(tx_body));

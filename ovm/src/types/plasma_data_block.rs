@@ -4,11 +4,12 @@ use super::core::Integer;
 use abi_derive::{AbiDecodable, AbiEncodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
+use ethereum_types::Address;
 use plasma_core::data_structure::Range;
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct PlasmaDataBlock {
-    index: Integer,
+    deposit_contract_address: Address,
     updated_range: Range,
     root: Bytes,
     is_included: bool,
@@ -18,7 +19,7 @@ pub struct PlasmaDataBlock {
 
 impl PlasmaDataBlock {
     pub fn new(
-        index: Integer,
+        deposit_contract_address: Address,
         updated_range: Range,
         root: Bytes,
         is_included: bool,
@@ -26,7 +27,7 @@ impl PlasmaDataBlock {
         data: Bytes,
     ) -> Self {
         Self {
-            index,
+            deposit_contract_address,
             updated_range,
             root,
             is_included,
@@ -34,8 +35,8 @@ impl PlasmaDataBlock {
             data,
         }
     }
-    pub fn get_index(&self) -> usize {
-        self.index.0 as usize
+    pub fn get_deposit_contract_address(&self) -> Address {
+        self.deposit_contract_address
     }
     pub fn get_updated_range(&self) -> Range {
         self.updated_range

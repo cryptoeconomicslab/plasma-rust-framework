@@ -31,6 +31,7 @@ impl InclusionProof {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct DoubleLayerTreeLeaf {
     pub data: Bytes,
     pub end: u64,
@@ -53,7 +54,20 @@ impl From<&DoubleLayerTreeLeaf> for MerkleIntervalNode<u64> {
 }
 
 impl DoubleLayerTree {
-    pub fn generate(leaves_set: HashMap<Address, Vec<MerkleIntervalNode<u64>>>) -> Self {
+    pub fn generate(double_layer_tree_leaves: &[DoubleLayerTreeLeaf]) -> Self {
+        let leaves_set: HashMap<Address, Vec<MerkleIntervalNode<u64>>> = double_layer_tree_leaves
+            .iter()
+            .fold(HashMap::new(), |mut acc, l| {
+                let interval_leaf = MerkleIntervalNode::Leaf {
+                    data: l.data.clone(),
+                    end: l.end,
+                };
+                let mut leaves: Vec<MerkleIntervalNode<u64>> =
+                    acc.get(&l.address).unwrap_or(&vec![]).to_vec();
+                leaves.push(interval_leaf);
+                acc.insert(l.address, leaves.to_vec());
+                acc
+            });
         let mut interval_trees: HashMap<Address, MerkleIntervalTree<u64>> = Default::default();
         let mut address_tree_leaves: Vec<AddressTreeNode> = vec![];
         for (address, leaves) in leaves_set {
@@ -118,27 +132,24 @@ mod tests {
 
     #[test]
     fn test_generate() {
-        let mut leaves1 = vec![];
-        let mut leaves2 = vec![];
-        for i in 0..100 {
-            leaves1.push(MerkleIntervalNode::Leaf {
-                end: i * 100 + 100,
-                data: Bytes::from(&b"message1"[..]),
-            })
-        }
-        for i in 0..100 {
-            leaves2.push(MerkleIntervalNode::Leaf {
-                end: i * 100 + 100,
-                data: Bytes::from(&b"message2"[..]),
-            })
-        }
         let address1 = Address::random();
         let address2 = Address::random();
-
-        let mut token_set: HashMap<Address, Vec<MerkleIntervalNode<u64>>> = HashMap::new();
-        token_set.insert(address1, leaves1);
-        token_set.insert(address2, leaves2);
-        let tree = DoubleLayerTree::generate(token_set);
+        let mut leaves = vec![];
+        for i in 0..100 {
+            leaves.push(DoubleLayerTreeLeaf {
+                end: i * 100 + 100,
+                data: Bytes::from(&b"message1"[..]),
+                address: address1,
+            })
+        }
+        for i in 0..100 {
+            leaves.push(DoubleLayerTreeLeaf {
+                end: i * 100 + 100,
+                data: Bytes::from(&b"message2"[..]),
+                address: address2,
+            })
+        }
+        let tree = DoubleLayerTree::generate(&leaves);
         let root = tree.get_root();
 
         let inclusion_proof = tree.get_inclusion_proof(address2, 2);

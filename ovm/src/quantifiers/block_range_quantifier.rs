@@ -4,7 +4,7 @@ use crate::types::{PlasmaDataBlock, PropertyInput, QuantifierResult, QuantifierR
 use abi_utils::Decodable;
 use bytes::Bytes;
 use ethereum_types::H256;
-use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
+use merkle_interval_tree::{DoubleLayerTree, DoubleLayerTreeLeaf};
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::traits::rangestore::RangeStore;
 
@@ -18,17 +18,12 @@ impl Default for BlockRangeQuantifier {
 
 impl BlockRangeQuantifier {
     pub fn verify_exclusion(plasma_data_block: &PlasmaDataBlock, inclusion_proof: &Bytes) -> bool {
-        let leaf = MerkleIntervalNode::Leaf {
+        let leaf = DoubleLayerTreeLeaf {
+            address: plasma_data_block.get_deposit_contract_address(),
             end: plasma_data_block.get_updated_range().get_end(),
             data: Bytes::from(H256::zero().as_bytes()),
         };
-        let inclusion_bounds_result = MerkleIntervalTree::verify(
-            &leaf,
-            plasma_data_block.get_index(),
-            inclusion_proof.clone(),
-            plasma_data_block.get_root(),
-        );
-        inclusion_bounds_result.is_ok()
+        DoubleLayerTree::verify(&leaf, inclusion_proof.clone(), plasma_data_block.get_root())
     }
     pub fn get_all_quantified<KVS>(
         decider: &PropertyExecutor<KVS>,
