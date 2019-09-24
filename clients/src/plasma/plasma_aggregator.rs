@@ -218,4 +218,49 @@ mod tests {
         let result = aggregator.ingest_transaction(transaction);
         assert!(result.is_ok());
     }
+
+    fn create_transaction(
+        secret_key: &SecretKey,
+        token_address: Address,
+        range: Range,
+        parameters: Bytes,
+    ) -> Transaction {
+        let transaction_params = TransactionParams::new(token_address, range, parameters);
+        let signature = SignVerifier::sign(&secret_key, &Bytes::from(transaction_params.to_abi()));
+        Transaction::from_params(transaction_params, signature, Metadata::default())
+    }
+
+    #[test]
+    fn test_ingest_second_token() {
+        let eth_token_address = Address::zero();
+        let dai_token_address = string_to_address("0000000000000000000000000000000000000001");
+        let mut aggregator: PlasmaAggregator<CoreDbMemoryImpl> = PlasmaAggregator::new(
+            Address::zero(),
+            Address::zero(),
+            Address::zero(),
+            "c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3",
+        );
+        let secret_key_raw =
+            hex::decode("c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3")
+                .unwrap();
+        let secret_key = SecretKey::from_raw(&secret_key_raw).unwrap();
+        let test_range = Range::new(0, 10);
+        let parameters = PlasmaClientShell::create_ownership_state_object(Address::zero()).to_abi();
+        aggregator.insert_test_ranges();
+        let transaction1 = create_transaction(
+            &secret_key,
+            eth_token_address,
+            test_range,
+            Bytes::from(parameters.clone()),
+        );
+        let transaction2 = create_transaction(
+            &secret_key,
+            dai_token_address,
+            test_range,
+            Bytes::from(parameters.clone()),
+        );
+        assert!(aggregator.ingest_transaction(transaction1).is_ok());
+        assert!(aggregator.ingest_transaction(transaction2).is_ok());
+        assert_eq!(aggregator.get_all_state_updates().len(), 8);
+    }
 }
