@@ -90,7 +90,7 @@ mod tests {
         }
         let tree = MerkleIntervalTree::generate(&leaves);
         let root = tree.get_root();
-        let inclusion_proof = tree.get_inclusion_proof(0, 100);
+        let inclusion_proof = tree.get_inclusion_proof(0);
         if let MerkleIntervalNode::Leaf { data, .. } = &leaves[0] {
             let plasma_data_block: PlasmaDataBlock = PlasmaDataBlock::new(
                 Integer(0),
