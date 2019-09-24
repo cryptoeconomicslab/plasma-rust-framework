@@ -50,7 +50,7 @@ impl PlasmaBlock {
 
     pub fn get_inclusion_proof_with_index(&self, index: usize) -> Option<Bytes> {
         if let Some(tree) = &self.tree {
-            Some(tree.get_inclusion_proof(index, 2))
+            Some(tree.get_inclusion_proof(index))
         } else {
             None
         }

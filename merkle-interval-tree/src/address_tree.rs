@@ -39,10 +39,18 @@ impl AddressTree {
     pub fn get_root(&self) -> Bytes {
         self.tree.get_hash()
     }
-    pub fn get_inclusion_proof(&self, idx: usize) -> Bytes {
+    pub fn get_index(&self, address: Address) -> usize {
+        if let Some(index) = self.leaves.iter().position(|s| s.get_address() == address) {
+            index
+        } else {
+            panic!("address {:?} not found in leaves.", address);
+        }
+    }
+    pub fn get_inclusion_proof(&self, address: Address) -> Bytes {
+        let index = self.get_index(address);
         Self::encode_proof(Self::get_inclusion_proof_of_tree(
             &self.tree,
-            idx,
+            index,
             self.leaves.len(),
         ))
     }
@@ -190,13 +198,14 @@ mod tests {
     fn test_generate() {
         let hash1 = hash_leaf(&Bytes::from("message1"));
         let hash2 = hash_leaf(&Bytes::from("message2"));
-        let address = Address::random();
-        let leaf1 = AddressTreeNode::Leaf(hash1, address);
-        let leaf2 = AddressTreeNode::Leaf(hash2, address);
+        let address1 = Address::random();
+        let address2 = Address::random();
+        let leaf1 = AddressTreeNode::Leaf(hash1, address1);
+        let leaf2 = AddressTreeNode::Leaf(hash2, address2);
         let leaves = vec![leaf1, leaf2.clone()];
         let address_tree = AddressTree::generate(leaves);
         let root = address_tree.get_root();
-        let inclusion_proof = address_tree.get_inclusion_proof(1);
+        let inclusion_proof = address_tree.get_inclusion_proof(address2);
         assert!(AddressTree::verify(&leaf2, 1, inclusion_proof, &root));
     }
 }
