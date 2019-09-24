@@ -60,6 +60,33 @@ impl PlasmaClientShell {
         ])
     }
 
+    /// Claim for channel
+    pub fn create_channel_state_object(
+        my_address: Address,
+        counter_party_address: Address,
+    ) -> Property {
+        /*
+         * There exists tx such that state_update.is_same_coin_range(tx):
+         *   SignedBy(tx, to_address) and SignedBy(tx, counter_party_address)
+         */
+        DeciderManager::there_exists_such_that(vec![
+            PropertyInput::ConstantProperty(DeciderManager::q_tx(vec![
+                PropertyInput::Placeholder(Bytes::from("state_update")),
+            ])),
+            PropertyInput::ConstantBytes(Bytes::from("tx")),
+            PropertyInput::ConstantProperty(DeciderManager::and_decider(
+                DeciderManager::signed_by_decider(vec![
+                    PropertyInput::ConstantAddress(my_address),
+                    PropertyInput::Placeholder(Bytes::from("tx")),
+                ]),
+                DeciderManager::signed_by_decider(vec![
+                    PropertyInput::ConstantAddress(counter_party_address),
+                    PropertyInput::Placeholder(Bytes::from("tx")),
+                ]),
+            )),
+        ])
+    }
+
     // Claim for checkpoint
     pub fn create_checkpoint_property(specified_block_number: Integer, range: Range) -> Property {
         /*
@@ -147,22 +174,21 @@ impl PlasmaClientShell {
     pub fn send_transaction(
         &self,
         session: &Bytes,
-        to_address: Address,
         deposit_contract_address: Option<Address>,
         start: u64,
         end: u64,
+        state_object: Property,
+        metadata: Metadata,
     ) {
         let deposit_contract_address = deposit_contract_address.unwrap_or_else(Address::zero);
         let controller = self.controller.clone().unwrap();
-        let metadata = Metadata::new(self.get_my_address(session).unwrap(), to_address);
         let tx = controller.plasma_client.lock().unwrap().create_transaction(
             session,
             deposit_contract_address,
             Range::new(start, end),
-            Bytes::from(Self::create_ownership_state_object(to_address).to_abi()),
+            Bytes::from(state_object.to_abi()),
             metadata,
         );
-        println!("{:?}", tx);
         let command = Command {
             command_type: Integer(0),
             body: Bytes::from(tx.to_abi()),
@@ -170,6 +196,23 @@ impl PlasmaClientShell {
         let mut pubsub_client = controller.pubsub_client.clone().unwrap();
         let msg = Message::new("Aggregator".to_string(), command.to_abi());
         pubsub_client.send(msg);
+    }
+    pub fn ownership_property(&self, session: &Bytes, to_address: Address) -> (Property, Metadata) {
+        (
+            Self::create_ownership_state_object(to_address),
+            Metadata::new(self.get_my_address(session).unwrap(), to_address),
+        )
+    }
+    pub fn open_channel_property(
+        &self,
+        session: &Bytes,
+        counter_party_address: Address,
+    ) -> (Property, Metadata) {
+        let my_address = self.get_my_address(session).unwrap();
+        (
+            Self::create_channel_state_object(my_address, counter_party_address),
+            Metadata::new(my_address, counter_party_address),
+        )
     }
     pub fn initialize(&self) {
         let controller = self.controller.clone().unwrap();

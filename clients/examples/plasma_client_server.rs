@@ -135,14 +135,15 @@ fn send_payment(
 ) -> Result<HttpResponse> {
     if let Some(range) = plasma_client.search_range(body.deposit_contract_address, body.amount) {
         let session = decode_session(body.session.clone()).unwrap();
+        let (property, metadata) = plasma_client.ownership_property(&session, body.to);
         plasma_client.send_transaction(
             &session,
-            body.to,
             Some(body.deposit_contract_address),
             range.get_start(),
             range.get_start() + body.amount,
+            property,
+            metadata,
         );
-
         return Ok(HttpResponse::Ok().json(SendPayment {
             deposit_contract_address: body.deposit_contract_address,
             from: body.from,

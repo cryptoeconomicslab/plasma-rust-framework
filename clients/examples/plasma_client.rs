@@ -10,13 +10,12 @@ fn main() {
     tokio::run(future::lazy(move || {
         shell.connect();
         println!("{:?}", shell.get_balance(&Bytes::from("")));
-        shell.send_transaction(
-            &Bytes::from(""),
+        let session = &Bytes::from("");
+        let (property, metadata) = shell.ownership_property(
+            session,
             string_to_address("2932b7a2355d6fecc4b5c0b6bd44cc31df247a2e"),
-            None,
-            0,
-            10,
         );
+        shell.send_transaction(session, None, 0, 10, property, metadata);
         Ok(())
     }));
 }
