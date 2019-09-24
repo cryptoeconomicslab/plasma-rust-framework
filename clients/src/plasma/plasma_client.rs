@@ -445,9 +445,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
             assert!(range_at_block_db
                 .store_witness(
                     block.get_inclusion_proof(s.clone()).unwrap(),
-                    block
-                        .get_plasma_data_block(root.clone(), s.clone())
-                        .unwrap(),
+                    block.get_plasma_data_block(root.clone(), s.clone()),
                 )
                 .is_ok());
         }

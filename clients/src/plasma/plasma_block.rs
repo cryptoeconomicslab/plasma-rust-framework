@@ -3,7 +3,8 @@ use super::error::{Error, ErrorKind};
 use abi_utils::{Decodable, Encodable, Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
-use merkle_interval_tree::{MerkleIntervalNode, MerkleIntervalTree};
+use ethereum_types::Address;
+use merkle_interval_tree::{DoubleLayerTree, DoubleLayerTreeLeaf};
 use ovm::types::core::Integer;
 use ovm::types::{PlasmaDataBlock, StateUpdate};
 
@@ -11,7 +12,7 @@ pub struct PlasmaBlock {
     block_number: Integer,
     state_updates: Vec<StateUpdate>,
     transactions: Vec<NewTransactionEvent>,
-    tree: Option<MerkleIntervalTree<u64>>,
+    tree: Option<DoubleLayerTree>,
 }
 
 impl PlasmaBlock {
@@ -48,47 +49,36 @@ impl PlasmaBlock {
         }
     }
 
-    pub fn get_inclusion_proof_with_index(&self, index: usize) -> Option<Bytes> {
+    pub fn get_inclusion_proof_with_index(&self, address: Address, index: usize) -> Option<Bytes> {
         if let Some(tree) = &self.tree {
-            Some(tree.get_inclusion_proof(index))
+            Some(tree.get_inclusion_proof(address, index))
         } else {
             None
         }
     }
 
     pub fn get_inclusion_proof(&self, state_update: StateUpdate) -> Option<Bytes> {
+        // TODO: we shoud use tree.get_index(data)
         if let Some(index) = self
             .state_updates
             .iter()
             .position(|s| s.get_hash() == state_update.get_hash())
         {
-            self.get_inclusion_proof_with_index(index)
+            self.get_inclusion_proof_with_index(state_update.get_deposit_contract_address(), index)
         } else {
             None
         }
     }
 
-    pub fn get_plasma_data_block(
-        &self,
-        root: Bytes,
-        state_update: StateUpdate,
-    ) -> Option<PlasmaDataBlock> {
-        if let Some(index) = self
-            .state_updates
-            .iter()
-            .position(|s| s.get_hash() == state_update.get_hash())
-        {
-            Some(PlasmaDataBlock::new(
-                Integer(index as u64),
-                state_update.get_range(),
-                root,
-                true,
-                state_update.get_block_number(),
-                Bytes::from(state_update.to_abi()),
-            ))
-        } else {
-            None
-        }
+    pub fn get_plasma_data_block(&self, root: Bytes, state_update: StateUpdate) -> PlasmaDataBlock {
+        PlasmaDataBlock::new(
+            state_update.get_deposit_contract_address(),
+            state_update.get_range(),
+            root,
+            true,
+            state_update.get_block_number(),
+            Bytes::from(state_update.to_abi()),
+        )
     }
 
     pub fn merkelize(&mut self) -> Result<Bytes, Error> {
@@ -97,13 +87,14 @@ impl PlasmaBlock {
         }
         let mut leaves = vec![];
         for s in self.state_updates.iter() {
-            leaves.push(MerkleIntervalNode::Leaf {
+            leaves.push(DoubleLayerTreeLeaf {
+                address: s.get_deposit_contract_address(),
                 end: s.get_range().get_end(),
                 data: Bytes::from(s.to_abi()),
             });
         }
 
-        let tree = MerkleIntervalTree::generate(&leaves);
+        let tree = DoubleLayerTree::generate(&leaves);
         self.tree = Some(tree);
         if let Some(root) = self.get_root() {
             Ok(root)
