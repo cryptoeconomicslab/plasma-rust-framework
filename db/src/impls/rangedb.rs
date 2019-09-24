@@ -195,4 +195,40 @@ mod tests {
         assert_eq!(result1[0].get_start(), 100);
         assert_eq!(result1[0].get_value(), b"Bob is owner");
     }
+
+    #[test]
+    fn test_put_subrange() {
+        let base_db = CoreDbMemoryImpl::open("test");
+        let db = RangeDbImpl::from(base_db);
+        let _ = db.put(0, 100, b"Alice is owner");
+        let _ = db.put(10, 20, b"Bob is owner");
+
+        let result = db.get(0, 100).unwrap();
+        println!("{:?}", result);
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0].get_start(), 0);
+        assert_eq!(result[0].get_end(), 10);
+        assert_eq!(result[0].get_value(), b"Alice is owner");
+        assert_eq!(result[1].get_start(), 10);
+        assert_eq!(result[1].get_end(), 20);
+        assert_eq!(result[1].get_value(), b"Bob is owner");
+        assert_eq!(result[2].get_start(), 20);
+        assert_eq!(result[2].get_end(), 100);
+        assert_eq!(result[2].get_value(), b"Alice is owner");
+    }
+
+    #[test]
+    fn test_put_overlapped_range() {
+        let base_db = CoreDbMemoryImpl::open("test");
+        let db = RangeDbImpl::from(base_db);
+        let _ = db.put(0, 100, b"Alice is owner");
+        let _ = db.put(80, 200, b"Bob is owner");
+        let result = db.get(0, 200).unwrap();
+        assert_eq!(result[0].get_start(), 0);
+        assert_eq!(result[0].get_end(), 80);
+        assert_eq!(result[0].get_value(), b"Alice is owner");
+        assert_eq!(result[1].get_start(), 80);
+        assert_eq!(result[1].get_end(), 200);
+        assert_eq!(result[1].get_value(), b"Bob is owner");
+    }
 }

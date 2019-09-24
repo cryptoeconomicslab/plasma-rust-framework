@@ -74,6 +74,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
         let mut state_db = StateDb::new(self.decider.get_range_db());
         let state_updates = state_db
             .get_verified_state_updates(
+                transaction.get_deposit_contract_address(),
                 transaction.get_range().get_start(),
                 transaction.get_range().get_end(),
             )
