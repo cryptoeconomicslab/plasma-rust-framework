@@ -225,12 +225,12 @@ mod tests {
 
         let result = db.get(0, 100).unwrap();
         assert_eq!(result.len(), 2);
-        assert_eq!(result[0].get_start(), 20);
-        assert_eq!(result[0].get_end(), 100);
-        assert_eq!(result[0].get_value(), b"Alice is owner");
-        assert_eq!(result[1].get_start(), 0);
-        assert_eq!(result[1].get_end(), 20);
-        assert_eq!(result[1].get_value(), b"Bob is owner");
+        assert_eq!(result[0].get_start(), 0);
+        assert_eq!(result[0].get_end(), 20);
+        assert_eq!(result[0].get_value(), b"Bob is owner");
+        assert_eq!(result[1].get_start(), 20);
+        assert_eq!(result[1].get_end(), 100);
+        assert_eq!(result[1].get_value(), b"Alice is owner");
     }
 
     #[test]
@@ -274,12 +274,12 @@ mod tests {
         let _ = db.put(0, 50, b"Bob is owner");
         let result = db.get(0, 100).unwrap();
         assert_eq!(result.len(), 2);
-        assert_eq!(result[0].get_start(), 50);
-        assert_eq!(result[0].get_end(), 100);
-        assert_eq!(result[0].get_value(), b"Alice is owner");
-        assert_eq!(result[1].get_start(), 0);
-        assert_eq!(result[1].get_end(), 50);
-        assert_eq!(result[1].get_value(), b"Bob is owner");
+        assert_eq!(result[0].get_start(), 0);
+        assert_eq!(result[0].get_end(), 50);
+        assert_eq!(result[0].get_value(), b"Bob is owner");
+        assert_eq!(result[1].get_start(), 50);
+        assert_eq!(result[1].get_end(), 100);
+        assert_eq!(result[1].get_value(), b"Alice is owner");
     }
 
     #[test]
