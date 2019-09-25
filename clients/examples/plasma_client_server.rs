@@ -39,6 +39,7 @@ struct GetBalanceRequest {
 #[derive(Serialize)]
 struct Balance {
     token_address: Address,
+    token_name: String,
     balance: u64,
 }
 
@@ -53,6 +54,7 @@ fn get_balance(
         .iter()
         .map(|(k, v)| Balance {
             token_address: *k,
+            token_name: plasma_client.get_token_name(*k),
             balance: *v,
         })
         .collect();

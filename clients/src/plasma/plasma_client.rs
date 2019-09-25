@@ -262,6 +262,15 @@ impl PlasmaClientShell {
             ),
         ]
     }
+    pub fn get_token_name(&self, address: Address) -> String {
+        if address == Address::zero() {
+            "ETH".to_string()
+        } else if address == string_to_address("0000000000000000000000000000000000000001") {
+            "DAI".to_string()
+        } else {
+            panic!("No token found")
+        }
+    }
 }
 
 #[derive(Clone)]
