@@ -226,7 +226,7 @@ impl PlasmaClientShell {
         let plasma_client = controller.plasma_client.lock().unwrap();
         let my_address = plasma_client.get_my_address(session).unwrap();
         let balances: HashMap<Address, u64> = plasma_client
-            .get_state_updates()
+            .get_all_state_updates()
             .iter()
             .filter(|s| {
                 let p = &s.get_property().inputs[2];
@@ -482,7 +482,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
                 )
                 .is_ok());
         }
-        for su in self.get_state_updates() {
+        for su in self.get_all_state_updates() {
             let property = PlasmaClientShell::create_checkpoint_property(
                 Integer(su.get_block_number().0),
                 su.get_range(),
@@ -549,10 +549,18 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         self.handle_new_block(plasma_block);
     }
 
-    pub fn get_state_updates(&self) -> Vec<StateUpdate> {
+    pub fn get_all_state_updates(&self) -> Vec<StateUpdate> {
         let range_db = self.decider.get_range_db();
         let state_db = StateDb::new(range_db);
         state_db.get_all_state_updates().unwrap_or_else(|_| vec![])
+    }
+
+    pub fn get_state_updates(&self, deposit_contract_address: Address) -> Vec<StateUpdate> {
+        let range_db = self.decider.get_range_db();
+        let state_db = StateDb::new(range_db);
+        state_db
+            .get_verified_state_updates(deposit_contract_address, 0, std::u64::MAX)
+            .unwrap_or_else(|_| vec![])
     }
 
     pub fn update_state_updates(&self, state_updates: Vec<StateUpdate>) {
@@ -566,9 +574,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
 
     /// return range if enough amount is exists.
     pub fn search_range(&self, deposit_contract_address: Address, amount: u64) -> Option<Range> {
-        self.get_state_updates()
+        // TODO: decide if this property is owner's property.
+        self.get_state_updates(deposit_contract_address)
             .iter()
-            .filter(|su| su.get_deposit_contract_address() == deposit_contract_address)
             .map(|su| su.get_range())
             .find(|range| amount <= range.get_end() - range.get_start())
     }

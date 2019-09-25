@@ -128,11 +128,10 @@ fn get_payment_history(
 // Send Payment
 #[derive(Deserialize, Serialize, Debug)]
 struct SendPayment {
-    deposit_contract_address: Address,
+    token_address: Address,
     from: Address,
     to: Address,
     amount: u64,
-    token_id: u64,
     session: String,
 }
 
@@ -140,24 +139,24 @@ fn send_payment(
     body: web::Json<SendPayment>,
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
-    if let Some(range) = plasma_client.search_range(body.deposit_contract_address, body.amount) {
+    if let Some(range) = plasma_client.search_range(body.token_address, body.amount) {
+        println!("Range: {:?}", range);
         let session = decode_session(body.session.clone()).unwrap();
         let (property, metadata) = plasma_client.ownership_property(&session, body.to);
         plasma_client.send_transaction(
             &session,
-            Some(body.deposit_contract_address),
+            Some(body.token_address),
             range.get_start(),
             range.get_start() + body.amount,
             property,
             metadata,
         );
         return Ok(HttpResponse::Ok().json(SendPayment {
-            deposit_contract_address: body.deposit_contract_address,
+            token_address: body.token_address,
             from: body.from,
             to: body.to,
             session: body.session.clone(),
             amount: body.amount,
-            token_id: body.token_id,
         }));
     }
 
