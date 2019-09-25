@@ -88,7 +88,7 @@ struct PaymentHistory {
     address: Address,
     timestamp: DateTime<Local>,
     status: PaymentHistoryStatus,
-    token_address: Address,
+    token_name: String,
 }
 
 fn get_payment_history(
@@ -118,7 +118,7 @@ fn get_payment_history(
                 },
                 timestamp: Local::now(),
                 status: PaymentHistoryStatus::CONFIRMED,
-                token_address: Address::zero(),
+                token_name: plasma_client.get_token_name(tx.get_deposit_contract_address()),
             }
         })
         .collect();
