@@ -1,9 +1,9 @@
+use super::utils::string_to_address;
 use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
+use ethereum_types::Address;
 use ovm::types::StateUpdate;
-use plasma_core::data_structure::Range;
 use plasma_db::error::Error;
-use plasma_db::range::Range as RangeWithValue;
 use plasma_db::traits::kvs::KeyValueStore;
 use plasma_db::traits::rangestore::RangeStore;
 use plasma_db::RangeDbImpl;
@@ -21,17 +21,30 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
     }
 
     pub fn get_all_state_updates(&self) -> Result<Vec<StateUpdate>, Error> {
-        self.get_verified_state_updates(MIN_RANGE, MAX_RANGE)
+        let mut result = vec![];
+        // TODO: get dynamically
+        let mut state_updates =
+            self.get_verified_state_updates(Address::zero(), MIN_RANGE, MAX_RANGE)?;
+        result.append(&mut state_updates);
+        let mut state_updates = self.get_verified_state_updates(
+            string_to_address("0000000000000000000000000000000000000001"),
+            MIN_RANGE,
+            MAX_RANGE,
+        )?;
+        result.append(&mut state_updates);
+        Ok(result)
     }
 
     pub fn get_verified_state_updates(
         &self,
+        deposit_contract_address: Address,
         start: u64,
         end: u64,
     ) -> Result<Vec<StateUpdate>, Error> {
         let res = self
             .db
             .bucket(&Bytes::from(&b"verified_state_updates"[..]))
+            .bucket(&Bytes::from(deposit_contract_address.as_bytes()))
             .get(start, end)?
             .iter()
             .map(|range| StateUpdate::from_abi(range.get_value()).unwrap())
@@ -42,69 +55,11 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
     pub fn put_verified_state_update(&mut self, state_update: &StateUpdate) -> Result<(), Error> {
         let start = state_update.get_range().get_start();
         let end = state_update.get_range().get_end();
+        let deposit_contract_address = state_update.get_deposit_contract_address();
 
-        let result = self
-            .db
+        self.db
             .bucket(&Bytes::from(&b"verified_state_updates"[..]))
-            .get(start, end)?;
-
-        if result.len() == 0 {
-            // TODO: handle error
-            let _ = self
-                .db
-                .bucket(&Bytes::from(&b"verified_state_updates"[..]))
-                .put(start, end, &state_update.to_abi());
-            Ok(())
-        } else if result.len() == 1 {
-            let range = Range::new(result[0].get_start(), result[0].get_end());
-
-            if range.is_subrange(&state_update.get_range()) {
-                // split into two or three range if new range is subrange.
-                let intersection = result[0].get_intersection(start, end).unwrap();
-                let mut first_block = StateUpdate::from_abi(intersection.get_value()).unwrap();
-                first_block.set_range(Range::new(range.get_start(), intersection.get_start()));
-
-                let mut third_block = StateUpdate::from_abi(intersection.get_value()).unwrap();
-                third_block.set_range(Range::new(intersection.get_end(), range.get_end()));
-
-                let ranges = vec![
-                    RangeWithValue::new(
-                        range.get_start(),
-                        intersection.get_start(),
-                        &first_block.to_abi(),
-                    ),
-                    RangeWithValue::new(
-                        intersection.get_start(),
-                        intersection.get_end(),
-                        &state_update.to_abi(),
-                    ),
-                    RangeWithValue::new(
-                        intersection.get_end(),
-                        range.get_end(),
-                        &third_block.to_abi(),
-                    ),
-                ];
-
-                for range in ranges.iter() {
-                    if range.validate() {
-                        // TODO: handle error
-                        let _ = self
-                            .db
-                            .bucket(&Bytes::from(&b"verified_state_updates"[..]))
-                            .put(range.get_start(), range.get_end(), range.get_value());
-                    }
-                }
-            } else if range == state_update.get_range() {
-                // override if range is same.
-                let _ = self
-                    .db
-                    .bucket(&Bytes::from(&b"verified_state_updates"[..]))
-                    .put(start, end, &state_update.to_abi());
-            }
-            Ok(())
-        } else {
-            // TODO: update, split, override
-            Ok(())
-        }
+            .bucket(&Bytes::from(deposit_contract_address.as_bytes()))
+            .put(start, end, &state_update.to_abi())
     }
 }

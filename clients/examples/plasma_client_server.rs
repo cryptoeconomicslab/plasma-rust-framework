@@ -25,6 +25,11 @@ fn create_account(plasma_client: web::Data<PlasmaClientShell>) -> Result<HttpRes
     }))
 }
 
+fn get_all_tokens(plasma_client: web::Data<PlasmaClientShell>) -> Result<HttpResponse> {
+    let tokens = plasma_client.get_all_tokens();
+    Ok(HttpResponse::Ok().json(tokens))
+}
+
 // Get Balance
 #[derive(Deserialize, Debug)]
 struct GetBalanceRequest {
@@ -293,6 +298,7 @@ pub fn main() {
             .wrap(Logger::default())
             .register_data(data)
             .route("/create_account", web::post().to(create_account))
+            .route("/get_all_tokens", web::post().to(get_all_tokens))
             .route("/get_balance", web::get().to(get_balance))
             .route("/get_payment_history", web::get().to(get_payment_history))
             .route("/send_payment", web::post().to(send_payment))
