@@ -44,11 +44,11 @@ struct Balance {
 }
 
 fn get_balance(
-    body: web::Json<GetBalanceRequest>,
+    params: web::Query<GetBalanceRequest>,
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
-    info!("BODY: {:?}", body);
-    let session = decode_session(body.session.clone()).unwrap();
+    info!("PARAMS: {:?}", params);
+    let session = decode_session(params.session.clone()).unwrap();
     let balance: Vec<Balance> = plasma_client
         .get_balance(&session)
         .iter()
@@ -92,11 +92,11 @@ struct PaymentHistory {
 }
 
 fn get_payment_history(
-    body: web::Json<GetPaymentHistoryRequest>,
+    params: web::Query<GetPaymentHistoryRequest>,
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
-    info!("BODY: {:?}", body);
-    let session = decode_session(body.session.clone()).unwrap();
+    info!("PARAMS: {:?}", params);
+    let session = decode_session(params.session.clone()).unwrap();
     let my_address = plasma_client.get_my_address(&session).unwrap();
     let txs = plasma_client.get_related_transactions(&session);
     let history: Vec<PaymentHistory> = txs
@@ -223,7 +223,7 @@ enum ExchangeHistoryStatus {
 
 #[derive(Deserialize, Debug)]
 struct GetExchangeHistoryRequest {
-    address: Address,
+    session: String,
 }
 
 #[derive(Serialize)]
@@ -237,8 +237,8 @@ struct ExchangeHistory {
     timestamp: DateTime<Local>,
 }
 
-fn get_exchange_history(body: web::Json<GetExchangeHistoryRequest>) -> Result<HttpResponse> {
-    info!("BODY: {:?}", body);
+fn get_exchange_history(params: web::Query<GetExchangeHistoryRequest>) -> Result<HttpResponse> {
+    info!("PARAMS: {:?}", params);
     Ok(HttpResponse::Ok().json(vec![ExchangeHistory {
         exchange_id: 123,
         history_type: ExchangeHistoryType::OFFERED,
