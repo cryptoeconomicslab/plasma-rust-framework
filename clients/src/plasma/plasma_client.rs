@@ -1,6 +1,7 @@
 use super::command::{Command, NewTransactionEvent};
 use super::plasma_block::PlasmaBlock;
 use super::state_db::StateDb;
+use super::token::Token;
 use super::utils::string_to_address;
 use super::wallet_manager::WalletManager;
 use abi_utils::{Decodable, Encodable};
@@ -250,6 +251,16 @@ impl PlasmaClientShell {
             .clone()
             .unwrap()
             .get_related_transactions(session)
+    }
+    // TODO: get dynamically using token map?
+    pub fn get_all_tokens(&self) -> Vec<Token> {
+        vec![
+            Token::new("ETH", Address::zero()),
+            Token::new(
+                "DAI",
+                string_to_address("0000000000000000000000000000000000000001"),
+            ),
+        ]
     }
 }
 

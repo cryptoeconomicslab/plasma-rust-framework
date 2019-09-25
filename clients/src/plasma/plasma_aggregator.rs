@@ -4,6 +4,7 @@ use super::error::{Error, ErrorKind};
 use super::plasma_block::PlasmaBlock;
 use super::plasma_client::PlasmaClientShell;
 use super::state_db::StateDb;
+use super::token::Token;
 use super::utils::*;
 use bytes::Bytes;
 use ethereum_types::Address;
@@ -183,6 +184,22 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
 
     pub fn get_plasma_block_of_block(&self, block_number: Integer) -> Result<PlasmaBlock, Error> {
         self.block_manager.get_block_range(block_number)
+    }
+
+    pub fn register_token(_token: Token) {
+        // TODO: implement
+        unimplemented!("Register Token is not impemented yet");
+    }
+
+    // TODO: get dynamically using token map?
+    pub fn get_all_tokens(&self) -> Vec<Token> {
+        vec![
+            Token::new("ETH", Address::zero()),
+            Token::new(
+                "DAI",
+                string_to_address("0000000000000000000000000000000000000001"),
+            ),
+        ]
     }
 }
 
