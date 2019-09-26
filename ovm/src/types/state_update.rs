@@ -1,10 +1,9 @@
 use crate::deciders::OwnershipDecider;
 use crate::property_executor::PropertyExecutor;
 use crate::types::core::{Property, QuantifierResultItem};
-use crate::types::PlasmaDataBlock;
 use crate::DecideMixin;
 use abi_derive::{AbiDecodable, AbiEncodable};
-use abi_utils::{Decodable, Encodable, Integer};
+use abi_utils::{Encodable, Integer};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::Address;
@@ -106,11 +105,5 @@ impl StateUpdate {
         }
 
         Ok(next_state)
-    }
-}
-
-impl From<PlasmaDataBlock> for StateUpdate {
-    fn from(plasma_data_block: PlasmaDataBlock) -> Self {
-        StateUpdate::from_abi(plasma_data_block.get_data()).unwrap()
     }
 }

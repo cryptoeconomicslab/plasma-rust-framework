@@ -71,7 +71,7 @@ mod tests {
     use crate::db::{RangeAtBlockDb, SignedByDb, TransactionDb};
     use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{PlasmaDataBlock, Property, QuantifierResultItem, StateUpdate};
+    use crate::types::{Property, QuantifierResultItem, StateUpdate};
     use crate::DeciderManager;
     use abi_utils::abi::Encodable;
     use abi_utils::Integer;
@@ -185,16 +185,13 @@ mod tests {
         let inclusion_bounds_result =
             DoubleLayerTree::verify(&leaf3, inclusion_proof.clone(), &root);
         assert!(inclusion_bounds_result);
-        let plasma_data_block = PlasmaDataBlock::new(
-            corresponding_deposit_contract_address,
-            Range::new(100, 200),
-            root.clone(),
-            true,
-            block_number,
-            leaf3.data.clone(),
-        );
         assert!(range_at_block_db
-            .store_witness(root, inclusion_proof, plasma_data_block.clone())
+            .store_witness(
+                root,
+                true,
+                inclusion_proof,
+                corresponding_state_update.clone()
+            )
             .is_ok());
         decider.set_variable(
             Bytes::from("state_update"),
