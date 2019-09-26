@@ -195,7 +195,6 @@ mod tests {
             end: 200,
             data: Bytes::from(corresponding_state_update.to_abi()),
         };
-        println!("leaf3 = {:?}", hex::encode(leaf3.clone().data));
         let tree = DoubleLayerTree::generate(&[leaf1, leaf2, leaf3.clone()]);
         let root = tree.get_root();
         let index = tree.get_index(corresponding_deposit_contract_address, &leaf3.data);
@@ -221,7 +220,6 @@ mod tests {
             QuantifierResultItem::StateUpdate(state_update),
         );
         let result = decider.decide(&property);
-        println!("{:?}", result);
         assert!(result.is_ok());
         assert!(result.ok().unwrap().get_outcome());
     }
