@@ -1,5 +1,5 @@
 use crate::db::message_db::Message;
-use crate::types::{Integer, Property};
+use crate::types::{Integer, Property, StateUpdate};
 use abi_utils::{Decodable, Encodable, Error as AbiError, ErrorKind as AbiErrorKind};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
@@ -16,12 +16,27 @@ pub enum PropertyInput {
     ConstantInteger(Integer),
     ConstantRange(Range),
     ConstantProperty(Property),
+    ConstantStateUpdate(StateUpdate),
     ConstantMessage(Message),
 }
 
 impl PropertyInput {
     pub fn placeholder(placeholder: &str) -> Self {
         PropertyInput::Placeholder(Bytes::from(placeholder))
+    }
+    pub fn to_address(&self) -> Address {
+        if let PropertyInput::ConstantAddress(address) = self {
+            *address
+        } else {
+            panic!("PropertyInput isn't Address!")
+        }
+    }
+    pub fn to_state_update(&self) -> StateUpdate {
+        if let PropertyInput::ConstantStateUpdate(state_update) = self {
+            state_update.clone()
+        } else {
+            panic!("PropertyInput isn't StateUpdate!")
+        }
     }
 }
 
@@ -38,7 +53,8 @@ impl Encodable for PropertyInput {
             }
             PropertyInput::ConstantRange(range) => (5, range.to_abi()),
             PropertyInput::ConstantProperty(property) => (6, property.to_abi()),
-            PropertyInput::ConstantMessage(message) => (7, message.to_abi()),
+            PropertyInput::ConstantStateUpdate(state_update) => (7, state_update.to_abi()),
+            PropertyInput::ConstantMessage(message) => (8, message.to_abi()),
         };
         vec![Token::Uint(id.into()), Token::Bytes(bytes.to_vec())]
     }
@@ -66,6 +82,8 @@ impl Decodable for PropertyInput {
             } else if id_num == 6 {
                 Property::from_abi(&bytes).map(PropertyInput::ConstantProperty)
             } else if id_num == 7 {
+                StateUpdate::from_abi(&bytes).map(PropertyInput::ConstantStateUpdate)
+            } else if id_num == 8 {
                 Message::from_abi(&bytes).map(PropertyInput::ConstantMessage)
             } else {
                 panic!("")
