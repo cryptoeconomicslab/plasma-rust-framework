@@ -2,6 +2,7 @@ use crate::property_executor::PropertyExecutor;
 use crate::types::{PropertyInput, QuantifierResult, QuantifierResultItem, StateUpdate};
 use plasma_db::traits::kvs::KeyValueStore;
 
+/// StateUpdateQuantifier is quantifier which returns StateUpdate.
 pub struct StateUpdateQuantifier {}
 
 impl Default for StateUpdateQuantifier {
