@@ -85,16 +85,44 @@ mod tests {
     use crate::db::{RangeAtBlockDb, SignedByDb, TransactionDb};
     use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{PlasmaDataBlock, QuantifierResultItem, StateUpdate};
+    use crate::types::{PlasmaDataBlock, Property, QuantifierResultItem, StateUpdate};
     use crate::DeciderManager;
     use abi_utils::abi::Encodable;
     use abi_utils::Integer;
     use bytes::Bytes;
-    use ethereum_types::Address;
+    use ethereum_types::{Address, H256};
     use ethsign::SecretKey;
     use merkle_interval_tree::{DoubleLayerTree, DoubleLayerTreeLeaf};
     use plasma_core::data_structure::{Metadata, Range, Transaction, TransactionParams};
     use plasma_db::impls::kvs::CoreDbMemoryImpl;
+
+    fn make_state_update(
+        block_number: Integer,
+        deposit_contract_address: Address,
+        range: Range,
+        corresponding_deposit_contract_address: Address,
+        corresponding_range: Range,
+        alice: Address,
+        bob: Address,
+    ) -> (Property, StateUpdate) {
+        let dammy_property = DeciderManager::preimage_exists_decider(vec![]);
+        let corresponding_state_update = StateUpdate::new(
+            block_number,
+            corresponding_deposit_contract_address,
+            corresponding_range,
+            dammy_property,
+        );
+        let property = create_channel_state_object(alice, bob, corresponding_state_update.clone());
+        (
+            property.clone(),
+            StateUpdate::new(
+                block_number,
+                deposit_contract_address,
+                range,
+                property.clone(),
+            ),
+        )
+    }
 
     #[test]
     fn test_succeed_to_decide_channel() {
@@ -114,21 +142,24 @@ mod tests {
         let corresponding_deposit_contract_address = Address::random();
         let corresponding_range = Range::new(100, 200);
 
-        let dammy_property = DeciderManager::preimage_exists_decider(vec![]);
-        let corresponding_state_update = StateUpdate::new(
-            block_number,
-            corresponding_deposit_contract_address,
-            corresponding_range,
-            dammy_property,
-        );
-        let property = create_channel_state_object(alice, bob, corresponding_state_update.clone());
-        let state_update = StateUpdate::new(
+        let (property, state_update) = make_state_update(
             block_number,
             deposit_contract_address,
             range,
-            property.clone(),
+            corresponding_deposit_contract_address,
+            corresponding_range,
+            alice,
+            bob,
         );
-
+        let (_, corresponding_state_update) = make_state_update(
+            block_number,
+            corresponding_deposit_contract_address,
+            corresponding_range,
+            deposit_contract_address,
+            range,
+            bob,
+            alice,
+        );
         let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let tx_db = TransactionDb::new(decider.get_range_db());
         let signed_by_db = SignedByDb::new(decider.get_db());
@@ -156,19 +187,30 @@ mod tests {
         };
         let leaf2 = DoubleLayerTreeLeaf {
             address: corresponding_deposit_contract_address,
+            end: 100,
+            data: Bytes::from(H256::zero().as_bytes()),
+        };
+        let leaf3 = DoubleLayerTreeLeaf {
+            address: corresponding_deposit_contract_address,
             end: 200,
             data: Bytes::from(corresponding_state_update.to_abi()),
         };
-        let tree = DoubleLayerTree::generate(&[leaf1, leaf2.clone()]);
+        println!("leaf3 = {:?}", hex::encode(leaf3.clone().data));
+        let tree = DoubleLayerTree::generate(&[leaf1, leaf2, leaf3.clone()]);
         let root = tree.get_root();
-        let inclusion_proof = tree.get_inclusion_proof(corresponding_deposit_contract_address, 0);
+        let index = tree.get_index(corresponding_deposit_contract_address, &leaf3.data);
+        let inclusion_proof =
+            tree.get_inclusion_proof(corresponding_deposit_contract_address, index);
+        let inclusion_bounds_result =
+            DoubleLayerTree::verify(&leaf3, inclusion_proof.clone(), &root);
+        assert!(inclusion_bounds_result);
         let plasma_data_block = PlasmaDataBlock::new(
             corresponding_deposit_contract_address,
             Range::new(100, 200),
             root.clone(),
             true,
             block_number,
-            leaf2.data.clone(),
+            leaf3.data.clone(),
         );
         assert!(range_at_block_db
             .store_witness(root, inclusion_proof, plasma_data_block.clone())
