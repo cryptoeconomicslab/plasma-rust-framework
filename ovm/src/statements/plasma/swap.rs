@@ -6,14 +6,14 @@ use bytes::Bytes;
 use ethereum_types::Address;
 use plasma_db::traits::kvs::KeyValueStore;
 
-pub fn create_channel_state_object_for_variables<KVS: KeyValueStore>(
+pub fn create_swap_state_object_for_variables<KVS: KeyValueStore>(
     decider: &PropertyExecutor<KVS>,
     inputs: &[PropertyInput],
 ) -> Property {
     let my_address = decider.get_variable(&inputs[1]).to_address();
     let counter_party_address = decider.get_variable(&inputs[2]).to_address();
     let corresponding_state_update = decider.get_variable(&inputs[3]).to_state_update();
-    create_channel_state_object(
+    create_swap_state_object(
         my_address,
         counter_party_address,
         corresponding_state_update,
@@ -21,27 +21,17 @@ pub fn create_channel_state_object_for_variables<KVS: KeyValueStore>(
 }
 
 /// channel property for Plasma
-pub fn create_channel_state_object(
+pub fn create_swap_state_object(
     my_address: Address,
     counter_party_address: Address,
     corresponding_state_update: StateUpdate,
 ) -> Property {
     /*
      * There exists tx such that state_update.is_same_coin_range(tx):
-     *   There exists corresponding_property = create_channel(counter_party_address, my_address):
-     *     There exists correspondent such that correspondent = create_state_update(corresponding_range, corresponding_property):
-     *       Or(
-     *         And(IncludedAt(correspondent), SignedBy(tx, to_address), SignedBy(tx, counter_party_address)),
-     *         And(Not(IncludedAt(correspondent)), SignedBy(tx, counter_party_address))
-     *       )
-     *
-     * This can be compiled to small property.
-     *
-     * There exists tx such that state_update.is_same_coin_range(tx):
      *   AtomicStateUpdate(
-     *     create_channel(counter_party_address, my_address),
+     *     create_swap(counter_party_address, my_address),
      *     corresponding_range,
-     *     And(SignedBy(tx, to_address), SignedBy(tx, counter_party_address)),
+     *     SignedBy(tx, counter_party_address),
      *     SignedBy(tx, counter_party_address)
      *   )
      *
@@ -57,21 +47,15 @@ pub fn create_channel_state_object(
             corresponding_state_update.get_range(),
             vec![
                 // TODO: This should be PropertyFactory address
-                PropertyInput::ConstantInteger(Integer(0)),
+                PropertyInput::ConstantInteger(Integer(1)),
                 PropertyInput::ConstantAddress(counter_party_address),
                 PropertyInput::ConstantAddress(my_address),
                 PropertyInput::Placeholder(Bytes::from("state_update")),
             ],
-            DeciderManager::and_decider(
-                DeciderManager::signed_by_decider(vec![
-                    PropertyInput::ConstantAddress(my_address),
-                    PropertyInput::Placeholder(Bytes::from("tx")),
-                ]),
-                DeciderManager::signed_by_decider(vec![
-                    PropertyInput::ConstantAddress(counter_party_address),
-                    PropertyInput::Placeholder(Bytes::from("tx")),
-                ]),
-            ),
+            DeciderManager::signed_by_decider(vec![
+                PropertyInput::ConstantAddress(counter_party_address),
+                PropertyInput::Placeholder(Bytes::from("tx")),
+            ]),
             DeciderManager::signed_by_decider(vec![
                 PropertyInput::ConstantAddress(my_address),
                 PropertyInput::Placeholder(Bytes::from("tx")),
@@ -83,7 +67,7 @@ pub fn create_channel_state_object(
 #[cfg(test)]
 mod tests {
 
-    use super::create_channel_state_object;
+    use super::create_swap_state_object;
     use crate::db::{RangeAtBlockDb, SignedByDb, TransactionDb};
     use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
@@ -114,7 +98,7 @@ mod tests {
             corresponding_range,
             dammy_property,
         );
-        let property = create_channel_state_object(alice, bob, corresponding_state_update.clone());
+        let property = create_swap_state_object(alice, bob, corresponding_state_update.clone());
         (
             property.clone(),
             StateUpdate::new(
@@ -127,7 +111,7 @@ mod tests {
     }
 
     #[test]
-    fn test_succeed_to_decide_channel() {
+    fn test_succeed_to_decide_swap() {
         let raw_key_alice =
             hex::decode("c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3")
                 .unwrap();
@@ -138,7 +122,7 @@ mod tests {
         let secret_key_bob = SecretKey::from_raw(&raw_key_bob).unwrap();
         let alice: Address = secret_key.public().address().into();
         let bob = secret_key_bob.public().address().into();
-        let block_number = Integer(10);
+        let block_number = Integer(200);
         let deposit_contract_address = Address::random();
         let range = Range::new(0, 100);
         let corresponding_deposit_contract_address = Address::random();
@@ -169,19 +153,15 @@ mod tests {
         let tx_params =
             TransactionParams::new(Address::zero(), Range::new(0, 100), Bytes::default());
         let tx_body = Bytes::from(tx_params.to_abi());
-        let signature = SignatureVerifier::sign(&secret_key, &tx_body);
+        let _signature = SignatureVerifier::sign(&secret_key, &tx_body);
         let signature_bob = SignatureVerifier::sign(&secret_key_bob, &tx_body);
         tx_db.put_transaction(
             state_update.get_block_number().0,
-            Transaction::from_params(tx_params, signature.clone(), Metadata::default()),
+            Transaction::from_params(tx_params, signature_bob.clone(), Metadata::default()),
         );
-        assert!(signed_by_db
-            .store_witness(alice, tx_body.clone(), signature.clone())
-            .is_ok());
         assert!(signed_by_db
             .store_witness(bob, tx_body.clone(), signature_bob.clone())
             .is_ok());
-
         let leaf1 = DoubleLayerTreeLeaf {
             address: deposit_contract_address,
             end: 100,
@@ -216,12 +196,12 @@ mod tests {
         assert!(range_at_block_db
             .store_witness(root, inclusion_proof, plasma_data_block.clone())
             .is_ok());
-
         decider.set_variable(
             Bytes::from("state_update"),
             QuantifierResultItem::StateUpdate(state_update),
         );
         let result = decider.decide(&property);
+        println!("{:?}", result);
         assert!(result.is_ok());
         assert!(result.ok().unwrap().get_outcome());
     }

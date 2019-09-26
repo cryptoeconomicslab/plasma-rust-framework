@@ -1,4 +1,4 @@
-use crate::error::Error;
+use crate::error::{Error, ErrorKind};
 use crate::utils::static_hash;
 use abi_derive::{AbiDecodable, AbiEncodable};
 use abi_utils::{Decodable, Encodable};
@@ -59,7 +59,8 @@ impl<'a, KVS: KeyValueStore> SignedByDb<'a, KVS> {
             .get(&BaseDbKey::from(static_hash(message).as_bytes()))
             .map_err::<Error, _>(Into::into)?;
         if result.is_none() {
-            panic!("signature not found");
+            // TODO: witness not found error
+            return Err(Error::from(ErrorKind::Undecided));
         }
         SignedByRecord::from_abi(&result.unwrap()).map_err::<Error, _>(Into::into)
     }

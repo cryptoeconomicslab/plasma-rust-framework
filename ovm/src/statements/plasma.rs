@@ -1,5 +1,6 @@
 pub mod atomic_state;
 pub mod channel;
+pub mod swap;
 
 use crate::types::{Integer, Property, PropertyInput};
 use crate::DeciderManager;
@@ -7,6 +8,7 @@ pub use atomic_state::*;
 use bytes::Bytes;
 pub use channel::*;
 use plasma_core::data_structure::Range;
+pub use swap::*;
 
 /// Creates plasma checkpoint property
 /// for all b such that b < block_number:
