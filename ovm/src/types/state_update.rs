@@ -1,9 +1,8 @@
-use crate::deciders::OwnershipDecider;
 use crate::property_executor::PropertyExecutor;
 use crate::types::core::{Property, QuantifierResultItem};
 use crate::DecideMixin;
 use abi_derive::{AbiDecodable, AbiEncodable};
-use abi_utils::{Encodable, Integer};
+use abi_utils::{Decodable, Encodable, Integer};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
 use ethereum_types::Address;
@@ -89,15 +88,20 @@ impl StateUpdate {
         decided.is_ok()
     }
 
-    /// validate transaction and state update.
+    /// Validates transaction and state update.
+    /// Please see https://github.com/cryptoeconomicslab/plasma-rust-framework/issues/241#issuecomment-535820527 for more information.
     pub fn execute_state_transition<T: KeyValueStore>(
         &self,
         decider: &PropertyExecutor<T>,
         transaction: &Transaction,
         next_block_number: Integer,
     ) -> Result<Self, PlasmaCoreError> {
-        let next_state =
-            OwnershipDecider::execute_state_transition(self, transaction, next_block_number);
+        let next_state = StateUpdate::new(
+            next_block_number,
+            transaction.get_deposit_contract_address(),
+            transaction.get_range(),
+            Property::from_abi(transaction.get_parameters()).unwrap(),
+        );
         if !self.verify_state_transition(decider, transaction) {
             return Err(PlasmaCoreError::from(
                 PlasmaCoreErrorKind::InvalidTransaction,
