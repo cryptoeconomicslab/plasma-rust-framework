@@ -3,10 +3,7 @@ use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
 use ethereum_types::Address;
 use ovm::types::StateUpdate;
-use plasma_db::error::Error;
-use plasma_db::traits::kvs::KeyValueStore;
-use plasma_db::traits::rangestore::RangeStore;
-use plasma_db::RangeDbImpl;
+use plasma_db::prelude::*;
 
 const MIN_RANGE: u64 = 0;
 const MAX_RANGE: u64 = std::u64::MAX;
@@ -20,7 +17,7 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
         StateDb { db: range_db }
     }
 
-    pub fn get_all_state_updates(&self) -> Result<Vec<StateUpdate>, Error> {
+    pub fn get_all_state_updates(&self) -> Result<Vec<StateUpdate>, PlasmaDbError> {
         let mut result = vec![];
         // TODO: get dynamically
         let mut state_updates =
@@ -40,7 +37,7 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
         deposit_contract_address: Address,
         start: u64,
         end: u64,
-    ) -> Result<Vec<StateUpdate>, Error> {
+    ) -> Result<Vec<StateUpdate>, PlasmaDbError> {
         let res = self
             .db
             .bucket(&Bytes::from(&b"verified_state_updates"[..]))
@@ -52,7 +49,10 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
         Ok(res)
     }
 
-    pub fn put_verified_state_update(&mut self, state_update: &StateUpdate) -> Result<(), Error> {
+    pub fn put_verified_state_update(
+        &mut self,
+        state_update: &StateUpdate,
+    ) -> Result<(), PlasmaDbError> {
         let start = state_update.get_range().get_start();
         let end = state_update.get_range().get_end();
         let deposit_contract_address = state_update.get_deposit_contract_address();

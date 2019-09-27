@@ -15,8 +15,7 @@ use ovm::property_executor::PropertyExecutor;
 use ovm::types::Integer;
 use ovm::types::{StateUpdate, StateUpdateList};
 use plasma_core::data_structure::{Range, Transaction};
-use plasma_db::traits::db::DatabaseTrait;
-use plasma_db::traits::kvs::KeyValueStore;
+use plasma_db::prelude::*;
 
 pub struct PlasmaAggregator<KVS: KeyValueStore> {
     aggregator_address: Address,

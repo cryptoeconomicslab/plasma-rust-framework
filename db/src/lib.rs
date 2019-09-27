@@ -1,5 +1,6 @@
 pub mod error;
 pub mod impls;
+pub mod prelude;
 pub mod range;
 pub mod traits;
 
