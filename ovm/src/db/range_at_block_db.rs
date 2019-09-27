@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::types::{Integer, PlasmaDataBlock};
+use crate::types::{Integer, StateUpdate};
 use abi_derive::{AbiDecodable, AbiEncodable};
 use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
@@ -12,16 +12,23 @@ use plasma_db::RangeDbImpl;
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct RangeAtBlockRecord {
     pub root: Bytes,
+    pub is_included: bool,
     pub inclusion_proof: Bytes,
-    pub plasma_data_block: PlasmaDataBlock,
+    pub state_update: StateUpdate,
 }
 
 impl RangeAtBlockRecord {
-    pub fn new(root: Bytes, inclusion_proof: Bytes, plasma_data_block: PlasmaDataBlock) -> Self {
+    pub fn new(
+        root: Bytes,
+        is_included: bool,
+        inclusion_proof: Bytes,
+        state_update: StateUpdate,
+    ) -> Self {
         Self {
             root,
+            is_included,
             inclusion_proof,
-            plasma_data_block,
+            state_update,
         }
     }
 }
@@ -37,17 +44,19 @@ impl<'a, KVS: KeyValueStore> RangeAtBlockDb<'a, KVS> {
     pub fn store_witness(
         &self,
         root: Bytes,
+        is_included: bool,
         inclusion_proof: Bytes,
-        plasma_data_block: PlasmaDataBlock,
+        state_update: StateUpdate,
     ) -> Result<(), Error> {
-        let record = RangeAtBlockRecord::new(root, inclusion_proof, plasma_data_block.clone());
-        let block_number = plasma_data_block.get_block_number();
+        let record =
+            RangeAtBlockRecord::new(root, is_included, inclusion_proof, state_update.clone());
+        let block_number = state_update.get_block_number();
         self.db
             .bucket(&Bytes::from(&b"range_at_block"[..]))
             .bucket(&block_number.into())
             .put(
-                plasma_data_block.get_updated_range().get_start(),
-                plasma_data_block.get_updated_range().get_end(),
+                state_update.get_range().get_start(),
+                state_update.get_range().get_end(),
                 &record.to_abi(),
             )
             .map_err::<Error, _>(Into::into)

@@ -6,7 +6,7 @@ use ethabi::{ParamType, Token};
 use ethereum_types::Address;
 use merkle_interval_tree::{DoubleLayerTree, DoubleLayerTreeLeaf};
 use ovm::types::core::Integer;
-use ovm::types::{PlasmaDataBlock, StateUpdate};
+use ovm::types::StateUpdate;
 
 pub struct PlasmaBlock {
     block_number: Integer,
@@ -68,17 +68,6 @@ impl PlasmaBlock {
         } else {
             None
         }
-    }
-
-    pub fn get_plasma_data_block(&self, root: Bytes, state_update: StateUpdate) -> PlasmaDataBlock {
-        PlasmaDataBlock::new(
-            state_update.get_deposit_contract_address(),
-            state_update.get_range(),
-            root,
-            true,
-            state_update.get_block_number(),
-            Bytes::from(state_update.to_abi()),
-        )
     }
 
     pub fn merkelize(&mut self) -> Result<Bytes, Error> {

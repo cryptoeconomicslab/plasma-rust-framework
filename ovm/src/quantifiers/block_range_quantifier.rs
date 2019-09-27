@@ -1,6 +1,6 @@
 use crate::db::RangeAtBlockRecord;
 use crate::property_executor::PropertyExecutor;
-use crate::types::{PlasmaDataBlock, PropertyInput, QuantifierResult, QuantifierResultItem};
+use crate::types::{PropertyInput, QuantifierResult, QuantifierResultItem, StateUpdate};
 use abi_utils::Decodable;
 use bytes::Bytes;
 use ethereum_types::H256;
@@ -17,13 +17,17 @@ impl Default for BlockRangeQuantifier {
 }
 
 impl BlockRangeQuantifier {
-    pub fn verify_exclusion(plasma_data_block: &PlasmaDataBlock, inclusion_proof: &Bytes) -> bool {
+    pub fn verify_exclusion(
+        state_update: &StateUpdate,
+        inclusion_proof: &Bytes,
+        root: &Bytes,
+    ) -> bool {
         let leaf = DoubleLayerTreeLeaf {
-            address: plasma_data_block.get_deposit_contract_address(),
-            end: plasma_data_block.get_updated_range().get_end(),
+            address: state_update.get_deposit_contract_address(),
+            end: state_update.get_range().get_end(),
             data: Bytes::from(H256::zero().as_bytes()),
         };
-        DoubleLayerTree::verify(&leaf, inclusion_proof.clone(), plasma_data_block.get_root())
+        DoubleLayerTree::verify(&leaf, inclusion_proof.clone(), root)
     }
     pub fn get_all_quantified<KVS>(
         decider: &PropertyExecutor<KVS>,
@@ -45,14 +49,18 @@ impl BlockRangeQuantifier {
             .filter_map(|r| r.get_intersection(range.get_start(), range.get_end()))
             .fold(0, |acc, r| acc + r.get_end() - r.get_start());
         let mut full_range_included: bool = sum == (range.get_end() - range.get_start());
-        let plasma_data_blocks: Vec<PlasmaDataBlock> = result
+        let state_updates: Vec<StateUpdate> = result
             .iter()
             .map(|r| RangeAtBlockRecord::from_abi(r.get_value()).unwrap())
             .filter_map(move |record| {
-                if record.plasma_data_block.get_is_included() {
-                    Some(record.plasma_data_block.clone())
+                if record.is_included {
+                    Some(record.state_update.clone())
                 } else {
-                    if !Self::verify_exclusion(&record.plasma_data_block, &record.inclusion_proof) {
+                    if !Self::verify_exclusion(
+                        &record.state_update,
+                        &record.inclusion_proof,
+                        &record.root,
+                    ) {
                         full_range_included = false
                     }
                     None
@@ -60,9 +68,9 @@ impl BlockRangeQuantifier {
             })
             .collect();
         QuantifierResult::new(
-            plasma_data_blocks
+            state_updates
                 .iter()
-                .map(|p| QuantifierResultItem::StateUpdate(p.clone().into()))
+                .map(|su| QuantifierResultItem::StateUpdate(su.clone()))
                 .collect(),
             full_range_included,
         )

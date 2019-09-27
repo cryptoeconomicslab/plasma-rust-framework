@@ -23,7 +23,13 @@ impl PropertyQuantifier {
         // In smart contract side, quantifier should call Property Factory contract.println!
         // So, First item of inputs should be address of Property Factpry contract.
         // TODO: switch by property factory address
-        let property: Property = create_channel_state_object_for_variables(decider, inputs);
+        let property_factory_number = decider.get_variable(&inputs[0]).to_integer();
+
+        let property: Property = if property_factory_number.0 == 0 {
+            create_channel_state_object_for_variables(decider, inputs)
+        } else {
+            create_swap_state_object_for_variables(decider, inputs)
+        };
         QuantifierResult::new(vec![QuantifierResultItem::Property(property)], true)
     }
 }

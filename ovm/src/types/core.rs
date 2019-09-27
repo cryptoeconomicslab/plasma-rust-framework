@@ -1,4 +1,3 @@
-use super::plasma_data_block::PlasmaDataBlock;
 use super::state_update::StateUpdate;
 use crate::db::Message;
 use crate::error::Error;
@@ -139,7 +138,6 @@ pub enum QuantifierResultItem {
     Bytes(Bytes),
     Message(Message),
     Property(Property),
-    PlasmaDataBlock(PlasmaDataBlock),
     StateUpdate(StateUpdate),
     Range(Range),
     H256(H256),
@@ -193,13 +191,6 @@ impl QuantifierResultItem {
             message.clone()
         } else {
             panic!("QuantifierResultItem isn't Message!")
-        }
-    }
-    pub fn to_plasma_data_block(&self) -> PlasmaDataBlock {
-        if let QuantifierResultItem::PlasmaDataBlock(plasma_data_block) = self {
-            plasma_data_block.clone()
-        } else {
-            panic!("QuantifierResultItem isn't PlasmaDataBlock!")
         }
     }
     pub fn to_state_update(&self) -> StateUpdate {

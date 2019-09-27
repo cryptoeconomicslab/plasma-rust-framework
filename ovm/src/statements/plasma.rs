@@ -1,5 +1,6 @@
 pub mod atomic_state;
 pub mod channel;
+pub mod swap;
 
 use crate::types::{Integer, Property, PropertyInput};
 use crate::DeciderManager;
@@ -7,6 +8,7 @@ pub use atomic_state::*;
 use bytes::Bytes;
 pub use channel::*;
 use plasma_core::data_structure::Range;
+pub use swap::*;
 
 /// Creates plasma checkpoint property
 /// for all b such that b < block_number:
@@ -36,7 +38,7 @@ mod tests {
     use crate::db::{RangeAtBlockDb, TransactionDb};
     use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::types::{Integer, PlasmaDataBlock, PropertyInput, StateUpdate};
+    use crate::types::{Integer, PropertyInput, StateUpdate};
     use crate::DeciderManager;
     use abi_utils::Encodable;
     use bytes::Bytes;
@@ -97,22 +99,14 @@ mod tests {
         let tree = DoubleLayerTree::generate(&leaves);
         let root = tree.get_root();
         let inclusion_proof = tree.get_inclusion_proof(deposit_contract_address, 0);
-        let plasma_data_block: PlasmaDataBlock = PlasmaDataBlock::new(
-            deposit_contract_address,
-            Range::new(0, 100),
-            root.clone(),
-            inclusion,
-            block_number,
-            leaves[0].data.clone(),
-        );
+        let first_state_update = first_state_update_opt.unwrap();
         assert!(db
-            .store_witness(root, inclusion_proof, plasma_data_block.clone())
+            .store_witness(root, inclusion, inclusion_proof, first_state_update.clone())
             .is_ok());
 
         let tx_body =
             TransactionParams::new(Address::zero(), Range::new(0, 100), Bytes::default()).to_abi();
         let signature = SignatureVerifier::sign(&secret_key, &Bytes::from(tx_body));
-        let first_state_update = first_state_update_opt.unwrap();
         tx_db.put_transaction(
             first_state_update.get_block_number().0,
             Transaction::new(
