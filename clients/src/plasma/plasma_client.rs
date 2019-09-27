@@ -220,11 +220,11 @@ impl PlasmaClientShell {
             Metadata::new(my_address, my_address),
         )
     }
-    // Creates swap property specifing required range.
+    // Creates swap property specifing required range and order maker address
     pub fn offline_swap_property(
         &self,
         session: &Bytes,
-        counter_party_address: Address,
+        order_maker: Address,
         c_token_address: Address,
         c_range: Range,
     ) -> (Property, Metadata) {
@@ -232,7 +232,7 @@ impl PlasmaClientShell {
         (
             ovm::statements::plasma::create_offline_swap_state_object(
                 my_address,
-                counter_party_address,
+                order_maker,
                 c_token_address,
                 c_range,
             ),

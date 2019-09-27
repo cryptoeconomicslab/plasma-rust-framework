@@ -101,8 +101,8 @@ pub fn create_offline_atomic_state(
 
 /// Swap property for Plasma
 pub fn create_offline_swap_state_object(
-    my_address: Address,
-    counter_party_address: Address,
+    taker: Address,
+    maker: Address,
     c_token_address: Address,
     c_range: Range,
 ) -> Property {
@@ -146,14 +146,14 @@ pub fn create_offline_swap_state_object(
             vec![
                 // TODO: This should be PropertyFactory address
                 PropertyInput::ConstantInteger(Integer(2)),
-                PropertyInput::ConstantAddress(my_address),
+                PropertyInput::ConstantAddress(maker),
             ],
             DeciderManager::signed_by_decider(vec![
-                PropertyInput::ConstantAddress(counter_party_address),
+                PropertyInput::ConstantAddress(taker),
                 PropertyInput::Placeholder(Bytes::from("tx")),
             ]),
             DeciderManager::signed_by_decider(vec![
-                PropertyInput::ConstantAddress(my_address),
+                PropertyInput::ConstantAddress(maker),
                 PropertyInput::Placeholder(Bytes::from("tx")),
             ]),
         )),
@@ -184,12 +184,12 @@ mod tests {
         range: Range,
         corresponding_deposit_contract_address: Address,
         corresponding_range: Range,
-        alice: Address,
-        bob: Address,
+        taker: Address,
+        maker: Address,
     ) -> (Property, StateUpdate) {
         let property = create_offline_swap_state_object(
-            alice,
-            bob,
+            taker,
+            maker,
             corresponding_deposit_contract_address,
             corresponding_range,
         );
@@ -228,8 +228,8 @@ mod tests {
             range,
             corresponding_deposit_contract_address,
             corresponding_range,
-            alice,
             bob,
+            alice,
         );
         let corresponding_state_update = StateUpdate::new(
             block_number,
