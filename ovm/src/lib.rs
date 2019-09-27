@@ -141,8 +141,10 @@ mod tests {
     #[test]
     fn test_fail_to_decide_plasma_checkpoint() {
         let block_number = Integer(10);
+        let deposit_contract_address: Address = Address::zero();
         let range = Range::new(0, 100);
-        let checkpoint_property = create_plasma_property(block_number, range);
+        let checkpoint_property =
+            create_plasma_property(block_number, deposit_contract_address, range);
         let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let result = decider.decide(&checkpoint_property);
         // faid to decide because no local decision

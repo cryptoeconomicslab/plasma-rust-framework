@@ -37,11 +37,13 @@ impl BlockRangeQuantifier {
         KVS: KeyValueStore,
     {
         let block_number = decider.get_variable(&inputs[0]).to_integer();
-        let range = decider.get_variable(&inputs[1]).to_range();
+        let deposit_contract_address = decider.get_variable(&inputs[1]).to_address();
+        let range = decider.get_variable(&inputs[2]).to_range();
         let result = decider
             .get_range_db()
             .bucket(&Bytes::from("range_at_block"))
             .bucket(&block_number.into())
+            .bucket(&Bytes::from(deposit_contract_address.as_bytes()))
             .get(range.get_start(), range.get_end())
             .unwrap();
         let sum = result

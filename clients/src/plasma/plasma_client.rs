@@ -62,7 +62,11 @@ impl PlasmaClientShell {
     }
 
     // Claim for checkpoint
-    pub fn create_checkpoint_property(specified_block_number: Integer, range: Range) -> Property {
+    pub fn create_checkpoint_property(
+        specified_block_number: Integer,
+        deposit_contract_address: Address,
+        range: Range,
+    ) -> Property {
         /*
          * For all b such that b < specified_block_number:
          *   For all state_update such that block_range_quantifier(b, range):
@@ -78,6 +82,7 @@ impl PlasmaClientShell {
                 // block range quantifier
                 DeciderManager::q_block(vec![
                     PropertyInput::Placeholder(Bytes::from("block")),
+                    PropertyInput::ConstantAddress(deposit_contract_address),
                     PropertyInput::ConstantRange(range),
                 ]),
                 Bytes::from("state_update"),
@@ -406,10 +411,15 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     }
 
     /// Start exit on plasma. return exit property
-    pub fn get_exit_claim(&self, block_number: Integer, range: Range) -> Property {
+    pub fn get_exit_claim(
+        &self,
+        block_number: Integer,
+        deposit_contract_address: Address,
+        range: Range,
+    ) -> Property {
         // TODO: decide property and claim property to contract
         // TODO: store as exit list
-        PlasmaClientShell::create_checkpoint_property(block_number, range)
+        PlasmaClientShell::create_checkpoint_property(block_number, deposit_contract_address, range)
     }
 
     /// Handle exit on plasma.
@@ -474,6 +484,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         for su in self.get_all_state_updates() {
             let property = PlasmaClientShell::create_checkpoint_property(
                 Integer(su.get_block_number().0),
+                su.get_deposit_contract_address(),
                 su.get_range(),
             );
             let decision = self.decider.decide(&property);
