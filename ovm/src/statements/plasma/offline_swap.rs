@@ -100,7 +100,7 @@ pub fn create_offline_atomic_state(
 }
 
 /// Swap property for Plasma
-pub fn create_swap_state_object(
+pub fn create_offline_swap_state_object(
     my_address: Address,
     counter_party_address: Address,
     c_token_address: Address,
@@ -165,7 +165,7 @@ pub fn create_swap_state_object(
 #[cfg(test)]
 mod tests {
 
-    use super::create_swap_state_object;
+    use super::create_offline_swap_state_object;
     use crate::db::{RangeAtBlockDb, SignedByDb, TransactionDb};
     use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
@@ -189,7 +189,7 @@ mod tests {
         alice: Address,
         bob: Address,
     ) -> (Property, StateUpdate) {
-        let property = create_swap_state_object(
+        let property = create_offline_swap_state_object(
             alice,
             bob,
             corresponding_deposit_contract_address,
