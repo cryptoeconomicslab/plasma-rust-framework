@@ -5,8 +5,7 @@ use abi_utils::Decodable;
 use bytes::Bytes;
 use ethereum_types::H256;
 use merkle_interval_tree::{DoubleLayerTree, DoubleLayerTreeLeaf};
-use plasma_db::traits::kvs::KeyValueStore;
-use plasma_db::traits::rangestore::RangeStore;
+use plasma_db::prelude::*;
 
 pub struct BlockRangeQuantifier {}
 

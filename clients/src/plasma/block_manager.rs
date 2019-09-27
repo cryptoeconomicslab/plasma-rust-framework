@@ -6,9 +6,7 @@ use contract_wrapper::commitment_contract_adaptor::CommitmentContractAdaptor;
 use ethabi::Contract as ContractABI;
 use ethereum_types::Address;
 use ovm::types::{Integer, StateUpdate};
-use plasma_db::traits::db::DatabaseTrait;
-use plasma_db::traits::kvs::KeyValueStore;
-use plasma_db::RangeDbImpl;
+use plasma_db::prelude::*;
 use std::fs::File;
 use std::io::BufReader;
 
