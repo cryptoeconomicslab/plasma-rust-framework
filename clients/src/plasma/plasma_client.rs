@@ -13,11 +13,9 @@ use ethereum_types::Address;
 use ethsign::SecretKey;
 use event_watcher::event_db::EventDbImpl;
 use event_watcher::event_watcher::{EventHandler, EventWatcher, Log};
-use ovm::db::{RangeAtBlockDb, SignedByDb, TransactionDb, TransactionFilterBuilder};
-use ovm::deciders::SignVerifier;
-use ovm::property_executor::PropertyExecutor;
-use ovm::types::{Integer, Property, PropertyInput, StateUpdate};
-use ovm::DeciderManager;
+use ovm::{
+    db::*, deciders::SignVerifier, property_executor::PropertyExecutor, types::*, DeciderManager,
+};
 use plasma_core::data_structure::{Metadata, Range, Transaction, TransactionParams};
 use plasma_db::prelude::*;
 use pubsub_messaging::{connect, Client as PubsubClient, ClientHandler, Message, Sender};

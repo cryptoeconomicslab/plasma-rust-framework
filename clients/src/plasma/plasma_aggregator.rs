@@ -9,11 +9,7 @@ use super::utils::*;
 use bytes::Bytes;
 use ethereum_types::Address;
 use ethsign::SecretKey;
-use ovm::db::{SignedByDb, TransactionDb};
-use ovm::deciders::SignVerifier;
-use ovm::property_executor::PropertyExecutor;
-use ovm::types::Integer;
-use ovm::types::{StateUpdate, StateUpdateList};
+use ovm::{db::*, deciders::SignVerifier, property_executor::PropertyExecutor, types::*};
 use plasma_core::data_structure::{Range, Transaction};
 use plasma_db::prelude::*;
 

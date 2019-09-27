@@ -44,8 +44,7 @@ mod tests {
     use ethsign::SecretKey;
     use merkle_interval_tree::{DoubleLayerTree, DoubleLayerTreeLeaf};
     use plasma_core::data_structure::{Metadata, Range, Transaction, TransactionParams};
-    use plasma_db::impls::kvs::CoreDbMemoryImpl;
-    use plasma_db::traits::kvs::KeyValueStore;
+    use plasma_db::prelude::*;
 
     fn store_inclusion_witness<KVS: KeyValueStore>(decider: &PropertyExecutor<KVS>) {
         let db = RangeAtBlockDb::new(decider.get_range_db());
