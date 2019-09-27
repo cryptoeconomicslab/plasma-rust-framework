@@ -7,6 +7,7 @@ use crate::DeciderManager;
 pub use atomic_state::*;
 use bytes::Bytes;
 pub use channel::*;
+use ethereum_types::Address;
 use plasma_core::data_structure::Range;
 pub use swap::*;
 
@@ -14,13 +15,18 @@ pub use swap::*;
 /// for all b such that b < block_number:
 ///   for all p such that included in block(b):
 ///      Or(b, Included(p), Excluded(b, p))
-pub fn create_plasma_property(specified_block_number: Integer, range: Range) -> Property {
+pub fn create_plasma_property(
+    specified_block_number: Integer,
+    deposit_contract_address: Address,
+    range: Range,
+) -> Property {
     DeciderManager::for_all_such_that_decider(
         DeciderManager::q_less_than(vec![PropertyInput::ConstantInteger(specified_block_number)]),
         Bytes::from("block"),
         DeciderManager::for_all_such_that_decider(
             DeciderManager::q_block(vec![
                 PropertyInput::Placeholder(Bytes::from("block")),
+                PropertyInput::ConstantAddress(deposit_contract_address),
                 PropertyInput::ConstantRange(range),
             ]),
             Bytes::from("state_update"),
@@ -122,8 +128,10 @@ mod tests {
     #[test]
     fn test_succeed_to_decide_plasma_checkpoint() {
         let block_number = Integer(10);
+        let deposit_contract_address: Address = Address::zero();
         let range = Range::new(0, 100);
-        let checkpoint_property = create_plasma_property(block_number, range);
+        let checkpoint_property =
+            create_plasma_property(block_number, deposit_contract_address, range);
         let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         store_inclusion_witness(&decider);
         let result = decider.decide(&checkpoint_property);

@@ -25,7 +25,11 @@ impl Decider for IncludedAtBlockDecider {
         let block_number = decider.get_variable(&inputs[0]).to_integer();
         let state_update = decider.get_variable(&inputs[1]).to_state_update();
         let db: RangeAtBlockDb<T> = RangeAtBlockDb::new(decider.get_range_db());
-        let range_at_block_record = db.get_witness(block_number, state_update.get_range())?;
+        let range_at_block_record = db.get_witness(
+            block_number,
+            state_update.get_deposit_contract_address(),
+            state_update.get_range(),
+        )?;
         let leaf = DoubleLayerTreeLeaf {
             data: Bytes::from(state_update.to_abi()),
             end: state_update.get_range().get_end(),

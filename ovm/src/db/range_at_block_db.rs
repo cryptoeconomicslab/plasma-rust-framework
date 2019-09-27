@@ -4,6 +4,7 @@ use abi_derive::{AbiDecodable, AbiEncodable};
 use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
+use ethereum_types::Address;
 use plasma_core::data_structure::Range;
 use plasma_db::prelude::*;
 
@@ -52,6 +53,9 @@ impl<'a, KVS: KeyValueStore> RangeAtBlockDb<'a, KVS> {
         self.db
             .bucket(&Bytes::from(&b"range_at_block"[..]))
             .bucket(&block_number.into())
+            .bucket(&Bytes::from(
+                state_update.get_deposit_contract_address().as_bytes(),
+            ))
             .put(
                 state_update.get_range().get_start(),
                 state_update.get_range().get_end(),
@@ -62,12 +66,14 @@ impl<'a, KVS: KeyValueStore> RangeAtBlockDb<'a, KVS> {
     pub fn get_witness(
         &self,
         block_number: Integer,
+        deposit_contract_address: Address,
         coin_range: Range,
     ) -> Result<RangeAtBlockRecord, Error> {
         let result = self
             .db
             .bucket(&Bytes::from(&b"range_at_block"[..]))
             .bucket(&block_number.into())
+            .bucket(&Bytes::from(deposit_contract_address.as_bytes()))
             .get(coin_range.get_start(), coin_range.get_end())
             .map_err::<Error, _>(Into::into)?;
         if result.len() == 0 {
