@@ -27,8 +27,10 @@ impl PropertyQuantifier {
 
         let property: Property = if property_factory_number.0 == 0 {
             create_channel_state_object_for_variables(decider, inputs)
-        } else {
+        } else if property_factory_number.0 == 1 {
             create_swap_state_object_for_variables(decider, inputs)
+        } else {
+            create_ownership_state_object_for_variables(decider, inputs)
         };
         QuantifierResult::new(vec![QuantifierResultItem::Property(property)], true)
     }

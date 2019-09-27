@@ -1,5 +1,7 @@
 pub mod atomic_state;
 pub mod channel;
+pub mod offline_swap;
+pub mod ownership;
 pub mod swap;
 
 use crate::types::{Integer, Property, PropertyInput};
@@ -8,6 +10,8 @@ pub use atomic_state::*;
 use bytes::Bytes;
 pub use channel::*;
 use ethereum_types::Address;
+pub use offline_swap::*;
+pub use ownership::*;
 use plasma_core::data_structure::Range;
 pub use swap::*;
 
@@ -15,7 +19,7 @@ pub use swap::*;
 /// for all b such that b < block_number:
 ///   for all p such that included in block(b):
 ///      Or(b, Included(p), Excluded(b, p))
-pub fn create_plasma_property(
+pub fn plasma_checkpoint_property(
     specified_block_number: Integer,
     deposit_contract_address: Address,
     range: Range,
@@ -37,10 +41,32 @@ pub fn create_plasma_property(
     )
 }
 
+pub fn create_plasma_checkpoint_property_for_variables(
+    b: PropertyInput,
+    t: PropertyInput,
+    c: PropertyInput,
+) -> Property {
+    DeciderManager::for_all_such_that_decider(
+        DeciderManager::q_less_than(vec![b]),
+        Bytes::from("block2"),
+        DeciderManager::for_all_such_that_decider(
+            DeciderManager::q_block(vec![
+                PropertyInput::Placeholder(Bytes::from("block2")),
+                t,
+                c,
+            ]),
+            Bytes::from("state_update"),
+            DeciderManager::is_deprecated(vec![PropertyInput::Placeholder(Bytes::from(
+                "state_update",
+            ))]),
+        ),
+    )
+}
+
 #[cfg(test)]
 mod tests {
 
-    use super::create_plasma_property;
+    use super::plasma_checkpoint_property;
     use crate::db::{RangeAtBlockDb, TransactionDb};
     use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
@@ -131,7 +157,7 @@ mod tests {
         let deposit_contract_address: Address = Address::zero();
         let range = Range::new(0, 100);
         let checkpoint_property =
-            create_plasma_property(block_number, deposit_contract_address, range);
+            plasma_checkpoint_property(block_number, deposit_contract_address, range);
         let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         store_inclusion_witness(&decider);
         let result = decider.decide(&checkpoint_property);
