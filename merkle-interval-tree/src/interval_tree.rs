@@ -113,6 +113,13 @@ where
         MerkleIntervalNode::create_node(right.get_end(), left, right)
     }
 
+    fn get_data(&self) -> Bytes {
+        match self {
+            MerkleIntervalNode::Leaf { data, .. } => data.clone(),
+            MerkleIntervalNode::ProofNode { data, .. } => data.clone(),
+            _ => panic!("Node don't have data"),
+        }
+    }
     fn get_end(&self) -> I {
         match self {
             MerkleIntervalNode::Leaf { end, .. } => *end,
@@ -159,7 +166,7 @@ where
 #[derive(Debug)]
 pub struct MerkleIntervalTree<I: Index> {
     tree: MerkleIntervalNode<I>,
-    length: usize,
+    leaves: Vec<MerkleIntervalNode<I>>,
 }
 
 impl<I> MerkleIntervalTree<I>
@@ -170,7 +177,7 @@ where
     pub fn generate(leaves: &[MerkleIntervalNode<I>]) -> Self {
         Self {
             tree: Self::generate_part(leaves),
-            length: leaves.len(),
+            leaves: leaves.to_vec(),
         }
     }
     pub fn generate_part(leaves: &[MerkleIntervalNode<I>]) -> MerkleIntervalNode<I> {
@@ -202,7 +209,8 @@ where
 
     /// Returns inclusion proof for a leaf
     pub fn get_inclusion_proof(&self, idx: usize) -> Bytes {
-        let nodes = MerkleIntervalTree::get_inclusion_proof_of_tree(&self.tree, idx, self.length);
+        let nodes =
+            MerkleIntervalTree::get_inclusion_proof_of_tree(&self.tree, idx, self.leaves.len());
         Self::encode_proof(nodes)
     }
 
@@ -255,6 +263,13 @@ where
         }
         path.push((idx & 0x01) != 0);
         Self::get_path(idx.rotate_right(1), depth - 1, path)
+    }
+    pub fn get_index(&self, data: &Bytes) -> usize {
+        if let Some(index) = self.leaves.iter().position(|s| s.get_data() == data) {
+            index
+        } else {
+            panic!("data {:?} not found in leaves.", data);
+        }
     }
 
     fn verify_and_get_parent(

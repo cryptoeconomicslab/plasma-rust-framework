@@ -15,7 +15,7 @@ use plasma_core::data_structure::{Range, Transaction};
 use plasma_db::traits::kvs::KeyValueStore;
 use tiny_keccak::Keccak;
 
-#[derive(Clone, Debug, AbiEncodable, AbiDecodable)]
+#[derive(Clone, Debug, PartialEq, Eq, AbiEncodable, AbiDecodable)]
 pub struct StateUpdate {
     block_number: Integer,
     deposit_contract_address: Address,

@@ -61,33 +61,6 @@ impl PlasmaClientShell {
         ])
     }
 
-    /// Claim for channel
-    pub fn create_channel_state_object(
-        my_address: Address,
-        counter_party_address: Address,
-    ) -> Property {
-        /*
-         * There exists tx such that state_update.is_same_coin_range(tx):
-         *   SignedBy(tx, to_address) and SignedBy(tx, counter_party_address)
-         */
-        DeciderManager::there_exists_such_that(vec![
-            PropertyInput::ConstantProperty(DeciderManager::q_tx(vec![
-                PropertyInput::Placeholder(Bytes::from("state_update")),
-            ])),
-            PropertyInput::ConstantBytes(Bytes::from("tx")),
-            PropertyInput::ConstantProperty(DeciderManager::and_decider(
-                DeciderManager::signed_by_decider(vec![
-                    PropertyInput::ConstantAddress(my_address),
-                    PropertyInput::Placeholder(Bytes::from("tx")),
-                ]),
-                DeciderManager::signed_by_decider(vec![
-                    PropertyInput::ConstantAddress(counter_party_address),
-                    PropertyInput::Placeholder(Bytes::from("tx")),
-                ]),
-            )),
-        ])
-    }
-
     // Claim for checkpoint
     pub fn create_checkpoint_property(specified_block_number: Integer, range: Range) -> Property {
         /*
@@ -208,10 +181,24 @@ impl PlasmaClientShell {
         &self,
         session: &Bytes,
         counter_party_address: Address,
+        block_number: Integer,
+        deposit_contract_address: Address,
+        range: Range,
     ) -> (Property, Metadata) {
         let my_address = self.get_my_address(session).unwrap();
+        let dammy_property = DeciderManager::preimage_exists_decider(vec![]);
+        let state_update = StateUpdate::new(
+            block_number,
+            deposit_contract_address,
+            range,
+            dammy_property,
+        );
         (
-            Self::create_channel_state_object(my_address, counter_party_address),
+            ovm::statements::plasma::create_channel_state_object(
+                my_address,
+                counter_party_address,
+                state_update,
+            ),
             Metadata::new(my_address, counter_party_address),
         )
     }
@@ -464,6 +451,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         for s in block.get_state_updates().iter() {
             assert!(range_at_block_db
                 .store_witness(
+                    root.clone(),
                     block.get_inclusion_proof(s.clone()).unwrap(),
                     block.get_plasma_data_block(root.clone(), s.clone()),
                 )

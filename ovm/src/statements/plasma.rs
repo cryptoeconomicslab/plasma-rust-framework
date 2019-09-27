@@ -1,6 +1,11 @@
+pub mod atomic_state;
+pub mod channel;
+
 use crate::types::{Integer, Property, PropertyInput};
 use crate::DeciderManager;
+pub use atomic_state::*;
 use bytes::Bytes;
+pub use channel::*;
 use plasma_core::data_structure::Range;
 
 /// Creates plasma checkpoint property
@@ -101,7 +106,7 @@ mod tests {
             leaves[0].data.clone(),
         );
         assert!(db
-            .store_witness(inclusion_proof, plasma_data_block.clone())
+            .store_witness(root, inclusion_proof, plasma_data_block.clone())
             .is_ok());
 
         let tx_body =

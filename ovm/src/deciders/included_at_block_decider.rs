@@ -3,6 +3,8 @@ use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
 use crate::types::{Decider, Decision, ImplicationProofElement, PropertyInput};
 use crate::DeciderManager;
+use abi_utils::abi::Encodable;
+use bytes::Bytes;
 use merkle_interval_tree::{DoubleLayerTree, DoubleLayerTreeLeaf};
 use plasma_db::traits::kvs::KeyValueStore;
 
@@ -21,19 +23,18 @@ impl Decider for IncludedAtBlockDecider {
         inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
         let block_number = decider.get_variable(&inputs[0]).to_integer();
-        let plasma_data_block = decider.get_variable(&inputs[0]).to_plasma_data_block();
+        let state_update = decider.get_variable(&inputs[1]).to_state_update();
         let db: RangeAtBlockDb<T> = RangeAtBlockDb::new(decider.get_range_db());
-        let range_at_block_record =
-            db.get_witness(block_number, plasma_data_block.get_updated_range())?;
+        let range_at_block_record = db.get_witness(block_number, state_update.get_range())?;
         let leaf = DoubleLayerTreeLeaf {
-            data: plasma_data_block.get_data().clone(),
-            end: plasma_data_block.get_updated_range().get_end(),
-            address: plasma_data_block.get_deposit_contract_address(),
+            data: Bytes::from(state_update.to_abi()),
+            end: state_update.get_range().get_end(),
+            address: state_update.get_deposit_contract_address(),
         };
         let inclusion_bounds_result = DoubleLayerTree::verify(
             &leaf,
             range_at_block_record.inclusion_proof.clone(),
-            plasma_data_block.get_root(),
+            &range_at_block_record.root,
         );
         if !inclusion_bounds_result {
             return Err(Error::from(ErrorKind::CannotDecide));

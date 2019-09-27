@@ -11,13 +11,15 @@ use plasma_db::RangeDbImpl;
 
 #[derive(Clone, Debug, AbiDecodable, AbiEncodable)]
 pub struct RangeAtBlockRecord {
+    pub root: Bytes,
     pub inclusion_proof: Bytes,
     pub plasma_data_block: PlasmaDataBlock,
 }
 
 impl RangeAtBlockRecord {
-    pub fn new(inclusion_proof: Bytes, plasma_data_block: PlasmaDataBlock) -> Self {
+    pub fn new(root: Bytes, inclusion_proof: Bytes, plasma_data_block: PlasmaDataBlock) -> Self {
         Self {
+            root,
             inclusion_proof,
             plasma_data_block,
         }
@@ -34,10 +36,11 @@ impl<'a, KVS: KeyValueStore> RangeAtBlockDb<'a, KVS> {
     }
     pub fn store_witness(
         &self,
+        root: Bytes,
         inclusion_proof: Bytes,
         plasma_data_block: PlasmaDataBlock,
     ) -> Result<(), Error> {
-        let record = RangeAtBlockRecord::new(inclusion_proof, plasma_data_block.clone());
+        let record = RangeAtBlockRecord::new(root, inclusion_proof, plasma_data_block.clone());
         let block_number = plasma_data_block.get_block_number();
         self.db
             .bucket(&Bytes::from(&b"range_at_block"[..]))

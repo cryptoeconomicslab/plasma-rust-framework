@@ -16,7 +16,7 @@ impl ThereExistsSuchThatDecider {
             return Err(Error::from(ErrorKind::Undecided));
         }
         let mut justification = vec![ImplicationProofElement::new(
-            DeciderManager::for_all_such_that_decider_raw(inputs),
+            DeciderManager::there_exists_such_that(inputs.to_vec()),
             None,
         )];
         if true_decisions.get_outcome() {
