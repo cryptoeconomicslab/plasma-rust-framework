@@ -64,7 +64,7 @@ pub fn create_offline_atomic_state(
                 PropertyInput::ConstantRange(coin_range),
                 PropertyInput::Placeholder(Bytes::from("property")),
             ])),
-            PropertyInput::ConstantBytes(Bytes::from("state_update")),
+            PropertyInput::ConstantBytes(Bytes::from("c_state_update")),
             PropertyInput::ConstantProperty(DeciderManager::or_decider(
                 DeciderManager::and_decider(
                     DeciderManager::and_decider(
@@ -75,7 +75,7 @@ pub fn create_offline_atomic_state(
                         ),
                         DeciderManager::included_at_block_decider(vec![
                             PropertyInput::Placeholder(Bytes::from("block")),
-                            PropertyInput::Placeholder(Bytes::from("state_update")),
+                            PropertyInput::Placeholder(Bytes::from("c_state_update")),
                         ]),
                     ),
                     property1,
@@ -89,7 +89,7 @@ pub fn create_offline_atomic_state(
                         ),
                         DeciderManager::included_at_block_decider(vec![
                             PropertyInput::Placeholder(Bytes::from("block")),
-                            PropertyInput::Placeholder(Bytes::from("state_update")),
+                            PropertyInput::Placeholder(Bytes::from("c_state_update")),
                         ]),
                     )),
                     property2,
@@ -146,9 +146,7 @@ pub fn create_offline_swap_state_object(
             vec![
                 // TODO: This should be PropertyFactory address
                 PropertyInput::ConstantInteger(Integer(2)),
-                PropertyInput::ConstantAddress(counter_party_address),
                 PropertyInput::ConstantAddress(my_address),
-                PropertyInput::Placeholder(Bytes::from("state_update")),
             ],
             DeciderManager::signed_by_decider(vec![
                 PropertyInput::ConstantAddress(counter_party_address),
@@ -169,7 +167,7 @@ mod tests {
     use crate::db::{RangeAtBlockDb, SignedByDb, TransactionDb};
     use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::statements::plasma::create_ownership_state_object;
+    use crate::statements::plasma::{create_ownership_state_object, store_an_inclusion_witness};
     use crate::types::{Property, QuantifierResultItem, StateUpdate};
     use abi_utils::abi::Encodable;
     use abi_utils::Integer;
@@ -178,7 +176,7 @@ mod tests {
     use ethsign::SecretKey;
     use merkle_interval_tree::{DoubleLayerTree, DoubleLayerTreeLeaf};
     use plasma_core::data_structure::{Metadata, Range, Transaction, TransactionParams};
-    use plasma_db::impls::kvs::CoreDbMemoryImpl;
+    use plasma_db::prelude::*;
 
     fn make_state_update(
         block_number: Integer,
@@ -218,7 +216,7 @@ mod tests {
         let secret_key_bob = SecretKey::from_raw(&raw_key_bob).unwrap();
         let alice: Address = secret_key.public().address().into();
         let bob = secret_key_bob.public().address().into();
-        let block_number = Integer(1);
+        let block_number = Integer(20);
         let deposit_contract_address = Address::random();
         let range = Range::new(0, 100);
         let corresponding_deposit_contract_address = Address::random();
@@ -287,6 +285,19 @@ mod tests {
                 corresponding_state_update.clone()
             )
             .is_ok());
+        // store block
+        for i in 0..20 {
+            let block_number = Integer(i);
+            store_an_inclusion_witness(
+                &range_at_block_db,
+                &tx_db,
+                block_number,
+                corresponding_deposit_contract_address,
+                100,
+                1,
+                i % 2 == 0,
+            );
+        }
         decider.set_variable(
             Bytes::from("block"),
             QuantifierResultItem::Integer(block_number),
