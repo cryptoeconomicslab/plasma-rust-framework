@@ -6,7 +6,7 @@ use ethereum_types::Address;
 use plasma_core::data_structure::Range;
 
 /// Pre-swap property for Plasma
-pub fn create_pre_swap_state_object(
+pub fn create_making_order_state_object(
     my_address: Address,
     token_type: Address,
     amount: Integer,
@@ -100,7 +100,7 @@ pub fn create_offline_atomic_state(
 }
 
 /// Swap property for Plasma
-pub fn create_offline_swap_state_object(
+pub fn create_taking_order_state_object(
     taker: Address,
     maker: Address,
     c_token_address: Address,
@@ -122,18 +122,6 @@ pub fn create_offline_swap_state_object(
      *       ),
      *       SignedBy(tx, my_address))
      *   )
-     *
-     * For all b such that b < block_number:
-     *   For all state_update such that state_update <- BlockRange(b, range):
-     *     IsDeprecated(state_update)
-     *
-     * There exists corresponding_property = create_swap(counter_party_address, my_address):
-     *   There exists correspondent such that correspondent = create_state_update(corresponding_range, corresponding_property):
-     *     Or(
-     *       And(IncludedAt(correspondent), property1),
-     *       And(Not(IncludedAt(correspondent)), property2)
-     *     )
-     *
      */
     DeciderManager::there_exists_such_that(vec![
         PropertyInput::ConstantProperty(DeciderManager::q_tx(vec![PropertyInput::Placeholder(
@@ -163,7 +151,7 @@ pub fn create_offline_swap_state_object(
 #[cfg(test)]
 mod tests {
 
-    use super::create_offline_swap_state_object;
+    use super::*;
     use crate::db::{RangeAtBlockDb, SignedByDb, TransactionDb};
     use crate::deciders::signed_by_decider::Verifier as SignatureVerifier;
     use crate::property_executor::PropertyExecutor;
@@ -187,7 +175,7 @@ mod tests {
         taker: Address,
         maker: Address,
     ) -> (Property, StateUpdate) {
-        let property = create_offline_swap_state_object(
+        let property = create_taking_order_state_object(
             taker,
             maker,
             corresponding_deposit_contract_address,

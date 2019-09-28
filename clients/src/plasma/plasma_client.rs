@@ -204,7 +204,7 @@ impl PlasmaClientShell {
         )
     }
     // Creates order swap property with token address and amount.
-    pub fn order_swap_property(
+    pub fn making_order_property(
         &self,
         session: &Bytes,
         deposit_contract_address: Address,
@@ -212,7 +212,7 @@ impl PlasmaClientShell {
     ) -> (Property, Metadata) {
         let my_address = self.get_my_address(session).unwrap();
         (
-            ovm::statements::plasma::create_pre_swap_state_object(
+            ovm::statements::plasma::create_making_order_state_object(
                 my_address,
                 deposit_contract_address,
                 amount,
@@ -221,7 +221,7 @@ impl PlasmaClientShell {
         )
     }
     // Creates swap property specifing required range and order maker address
-    pub fn offline_swap_property(
+    pub fn taking_order_property(
         &self,
         session: &Bytes,
         order_maker: Address,
@@ -230,13 +230,13 @@ impl PlasmaClientShell {
     ) -> (Property, Metadata) {
         let my_address = self.get_my_address(session).unwrap();
         (
-            ovm::statements::plasma::create_offline_swap_state_object(
+            ovm::statements::plasma::create_taking_order_state_object(
                 my_address,
                 order_maker,
                 c_token_address,
                 c_range,
             ),
-            Metadata::new(my_address, my_address),
+            Metadata::new(my_address, order_maker),
         )
     }
 
