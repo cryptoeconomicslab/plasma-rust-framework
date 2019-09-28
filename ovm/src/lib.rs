@@ -19,7 +19,7 @@ mod tests {
     use crate::deciders::preimage_exists_decider::Verifier;
     use crate::deciders::SignVerifier;
     use crate::property_executor::PropertyExecutor;
-    use crate::statements::{create_plasma_property, create_state_channel_property};
+    use crate::statements::{create_state_channel_property, plasma_checkpoint_property};
     use crate::types::{Decision, Integer, PropertyInput};
     use crate::DeciderManager;
     use abi_utils::Encodable;
@@ -143,7 +143,7 @@ mod tests {
         let deposit_contract_address: Address = Address::zero();
         let range = Range::new(0, 100);
         let checkpoint_property =
-            create_plasma_property(block_number, deposit_contract_address, range);
+            plasma_checkpoint_property(block_number, deposit_contract_address, range);
         let decider: PropertyExecutor<CoreDbMemoryImpl> = Default::default();
         let result = decider.decide(&checkpoint_property);
         // faid to decide because no local decision

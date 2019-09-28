@@ -1,7 +1,7 @@
 use crate::deciders::{
     AndDecider, ForAllSuchThatDecider, HasLowerNonceDecider, IncludedAtBlockDecider,
     IsDeprecatedDecider, NotDecider, OrDecider, OwnershipDecider, PreimageExistsDecider,
-    SignedByDecider, ThereExistsSuchThatDecider,
+    SignedByDecider, ThereExistsSuchThatDecider, VerifyTxDecider,
 };
 use crate::error::Error;
 use crate::quantifiers::{
@@ -122,6 +122,9 @@ impl DeciderManager {
     }
     pub fn there_exists_such_that(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(10), inputs)
+    }
+    pub fn verify_tx(inputs: Vec<PropertyInput>) -> Property {
+        Property::new(Self::get_decider_address(11), inputs)
     }
     pub fn q_range(inputs: Vec<PropertyInput>) -> Property {
         Property::new(Self::get_decider_address(20), inputs)
@@ -245,6 +248,8 @@ where
             OwnershipDecider::decide(self, &property.inputs)
         } else if decider_id == DECIDER_LIST[10] {
             ThereExistsSuchThatDecider::decide(self, &property.inputs)
+        } else if decider_id == DECIDER_LIST[11] {
+            VerifyTxDecider::decide(self, &property.inputs)
         } else {
             panic!("unknown decider")
         }

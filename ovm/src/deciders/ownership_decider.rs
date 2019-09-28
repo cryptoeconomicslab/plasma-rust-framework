@@ -2,10 +2,8 @@ use crate::db::TransactionDb;
 use crate::deciders::signed_by_decider::Verifier;
 use crate::error::{Error, ErrorKind};
 use crate::property_executor::PropertyExecutor;
-use crate::types::{Decider, Decision, Integer, Property, PropertyInput, StateUpdate};
-use abi_utils::Decodable;
+use crate::types::{Decider, Decision, PropertyInput};
 use bytes::Bytes;
-use plasma_core::data_structure::Transaction;
 use plasma_db::traits::kvs::KeyValueStore;
 
 /// OwnershipInput {
@@ -50,20 +48,5 @@ impl Decider for OwnershipDecider {
         }
 
         Ok(Decision::new(false, vec![]))
-    }
-}
-
-impl OwnershipDecider {
-    pub fn execute_state_transition(
-        _prev_state: &StateUpdate,
-        transaction: &Transaction,
-        next_block_number: Integer,
-    ) -> StateUpdate {
-        StateUpdate::new(
-            next_block_number,
-            transaction.get_deposit_contract_address(),
-            transaction.get_range(),
-            Property::from_abi(transaction.get_parameters()).unwrap(),
-        )
     }
 }

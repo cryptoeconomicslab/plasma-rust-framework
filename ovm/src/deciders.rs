@@ -9,6 +9,7 @@ pub mod ownership_decider;
 pub mod preimage_exists_decider;
 pub mod signed_by_decider;
 pub mod there_exists_such_that_decider;
+pub mod verify_tx_decider;
 
 pub use self::and_decider::AndDecider;
 pub use self::for_all_such_that_decider::ForAllSuchThatDecider;
@@ -21,3 +22,4 @@ pub use self::ownership_decider::OwnershipDecider;
 pub use self::preimage_exists_decider::PreimageExistsDecider;
 pub use self::signed_by_decider::{SignedByDecider, Verifier as SignVerifier};
 pub use self::there_exists_such_that_decider::ThereExistsSuchThatDecider;
+pub use self::verify_tx_decider::VerifyTxDecider;
