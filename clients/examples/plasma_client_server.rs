@@ -182,29 +182,23 @@ struct ExchangeOffer {
     counter_party: CounterParty,
 }
 
-fn get_exchange_offers() -> Result<HttpResponse> {
-    Ok(HttpResponse::Ok().json(vec![
-        ExchangeOffer {
-            exchange_id: 1234,
-            token_address: Address::zero(),
-            amount: 10,
+fn get_exchange_offers(plasma_client: web::Data<PlasmaClientShell>) -> Result<HttpResponse> {
+    let orders: Vec<ExchangeOffer> = plasma_client
+        .get_orders()
+        .iter()
+        .map(|(state_update, token_address, amount)| ExchangeOffer {
+            // TODO: get exchange_id
+            exchange_id: 1,
+            token_address: state_update.get_deposit_contract_address(),
+            amount: state_update.get_range().get_end() - state_update.get_range().get_start(),
             counter_party: CounterParty {
-                token_address: Address::zero(),
-                amount: 1,
+                token_address: *token_address,
+                amount: amount.0,
                 address: None,
             },
-        },
-        ExchangeOffer {
-            exchange_id: 123,
-            token_address: Address::zero(),
-            amount: 10,
-            counter_party: CounterParty {
-                token_address: Address::zero(),
-                amount: 1,
-                address: Some(Address::zero()),
-            },
-        },
-    ]))
+        })
+        .collect();
+    Ok(HttpResponse::Ok().json(orders))
 }
 
 // Get Exchange History

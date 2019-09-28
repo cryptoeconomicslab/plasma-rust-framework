@@ -271,6 +271,27 @@ impl PlasmaClientShell {
             });
         balances
     }
+    pub fn get_orders(&self) -> Vec<(StateUpdate, Address, Integer)> {
+        let controller = self.controller.clone().unwrap();
+        let plasma_client = controller.plasma_client.lock().unwrap();
+        plasma_client
+            .get_all_state_updates()
+            .iter()
+            .filter_map(|s| {
+                let or = &s.get_property().inputs[2];
+                if let PropertyInput::ConstantProperty(or) = or {
+                    if let PropertyInput::ConstantProperty(verify_tx) = &or.inputs[1] {
+                        if let PropertyInput::ConstantAddress(token_address) = verify_tx.inputs[1] {
+                            if let PropertyInput::ConstantInteger(amount) = verify_tx.inputs[2] {
+                                return Some((s.clone(), token_address, amount));
+                            }
+                        }
+                    }
+                }
+                None
+            })
+            .collect()
+    }
     pub fn get_related_transactions(&self, session: &Bytes) -> Vec<Transaction> {
         self.controller
             .clone()
