@@ -1,5 +1,6 @@
 use abi_utils::Integer;
 use actix_web::{error, middleware::Logger, web, App, HttpResponse, HttpServer, Result};
+use bytes::Bytes;
 use chrono::{DateTime, Local};
 use env_logger;
 use ethereum_types::Address;
@@ -174,11 +175,12 @@ struct CounterParty {
     address: Option<Address>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct ExchangeOffer {
-    exchange_id: u64,
+    exchange_id: Vec<u8>,
     token_address: Address,
-    amount: u64,
+    start: u64,
+    end: u64,
     counter_party: CounterParty,
 }
 
@@ -186,17 +188,20 @@ fn get_exchange_offers(plasma_client: web::Data<PlasmaClientShell>) -> Result<Ht
     let orders: Vec<ExchangeOffer> = plasma_client
         .get_orders()
         .iter()
-        .map(|(state_update, token_address, amount)| ExchangeOffer {
-            // TODO: get exchange_id
-            exchange_id: 1,
-            token_address: state_update.get_deposit_contract_address(),
-            amount: state_update.get_range().get_end() - state_update.get_range().get_start(),
-            counter_party: CounterParty {
-                token_address: *token_address,
-                amount: amount.0,
-                address: None,
+        .map(
+            |(state_update, token_address, amount, maker)| ExchangeOffer {
+                // TODO: get exchange_id
+                exchange_id: state_update.get_hash().to_vec(),
+                token_address: state_update.get_deposit_contract_address(),
+                start: state_update.get_range().get_start(),
+                end: state_update.get_range().get_end(),
+                counter_party: CounterParty {
+                    token_address: *token_address,
+                    amount: amount.0,
+                    address: Some(*maker),
+                },
             },
-        })
+        )
         .collect();
     Ok(HttpResponse::Ok().json(orders))
 }
@@ -222,7 +227,7 @@ struct GetExchangeHistoryRequest {
 
 #[derive(Serialize)]
 struct ExchangeHistory {
-    exchange_id: u64,
+    exchange_id: Vec<u8>,
     history_type: ExchangeHistoryType,
     token_id: u64,
     amount: u64,
@@ -234,7 +239,7 @@ struct ExchangeHistory {
 fn get_exchange_history(params: web::Query<GetExchangeHistoryRequest>) -> Result<HttpResponse> {
     info!("PARAMS: {:?}", params);
     Ok(HttpResponse::Ok().json(vec![ExchangeHistory {
-        exchange_id: 123,
+        exchange_id: Bytes::from("aaa").to_vec(),
         history_type: ExchangeHistoryType::OFFERED,
         token_id: 1,
         amount: 10,
@@ -252,15 +257,78 @@ fn get_exchange_history(params: web::Query<GetExchangeHistoryRequest>) -> Result
 #[derive(Serialize, Deserialize, Debug)]
 struct SendExchange {
     from: Address,
-    exchange_id: u64,
+    exchange_id: Vec<u8>,
+    session: String,
 }
 
-fn send_exchange(body: web::Json<SendExchange>) -> Result<HttpResponse> {
-    info!("BODY: {:?}", body);
-    Ok(HttpResponse::Ok().json(SendExchange {
-        from: body.from,
-        exchange_id: body.exchange_id,
-    }))
+fn send_exchange(
+    body: web::Json<SendExchange>,
+    plasma_client: web::Data<PlasmaClientShell>,
+) -> Result<HttpResponse> {
+    let session = decode_session(body.session.clone()).unwrap();
+    let orders: Vec<ExchangeOffer> = plasma_client
+        .get_orders()
+        .iter()
+        .map(
+            |(state_update, token_address, amount, maker)| ExchangeOffer {
+                // TODO: get exchange_id
+                exchange_id: state_update.get_hash().to_vec(),
+                token_address: state_update.get_deposit_contract_address(),
+                start: state_update.get_range().get_start(),
+                end: state_update.get_range().get_end(),
+                counter_party: CounterParty {
+                    token_address: *token_address,
+                    amount: amount.0,
+                    address: Some(*maker),
+                },
+            },
+        )
+        .filter(|offer| body.exchange_id == offer.exchange_id)
+        .collect();
+    if let Some(order) = orders.first() {
+        if let Some(range) = plasma_client.search_range(
+            order.counter_party.token_address,
+            order.counter_party.amount,
+        ) {
+            let maker = order.counter_party.address.unwrap();
+            let (property1, metadata1) = plasma_client.ownership_property(&session, maker);
+            let (property2, metadata2) = plasma_client.taking_order_property(
+                &session,
+                maker,
+                order.counter_party.token_address,
+                range,
+            );
+            plasma_client.send_transaction(
+                &session,
+                Some(order.counter_party.token_address),
+                range.get_start(),
+                range.get_end(),
+                property1,
+                metadata1,
+            );
+            plasma_client.send_transaction(
+                &session,
+                Some(order.token_address),
+                order.start,
+                order.end,
+                property2,
+                metadata2,
+            );
+            Ok(HttpResponse::Ok().json(SendExchange {
+                from: body.from,
+                exchange_id: body.exchange_id.clone(),
+                session: body.session.clone(),
+            }))
+        } else {
+            Err(error::ErrorBadRequest(Error::from(
+                ErrorKind::InvalidParameter,
+            )))
+        }
+    } else {
+        Err(error::ErrorBadRequest(Error::from(
+            ErrorKind::InvalidParameter,
+        )))
+    }
 }
 
 // Create Exchange Offer
@@ -275,32 +343,25 @@ fn create_exchange_offer(
     body: web::Json<CreateExchangeOfferRequest>,
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
-    if let Some(range) = plasma_client.search_range(body.offer.token_address, body.offer.amount) {
-        println!("Range: {:?}", range);
-        let session = decode_session(body.session.clone()).unwrap();
-        let (property, metadata) = plasma_client.making_order_property(
-            &session,
-            body.offer.counter_party.token_address,
-            Integer(body.offer.counter_party.amount),
-        );
-        plasma_client.send_transaction(
-            &session,
-            Some(body.offer.token_address),
-            range.get_start(),
-            range.get_start() + body.offer.amount,
-            property,
-            metadata,
-        );
-        return Ok(HttpResponse::Ok().json(CreateExchangeOfferRequest {
-            from: body.from,
-            offer: body.offer,
-            session: body.session.clone(),
-        }));
-    }
-
-    Err(error::ErrorBadRequest(Error::from(
-        ErrorKind::InvalidParameter,
-    )))
+    let session = decode_session(body.session.clone()).unwrap();
+    let (property, metadata) = plasma_client.making_order_property(
+        &session,
+        body.offer.counter_party.token_address,
+        Integer(body.offer.counter_party.amount),
+    );
+    plasma_client.send_transaction(
+        &session,
+        Some(body.offer.token_address),
+        body.offer.start,
+        body.offer.end,
+        property,
+        metadata,
+    );
+    Ok(HttpResponse::Ok().json(CreateExchangeOfferRequest {
+        from: body.from,
+        offer: body.offer.clone(),
+        session: body.session.clone(),
+    }))
 }
 
 pub fn main() {
