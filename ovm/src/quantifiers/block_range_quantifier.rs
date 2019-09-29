@@ -35,6 +35,9 @@ impl BlockRangeQuantifier {
     where
         KVS: KeyValueStore,
     {
+        if decider.options.is_aggregator {
+            return QuantifierResult::new(vec![], true);
+        }
         let block_number = decider.get_variable(&inputs[0]).to_integer();
         let deposit_contract_address = decider.get_variable(&inputs[1]).to_address();
         let range = decider.get_variable(&inputs[2]).to_range();

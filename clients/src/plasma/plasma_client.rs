@@ -1,5 +1,6 @@
 use super::command::{Command, NewTransactionEvent};
 use super::plasma_block::PlasmaBlock;
+use super::query;
 use super::state_db::StateDb;
 use super::token::Token;
 use super::utils::string_to_address;
@@ -250,26 +251,14 @@ impl PlasmaClientShell {
         let controller = self.controller.clone().unwrap();
         let plasma_client = controller.plasma_client.lock().unwrap();
         let my_address = plasma_client.get_my_address(session).unwrap();
-        let balances: HashMap<Address, u64> = plasma_client
-            .get_all_state_updates()
-            .iter()
-            .filter(|s| {
-                let p = &s.get_property().inputs[2];
-                if let PropertyInput::ConstantProperty(signed_by) = p {
-                    if let PropertyInput::ConstantAddress(address) = signed_by.inputs[0] {
-                        return address == my_address;
-                    }
-                }
-                false
-            })
-            .fold(HashMap::new(), |mut acc, s| {
-                let deposit_contract = s.get_deposit_contract_address();
-                let b = acc.get(&deposit_contract).unwrap_or(&0);
-                let new_balance = b + s.get_range().get_end() - s.get_range().get_start();
-                acc.insert(deposit_contract, new_balance);
-                acc
-            });
+        let balances: HashMap<Address, u64> =
+            query::query_balance(plasma_client.get_all_state_updates(), my_address);
         balances
+    }
+    pub fn get_orders(&self) -> Vec<(StateUpdate, Address, Integer, Address)> {
+        let controller = self.controller.clone().unwrap();
+        let plasma_client = controller.plasma_client.lock().unwrap();
+        query::query_orders(plasma_client.get_all_state_updates())
     }
     pub fn get_related_transactions(&self, session: &Bytes) -> Vec<Transaction> {
         self.controller

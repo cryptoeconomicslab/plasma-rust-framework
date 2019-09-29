@@ -29,6 +29,7 @@ pub fn create_making_order_state_object(
                 PropertyInput::Placeholder(Bytes::from("tx")),
                 PropertyInput::ConstantAddress(token_type),
                 PropertyInput::ConstantInteger(amount),
+                PropertyInput::ConstantAddress(my_address),
             ]),
             DeciderManager::signed_by_decider(vec![
                 PropertyInput::ConstantAddress(my_address),

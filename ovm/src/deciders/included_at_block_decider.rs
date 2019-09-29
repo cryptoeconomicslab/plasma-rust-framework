@@ -22,6 +22,9 @@ impl Decider for IncludedAtBlockDecider {
         decider: &PropertyExecutor<T>,
         inputs: &[PropertyInput],
     ) -> Result<Decision, Error> {
+        if decider.options.is_aggregator {
+            return Ok(Decision::new(true, vec![]));
+        }
         let block_number = decider.get_variable(&inputs[0]).to_integer();
         let state_update = decider.get_variable(&inputs[1]).to_state_update();
         let db: RangeAtBlockDb<T> = RangeAtBlockDb::new(decider.get_range_db());
