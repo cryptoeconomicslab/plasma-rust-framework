@@ -10,7 +10,6 @@ use ethabi::{ParamType, Token};
 use ethereum_types::{Address, H256};
 use plasma_core::data_structure::Range;
 use plasma_db::traits::kvs::KeyValueStore;
-use tiny_keccak::Keccak;
 
 pub type DeciderId = Address;
 pub type QuantifierId = Address;

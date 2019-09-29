@@ -72,18 +72,25 @@ impl StateUpdate {
         self.range.get_end() - self.range.get_start()
     }
 
-    // pub fn get_owner(&self) -> Address {
-    //     let property = self.property;
-    //     // if property is ownership
-    //     if property.inputs.len() == 3 {
-    //         match property.inputs[2] {
-    //             PropertyInput::ConstantProperty(property) => {
+    pub fn is_ownership_state(&self) -> bool {
+        self.property.get_type_string()
+            == "there_exists_such_that(q_tx(placeholder),bytes,signed_by(address,placeholder))"
+    }
 
-    //             }
-    //         }
-    //     }
-    //     // TODO: handle other property.
-    // }
+    pub fn get_owner(&self) -> Address {
+        // if property is ownership
+        if self.is_ownership_state() {
+            return match &self.property.inputs[2] {
+                PropertyInput::ConstantProperty(property) => match property.inputs[0] {
+                    PropertyInput::ConstantAddress(addr) => addr,
+                    _ => panic!("not ownership property."),
+                },
+                _ => panic!("this is not ownership property."),
+            };
+        }
+        panic!("Not ownership property.");
+        // TODO: handle other property.
+    }
 
     pub fn verify_state_transition<T: KeyValueStore>(
         &self,

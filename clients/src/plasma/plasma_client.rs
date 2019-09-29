@@ -631,7 +631,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
             .address_from(address)
             .block_from(0)
             .block_to(latest_block_number)
-            .range(Range::new(0, 1000)) // TODO: max range?
+            .range(Range::new(0, 10000))
             .build();
 
         transaction_db.query_transaction(filter).unwrap()

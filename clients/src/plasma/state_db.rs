@@ -63,3 +63,44 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
             .put(start, end, &state_update.to_abi())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use abi_utils::Integer;
+    use ovm::property_executor::DeciderManager;
+    use ovm::types::StateUpdate;
+    use plasma_core::data_structure::Range;
+
+    #[test]
+    fn test_put() {
+        let db = CoreDbMemoryImpl::open("test");
+        let range_db = RangeDbImpl::from(db);
+        let mut state_db = StateDb::new(&range_db);
+
+        let state_update1 = StateUpdate::new(
+            Integer::new(0),
+            Address::zero(),
+            Range::new(0, 100),
+            DeciderManager::ownership(vec![]),
+        );
+        let _ = state_db.put_verified_state_update(&state_update1);
+
+        let state_update2 = StateUpdate::new(
+            Integer::new(1),
+            Address::zero(),
+            Range::new(0, 50),
+            DeciderManager::ownership(vec![]),
+        );
+        let _ = state_db.put_verified_state_update(&state_update2);
+
+        let state_updates = state_db
+            .get_verified_state_updates(Address::zero(), 0, 2000)
+            .unwrap();
+        assert_eq!(state_updates.len(), 2);
+        assert_eq!(state_updates[0].get_range().get_start(), 0);
+        assert_eq!(state_updates[0].get_range().get_end(), 50);
+        assert_eq!(state_updates[1].get_range().get_start(), 50);
+        assert_eq!(state_updates[1].get_range().get_start(), 100);
+    }
+}
