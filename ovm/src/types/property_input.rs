@@ -38,6 +38,19 @@ impl PropertyInput {
             panic!("PropertyInput isn't StateUpdate!")
         }
     }
+    pub fn get_type_string(&self) -> String {
+        match self {
+            PropertyInput::Placeholder(_) => "placeholder".to_string(),
+            PropertyInput::ConstantAddress(_) => "address".to_string(),
+            PropertyInput::ConstantBytes(_) => "bytes".to_string(),
+            PropertyInput::ConstantH256(_) => "h256".to_string(),
+            PropertyInput::ConstantInteger(_) => "integer".to_string(),
+            PropertyInput::ConstantRange(_) => "range".to_string(),
+            PropertyInput::ConstantProperty(property) => property.get_type_string(),
+            PropertyInput::ConstantStateUpdate(_) => "state_update".to_string(),
+            PropertyInput::ConstantMessage(_) => "message".to_string(),
+        }
+    }
 }
 
 impl Encodable for PropertyInput {

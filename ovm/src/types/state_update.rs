@@ -1,5 +1,8 @@
 use crate::property_executor::PropertyExecutor;
-use crate::types::core::{Property, QuantifierResultItem};
+use crate::types::{
+    core::{Property, QuantifierResultItem},
+    PropertyInput,
+};
 use crate::DecideMixin;
 use abi_derive::{AbiDecodable, AbiEncodable};
 use abi_utils::{Decodable, Encodable, Integer};
@@ -68,6 +71,19 @@ impl StateUpdate {
     pub fn get_amount(&self) -> u64 {
         self.range.get_end() - self.range.get_start()
     }
+
+    // pub fn get_owner(&self) -> Address {
+    //     let property = self.property;
+    //     // if property is ownership
+    //     if property.inputs.len() == 3 {
+    //         match property.inputs[2] {
+    //             PropertyInput::ConstantProperty(property) => {
+
+    //             }
+    //         }
+    //     }
+    //     // TODO: handle other property.
+    // }
 
     pub fn verify_state_transition<T: KeyValueStore>(
         &self,

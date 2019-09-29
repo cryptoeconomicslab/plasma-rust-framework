@@ -23,7 +23,7 @@ fn get_address(address: &str) -> Address {
 }
 
 lazy_static! {
-    static ref DECIDER_LIST: Vec<Address> = {
+    pub static ref DECIDER_LIST: Vec<Address> = {
         let mut list = vec![];
         list.push(get_address("722d70e765d4ec72719d29fcbefe595480a9a3a0"));
         list.push(get_address("0888415d7a6b971d6fdb15d62d795f2a909d8065"));
