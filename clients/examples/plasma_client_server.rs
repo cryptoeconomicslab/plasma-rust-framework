@@ -1,6 +1,5 @@
 use abi_utils::Integer;
 use actix_web::{error, middleware::Logger, web, App, HttpResponse, HttpServer, Result};
-use bytes::Bytes;
 use chrono::{DateTime, Local};
 use env_logger;
 use ethereum_types::Address;
@@ -177,7 +176,7 @@ struct CounterParty {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct ExchangeOffer {
-    exchange_id: Vec<u8>,
+    exchange_id: String,
     token_address: Address,
     start: u64,
     end: u64,
@@ -191,7 +190,7 @@ fn get_exchange_offers(plasma_client: web::Data<PlasmaClientShell>) -> Result<Ht
         .map(
             |(state_update, token_address, amount, maker)| ExchangeOffer {
                 // TODO: get exchange_id
-                exchange_id: state_update.get_hash().to_vec(),
+                exchange_id: encode_hex(&state_update.get_hash()),
                 token_address: state_update.get_deposit_contract_address(),
                 start: state_update.get_range().get_start(),
                 end: state_update.get_range().get_end(),
@@ -227,7 +226,7 @@ struct GetExchangeHistoryRequest {
 
 #[derive(Serialize)]
 struct ExchangeHistory {
-    exchange_id: Vec<u8>,
+    exchange_id: String,
     history_type: ExchangeHistoryType,
     token_id: u64,
     amount: u64,
@@ -239,7 +238,7 @@ struct ExchangeHistory {
 fn get_exchange_history(params: web::Query<GetExchangeHistoryRequest>) -> Result<HttpResponse> {
     info!("PARAMS: {:?}", params);
     Ok(HttpResponse::Ok().json(vec![ExchangeHistory {
-        exchange_id: Bytes::from("aaa").to_vec(),
+        exchange_id: "00".to_string(),
         history_type: ExchangeHistoryType::OFFERED,
         token_id: 1,
         amount: 10,
@@ -257,7 +256,7 @@ fn get_exchange_history(params: web::Query<GetExchangeHistoryRequest>) -> Result
 #[derive(Serialize, Deserialize, Debug)]
 struct SendExchange {
     from: Address,
-    exchange_id: Vec<u8>,
+    exchange_id: String,
     session: String,
 }
 
@@ -272,7 +271,7 @@ fn send_exchange(
         .map(
             |(state_update, token_address, amount, maker)| ExchangeOffer {
                 // TODO: get exchange_id
-                exchange_id: state_update.get_hash().to_vec(),
+                exchange_id: encode_hex(&state_update.get_hash()),
                 token_address: state_update.get_deposit_contract_address(),
                 start: state_update.get_range().get_start(),
                 end: state_update.get_range().get_end(),
@@ -283,7 +282,7 @@ fn send_exchange(
                 },
             },
         )
-        .filter(|offer| body.exchange_id == offer.exchange_id)
+        .filter(|offer| decode_hex(body.exchange_id.clone()).unwrap() == offer.exchange_id)
         .collect();
     if let Some(order) = orders.first() {
         if let Some(range) = plasma_client.search_range(
