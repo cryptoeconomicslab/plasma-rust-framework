@@ -236,14 +236,14 @@ mod tests {
         let base_db = CoreDbMemoryImpl::open("test");
         let db = RangeDbImpl::from(base_db);
         let _ = db.put(0, 100, b"Alice is owner");
-        let _ = db.put(0, 20, b"Bob is owner");
+        let _ = db.put(0, 50, b"Bob is owner");
 
         let result = db.get(0, 100).unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].get_start(), 0);
-        assert_eq!(result[0].get_end(), 20);
+        assert_eq!(result[0].get_end(), 50);
         assert_eq!(result[0].get_value(), b"Bob is owner");
-        assert_eq!(result[1].get_start(), 20);
+        assert_eq!(result[1].get_start(), 50);
         assert_eq!(result[1].get_end(), 100);
         assert_eq!(result[1].get_value(), b"Alice is owner");
     }

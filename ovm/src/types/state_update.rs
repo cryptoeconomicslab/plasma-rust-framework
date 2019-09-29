@@ -72,6 +72,14 @@ impl StateUpdate {
         self.range.get_end() - self.range.get_start()
     }
 
+    pub fn set_start(&mut self, start: u64) {
+        self.range = Range::new(start, self.get_range().get_end());
+    }
+
+    pub fn set_end(&mut self, end: u64) {
+        self.range = Range::new(self.get_range().get_start(), end);
+    }
+
     pub fn is_ownership_state(&self) -> bool {
         self.property.get_type_string()
             == "there_exists_such_that(q_tx(placeholder),bytes,signed_by(address,placeholder))"

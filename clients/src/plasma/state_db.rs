@@ -60,7 +60,24 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
         self.db
             .bucket(&Bytes::from(&b"verified_state_updates"[..]))
             .bucket(&Bytes::from(deposit_contract_address.as_bytes()))
-            .put(start, end, &state_update.to_abi())
+            .put(start, end, &state_update.to_abi())?;
+
+        // update adjacent state_update
+        let update_start = if start == 0 { 0 } else { start - 1 };
+        let update_end = end + 1;
+        self.db
+            .bucket(&Bytes::from(&b"verified_state_updates"[..]))
+            .bucket(&Bytes::from(deposit_contract_address.as_bytes()))
+            .update(
+                update_start,
+                update_end,
+                Box::new(|range| {
+                    let mut s = StateUpdate::from_abi(range.get_value()).unwrap();
+                    s.set_start(range.get_start());
+                    s.set_end(range.get_end());
+                    s.to_abi()
+                }),
+            )
     }
 }
 
@@ -101,6 +118,6 @@ mod tests {
         assert_eq!(state_updates[0].get_range().get_start(), 0);
         assert_eq!(state_updates[0].get_range().get_end(), 50);
         assert_eq!(state_updates[1].get_range().get_start(), 50);
-        assert_eq!(state_updates[1].get_range().get_start(), 100);
+        assert_eq!(state_updates[1].get_range().get_end(), 100);
     }
 }
