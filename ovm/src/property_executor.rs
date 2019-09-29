@@ -166,11 +166,24 @@ where
     }
 }
 
+pub struct PropertyExecuterOptions {
+    pub is_aggregator: bool,
+}
+
+impl Default for PropertyExecuterOptions {
+    fn default() -> Self {
+        Self {
+            is_aggregator: false,
+        }
+    }
+}
+
 /// Core runtime for Property
 pub struct PropertyExecutor<KVS: KeyValueStore> {
     db: KVS,
     range_db: RangeDbImpl<KVS>,
     variables: RwLock<HashMap<Bytes, QuantifierResultItem>>,
+    pub options: PropertyExecuterOptions,
 }
 
 impl<KVS> Default for PropertyExecutor<KVS>
@@ -182,6 +195,21 @@ where
             db: KVS::open("kvs"),
             range_db: RangeDbImpl::from(KVS::open("range")),
             variables: RwLock::new(Default::default()),
+            options: Default::default(),
+        }
+    }
+}
+
+impl<KVS> PropertyExecutor<KVS>
+where
+    KVS: KeyValueStore + DatabaseTrait,
+{
+    pub fn new(options: PropertyExecuterOptions) -> Self {
+        PropertyExecutor {
+            db: KVS::open("kvs"),
+            range_db: RangeDbImpl::from(KVS::open("range")),
+            variables: RwLock::new(Default::default()),
+            options,
         }
     }
 }

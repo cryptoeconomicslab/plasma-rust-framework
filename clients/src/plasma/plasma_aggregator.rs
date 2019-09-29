@@ -9,7 +9,12 @@ use super::utils::*;
 use bytes::Bytes;
 use ethereum_types::Address;
 use ethsign::SecretKey;
-use ovm::{db::*, deciders::SignVerifier, property_executor::PropertyExecutor, types::*};
+use ovm::{
+    db::*,
+    deciders::SignVerifier,
+    property_executor::{PropertyExecuterOptions, PropertyExecutor},
+    types::*,
+};
 use plasma_core::data_structure::{Range, Transaction};
 use plasma_db::prelude::*;
 
@@ -46,7 +51,10 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             //_secret_key: secret_key,
             _my_address: my_address,
             block_manager,
-            decider: Default::default(),
+            decider: PropertyExecutor::new(PropertyExecuterOptions {
+                // If is_aggregator is true, decider skips checking RangeAtBlockDb.
+                is_aggregator: true,
+            }),
         }
     }
 
