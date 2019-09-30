@@ -1,7 +1,7 @@
 use super::state_update::StateUpdate;
 use crate::db::Message;
 use crate::error::Error;
-use crate::property_executor::PropertyExecutor;
+use crate::property_executor::{PropertyExecutor, DECIDER_LIST};
 use crate::types::PropertyInput;
 pub use abi_utils::Integer;
 use abi_utils::{Decodable, Encodable, Error as AbiError, ErrorKind as AbiErrorKind};
@@ -25,6 +25,59 @@ pub struct Property {
 impl Property {
     pub fn new(decider: Address, inputs: Vec<PropertyInput>) -> Self {
         Self { decider, inputs }
+    }
+
+    pub fn get_type_string(&self) -> String {
+        let inputs_str: Vec<String> = self.inputs.iter().map(|i| i.get_type_string()).collect();
+        format!("{}({})", self.get_decider_name(), inputs_str.join(","))
+    }
+
+    // TODO: use macro
+    fn get_decider_name(&self) -> String {
+        let decider = self.decider;
+        if decider == DECIDER_LIST[0] {
+            "and".to_string()
+        } else if decider == DECIDER_LIST[1] {
+            "not".to_string()
+        } else if decider == DECIDER_LIST[2] {
+            "preimage_exists".to_string()
+        } else if decider == DECIDER_LIST[3] {
+            "for_all_such_that".to_string()
+        } else if decider == DECIDER_LIST[4] {
+            "or".to_string()
+        } else if decider == DECIDER_LIST[5] {
+            "signed_by".to_string()
+        } else if decider == DECIDER_LIST[6] {
+            "has_lower_nonce".to_string()
+        } else if decider == DECIDER_LIST[7] {
+            "included_at_block".to_string()
+        } else if decider == DECIDER_LIST[8] {
+            "is_deprecated".to_string()
+        } else if decider == DECIDER_LIST[9] {
+            "ownership".to_string()
+        } else if decider == DECIDER_LIST[10] {
+            "there_exists_such_that".to_string()
+        } else if decider == DECIDER_LIST[11] {
+            "verify_tx".to_string()
+        } else if decider == DECIDER_LIST[20] {
+            "q_range".to_string()
+        } else if decider == DECIDER_LIST[21] {
+            "q_less_than".to_string()
+        } else if decider == DECIDER_LIST[22] {
+            "q_block".to_string()
+        } else if decider == DECIDER_LIST[23] {
+            "q_signed_by".to_string()
+        } else if decider == DECIDER_LIST[24] {
+            "q_hash".to_string()
+        } else if decider == DECIDER_LIST[25] {
+            "q_tx".to_string()
+        } else if decider == DECIDER_LIST[26] {
+            "q_property".to_string()
+        } else if decider == DECIDER_LIST[27] {
+            "q_state_update".to_string()
+        } else {
+            "undefined".to_string()
+        }
     }
 }
 
@@ -230,7 +283,8 @@ mod tests {
     use crate::types::PropertyInput;
     use crate::DeciderManager;
     use abi_utils::{Decodable, Encodable};
-    use ethereum_types::H256;
+    use bytes::Bytes;
+    use ethereum_types::{Address, H256};
 
     #[test]
     fn test_encode_and_decode_property() {
@@ -241,5 +295,34 @@ mod tests {
         let encoded = property.to_abi();
         let decoded = Property::from_abi(&encoded).unwrap();
         assert_eq!(decoded, property);
+    }
+
+    #[test]
+    fn test_property_type_string() {
+        let property = DeciderManager::signed_by_decider(vec![
+            PropertyInput::ConstantAddress(Address::zero()),
+            PropertyInput::ConstantBytes(Bytes::default()),
+        ]);
+
+        assert_eq!(property.get_type_string(), "signed_by(address,bytes)");
+    }
+
+    #[test]
+    fn test_nested_property_type_string() {
+        // ownership property
+        let property = DeciderManager::there_exists_such_that(vec![
+            PropertyInput::ConstantProperty(DeciderManager::q_tx(vec![
+                PropertyInput::Placeholder(Bytes::from("state_update")),
+            ])),
+            PropertyInput::ConstantBytes(Bytes::from("tx")),
+            PropertyInput::ConstantProperty(DeciderManager::signed_by_decider(vec![
+                PropertyInput::ConstantAddress(Address::zero()),
+                PropertyInput::Placeholder(Bytes::from("tx")),
+            ])),
+        ]);
+        assert_eq!(
+            property.get_type_string(),
+            "there_exists_such_that(q_tx(placeholder),bytes,signed_by(address,placeholder))"
+        );
     }
 }

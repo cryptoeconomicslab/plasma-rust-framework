@@ -128,11 +128,16 @@ impl PlasmaClientShell {
         );
         tokio::spawn(watcher);
     }
-    pub fn search_range(&self, deposit_contract_address: Address, amount: u64) -> Option<Range> {
+    pub fn search_range(
+        &self,
+        deposit_contract_address: Address,
+        amount: u64,
+        owner: Address,
+    ) -> Option<Range> {
         self.controller
             .clone()
             .unwrap()
-            .search_range(deposit_contract_address, amount)
+            .search_range(deposit_contract_address, amount, owner)
     }
     /// Creates new account
     pub fn create_account(&self) -> (Bytes, SecretKey) {
@@ -316,11 +321,16 @@ impl PlasmaClientController {
         let mut plasma_client = self.plasma_client.lock().unwrap();
         plasma_client.insert_test_ranges()
     }
-    fn search_range(&self, deposit_contract_address: Address, amount: u64) -> Option<Range> {
+    fn search_range(
+        &self,
+        deposit_contract_address: Address,
+        amount: u64,
+        owner: Address,
+    ) -> Option<Range> {
         self.plasma_client
             .lock()
             .unwrap()
-            .search_range(deposit_contract_address, amount)
+            .search_range(deposit_contract_address, amount, owner)
     }
     fn get_related_transactions(&self, session: &Bytes) -> Vec<Transaction> {
         self.plasma_client
@@ -595,10 +605,17 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     }
 
     /// return range if enough amount is exists.
-    pub fn search_range(&self, deposit_contract_address: Address, amount: u64) -> Option<Range> {
+    pub fn search_range(
+        &self,
+        deposit_contract_address: Address,
+        amount: u64,
+        owner: Address,
+    ) -> Option<Range> {
         // TODO: decide if this property is owner's property.
         self.get_state_updates(deposit_contract_address)
             .iter()
+            .filter(|su| su.is_ownership_state())
+            .filter(|su| su.get_owner() == owner)
             .map(|su| su.get_range())
             .find(|range| amount <= range.get_end() - range.get_start())
     }
@@ -614,7 +631,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
             .address_from(address)
             .block_from(0)
             .block_to(latest_block_number)
-            .range(Range::new(0, 1000)) // TODO: max range?
+            .range(Range::new(0, 10000))
             .build();
 
         transaction_db.query_transaction(filter).unwrap()

@@ -123,6 +123,21 @@ where
             Err(Error::from(ErrorKind::Dammy))
         }
     }
+    fn update(&self, start: u64, end: u64, f: Box<dyn Fn(Range) -> Vec<u8>>) -> Result<(), Error> {
+        let input_ranges = self.del_batch(start, end)?;
+        if !Self::validate_range(start, end) {
+            return Err(Error::from(ErrorKind::Dammy));
+        }
+        let output_ranges: Vec<Range> = input_ranges
+            .iter()
+            .map(|range| Range::new(range.get_start(), range.get_end(), &f(range.clone())))
+            .collect();
+        if self.put_batch(&output_ranges).is_ok() {
+            Ok(())
+        } else {
+            Err(Error::from(ErrorKind::Dammy))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -221,14 +236,14 @@ mod tests {
         let base_db = CoreDbMemoryImpl::open("test");
         let db = RangeDbImpl::from(base_db);
         let _ = db.put(0, 100, b"Alice is owner");
-        let _ = db.put(0, 20, b"Bob is owner");
+        let _ = db.put(0, 50, b"Bob is owner");
 
         let result = db.get(0, 100).unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].get_start(), 0);
-        assert_eq!(result[0].get_end(), 20);
+        assert_eq!(result[0].get_end(), 50);
         assert_eq!(result[0].get_value(), b"Bob is owner");
-        assert_eq!(result[1].get_start(), 20);
+        assert_eq!(result[1].get_start(), 50);
         assert_eq!(result[1].get_end(), 100);
         assert_eq!(result[1].get_value(), b"Alice is owner");
     }
@@ -293,5 +308,30 @@ mod tests {
         assert_eq!(result[0].get_start(), 0);
         assert_eq!(result[0].get_end(), 50);
         assert_eq!(result[0].get_value(), b"Bob is owner");
+    }
+
+    #[test]
+    fn test_update() {
+        let base_db = CoreDbMemoryImpl::open("test");
+        let db = RangeDbImpl::from(base_db);
+        let _ = db.put(0, 10, b"010");
+        let _ = db.put(10, 20, b"1020");
+        let _ = db.put(20, 30, b"2030");
+        let _ = db.update(
+            0,
+            20,
+            Box::new(|_r| Bytes::from(format!("{}{}", 0, 0)).to_vec()),
+        );
+        let result = db.get(0, 30).unwrap();
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0].get_start(), 0);
+        assert_eq!(result[0].get_end(), 10);
+        assert_eq!(result[0].get_value(), b"00");
+        assert_eq!(result[1].get_start(), 10);
+        assert_eq!(result[1].get_end(), 20);
+        assert_eq!(result[1].get_value(), b"00");
+        assert_eq!(result[2].get_start(), 20);
+        assert_eq!(result[2].get_end(), 30);
+        assert_eq!(result[2].get_value(), b"2030");
     }
 }

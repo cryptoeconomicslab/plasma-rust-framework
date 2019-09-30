@@ -140,9 +140,10 @@ fn send_payment(
     body: web::Json<SendPayment>,
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
-    if let Some(range) = plasma_client.search_range(body.token_address, body.amount) {
+    let session = decode_session(body.session.clone()).unwrap();
+    let account = plasma_client.get_my_address(&session).unwrap();
+    if let Some(range) = plasma_client.search_range(body.token_address, body.amount, account) {
         println!("Range: {:?}", range);
-        let session = decode_session(body.session.clone()).unwrap();
         let (property, metadata) = plasma_client.ownership_property(&session, body.to);
         plasma_client.send_transaction(
             &session,
@@ -273,6 +274,7 @@ fn send_exchange(
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     let session = decode_session(body.session.clone()).unwrap();
+    let account = plasma_client.get_my_address(&session).unwrap();
     let orders: Vec<ExchangeOffer> = plasma_client
         .get_orders()
         .iter()
@@ -296,6 +298,7 @@ fn send_exchange(
         if let Some(range) = plasma_client.search_range(
             order.counter_party.token_address,
             order.counter_party.amount,
+            account,
         ) {
             let maker = order.counter_party.address.unwrap();
             let (property1, metadata1) = plasma_client.ownership_property(&session, maker);
@@ -351,7 +354,10 @@ fn create_exchange_offer(
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     let session = decode_session(body.session.clone()).unwrap();
-    if let Some(range) = plasma_client.search_range(body.offer.token_address, body.offer.amount) {
+    let account = plasma_client.get_my_address(&session).unwrap();
+    if let Some(range) =
+        plasma_client.search_range(body.offer.token_address, body.offer.amount, account)
+    {
         let (property, metadata) = plasma_client.making_order_property(
             &session,
             body.offer.counter_party.token_address,
