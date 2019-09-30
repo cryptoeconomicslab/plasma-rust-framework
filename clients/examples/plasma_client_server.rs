@@ -184,6 +184,14 @@ struct ExchangeOffer {
     counter_party: CounterParty,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct ExchangeOfferRequest {
+    exchange_id: String,
+    token_address: Address,
+    amount: u64,
+    counter_party: CounterParty,
+}
+
 fn get_exchange_offers(plasma_client: web::Data<PlasmaClientShell>) -> Result<HttpResponse> {
     let orders: Vec<ExchangeOffer> = plasma_client
         .get_orders()
@@ -337,7 +345,7 @@ fn send_exchange(
 #[derive(Deserialize, Serialize, Debug)]
 struct CreateExchangeOfferRequest {
     from: Address,
-    offer: ExchangeOffer,
+    offer: ExchangeOfferRequest,
     session: String,
 }
 
@@ -346,24 +354,30 @@ fn create_exchange_offer(
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     let session = decode_session(body.session.clone()).unwrap();
-    let (property, metadata) = plasma_client.making_order_property(
-        &session,
-        body.offer.counter_party.token_address,
-        Integer(body.offer.counter_party.amount),
-    );
-    plasma_client.send_transaction(
-        &session,
-        Some(body.offer.token_address),
-        body.offer.start,
-        body.offer.end,
-        property,
-        metadata,
-    );
-    Ok(HttpResponse::Ok().json(CreateExchangeOfferRequest {
-        from: body.from,
-        offer: body.offer.clone(),
-        session: body.session.clone(),
-    }))
+    if let Some(range) = plasma_client.search_range(body.offer.token_address, body.offer.amount) {
+        let (property, metadata) = plasma_client.making_order_property(
+            &session,
+            body.offer.counter_party.token_address,
+            Integer(body.offer.counter_party.amount),
+        );
+        plasma_client.send_transaction(
+            &session,
+            Some(body.offer.token_address),
+            range.get_start(),
+            range.get_end(),
+            property,
+            metadata,
+        );
+        Ok(HttpResponse::Ok().json(CreateExchangeOfferRequest {
+            from: body.from,
+            offer: body.offer.clone(),
+            session: body.session.clone(),
+        }))
+    } else {
+        Err(error::ErrorBadRequest(Error::from(
+            ErrorKind::InvalidParameter,
+        )))
+    }
 }
 
 pub fn main() {
