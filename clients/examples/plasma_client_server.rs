@@ -354,7 +354,10 @@ fn create_exchange_offer(
     plasma_client: web::Data<PlasmaClientShell>,
 ) -> Result<HttpResponse> {
     let session = decode_session(body.session.clone()).unwrap();
-    if let Some(range) = plasma_client.search_range(body.offer.token_address, body.offer.amount) {
+    let account = plasma_client.get_my_address(&session).unwrap();
+    if let Some(range) =
+        plasma_client.search_range(body.offer.token_address, body.offer.amount, account)
+    {
         let (property, metadata) = plasma_client.making_order_property(
             &session,
             body.offer.counter_party.token_address,
