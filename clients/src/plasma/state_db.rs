@@ -1,12 +1,54 @@
 use super::utils::string_to_address;
-use abi_utils::{Decodable, Encodable};
+use abi_derive::{AbiDecodable, AbiEncodable};
+use abi_utils::{Decodable, Encodable, Integer};
 use bytes::Bytes;
+use ethabi::{ParamType, Token};
 use ethereum_types::Address;
-use ovm::types::StateUpdate;
+use ovm::types::{core::Property, StateUpdate};
+use plasma_core::data_structure::Range;
 use plasma_db::prelude::*;
-
 const MIN_RANGE: u64 = 0;
 const MAX_RANGE: u64 = std::u64::MAX;
+
+#[derive(Clone, Debug, PartialEq, Eq, AbiEncodable, AbiDecodable)]
+struct StateUpdateRecord {
+    block_number: Integer,
+    deposit_contract_address: Address,
+    property: Property,
+}
+
+impl StateUpdateRecord {
+    pub fn new(
+        block_number: Integer,
+        deposit_contract_address: Address,
+        property: Property,
+    ) -> Self {
+        Self {
+            block_number,
+            deposit_contract_address,
+            property,
+        }
+    }
+
+    pub fn into_state_update(self, start: u64, end: u64) -> StateUpdate {
+        StateUpdate::new(
+            self.block_number,
+            self.deposit_contract_address,
+            Range::new(start, end),
+            self.property,
+        )
+    }
+}
+
+impl From<&StateUpdate> for StateUpdateRecord {
+    fn from(state_update: &StateUpdate) -> StateUpdateRecord {
+        StateUpdateRecord::new(
+            state_update.get_block_number(),
+            state_update.get_deposit_contract_address(),
+            state_update.get_property().clone(),
+        )
+    }
+}
 
 pub struct StateDb<'a, KVS: KeyValueStore> {
     db: &'a RangeDbImpl<KVS>,
@@ -44,7 +86,11 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
             .bucket(&Bytes::from(deposit_contract_address.as_bytes()))
             .get(start, end)?
             .iter()
-            .map(|range| StateUpdate::from_abi(range.get_value()).unwrap())
+            .map(|range| {
+                StateUpdateRecord::from_abi(range.get_value())
+                    .unwrap()
+                    .into_state_update(range.get_start(), range.get_end())
+            })
             .collect();
         Ok(res)
     }
@@ -60,24 +106,7 @@ impl<'a, KVS: KeyValueStore> StateDb<'a, KVS> {
         self.db
             .bucket(&Bytes::from(&b"verified_state_updates"[..]))
             .bucket(&Bytes::from(deposit_contract_address.as_bytes()))
-            .put(start, end, &state_update.to_abi())?;
-
-        // update adjacent state_update
-        let update_start = if start == 0 { 0 } else { start - 1 };
-        let update_end = end + 1;
-        self.db
-            .bucket(&Bytes::from(&b"verified_state_updates"[..]))
-            .bucket(&Bytes::from(deposit_contract_address.as_bytes()))
-            .update(
-                update_start,
-                update_end,
-                Box::new(|range| {
-                    let mut s = StateUpdate::from_abi(range.get_value()).unwrap();
-                    s.set_start(range.get_start());
-                    s.set_end(range.get_end());
-                    s.to_abi()
-                }),
-            )
+            .put(start, end, &StateUpdateRecord::from(state_update).to_abi())
     }
 }
 
