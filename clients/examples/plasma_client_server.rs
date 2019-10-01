@@ -186,7 +186,6 @@ struct ExchangeOffer {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct ExchangeOfferRequest {
-    exchange_id: String,
     token_address: Address,
     amount: u64,
     counter_party: CounterParty,
