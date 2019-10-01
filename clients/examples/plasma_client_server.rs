@@ -192,7 +192,6 @@ struct ExchangeOfferResponse {
     counter_party: CounterParty,
 }
 
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct ExchangeOfferRequest {
     token_address: Address,
