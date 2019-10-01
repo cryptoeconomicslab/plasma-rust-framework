@@ -298,7 +298,7 @@ fn send_exchange(
                 },
             },
         )
-        .filter(|offer| decode_hex(body.exchange_id.clone()).unwrap() == offer.exchange_id)
+        .filter(|offer| body.exchange_id.clone() == offer.exchange_id)
         .collect();
     if let Some(order) = orders.first() {
         if let Some(range) = plasma_client.search_range(
