@@ -185,6 +185,15 @@ struct ExchangeOffer {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+struct ExchangeOfferResponse {
+    exchange_id: String,
+    token_address: Address,
+    amount: u64,
+    counter_party: CounterParty,
+}
+
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct ExchangeOfferRequest {
     token_address: Address,
     amount: u64,
@@ -192,16 +201,15 @@ struct ExchangeOfferRequest {
 }
 
 fn get_exchange_offers(plasma_client: web::Data<PlasmaClientShell>) -> Result<HttpResponse> {
-    let orders: Vec<ExchangeOffer> = plasma_client
+    let orders: Vec<ExchangeOfferResponse> = plasma_client
         .get_orders()
         .iter()
         .map(
-            |(state_update, token_address, amount, maker)| ExchangeOffer {
+            |(state_update, token_address, amount, maker)| ExchangeOfferResponse {
                 // TODO: get exchange_id
                 exchange_id: encode_hex(&state_update.get_hash()),
                 token_address: state_update.get_deposit_contract_address(),
-                start: state_update.get_range().get_start(),
-                end: state_update.get_range().get_end(),
+                amount: state_update.get_range().get_end() - state_update.get_range().get_start(),
                 counter_party: CounterParty {
                     token_address: *token_address,
                     amount: amount.0,
@@ -411,7 +419,7 @@ pub fn main() {
             )
     })
     .workers(1)
-    .bind("127.0.0.1:7777")
+    .bind("0.0.0.0:7777")
     .unwrap()
     .run()
     .unwrap();
