@@ -371,6 +371,7 @@ impl EventHandler for PlasmaClientController {
 pub struct PlasmaClient<KVS: KeyValueStore> {
     deposit_contract_address: Address,
     decider: PropertyExecutor<KVS>,
+    wallet_db: KVS,
 }
 
 impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
@@ -378,6 +379,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         PlasmaClient {
             deposit_contract_address,
             decider: Default::default(),
+            wallet_db: KVS::open("wallet"),
         }
     }
 
@@ -403,17 +405,17 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
 
     /// Creates new account
     pub fn create_account(&self) -> (Bytes, SecretKey) {
-        let mut wallet = WalletManager::new(self.decider.get_db());
+        let mut wallet = WalletManager::new(&self.wallet_db);
         wallet.generate_key_session()
     }
 
     pub fn import_key(&self, secret_key: &[u8]) -> (Bytes, SecretKey) {
-        let mut wallet = WalletManager::new(self.decider.get_db());
+        let mut wallet = WalletManager::new(&self.wallet_db);
         wallet.import_key(secret_key)
     }
 
     pub fn get_my_address(&self, session: &Bytes) -> Option<Address> {
-        let wallet = WalletManager::new(self.decider.get_db());
+        let wallet = WalletManager::new(&self.wallet_db);
         wallet
             .get_key(session)
             .map(|secret_key| secret_key.public().address().into())
@@ -432,7 +434,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let transaction_params =
             TransactionParams::new(deposit_contract_address, range, parameters);
 
-        let wallet = WalletManager::new(self.decider.get_db());
+        let wallet = WalletManager::new(&self.wallet_db);
         if let Some(secret_key) = wallet.get_key(session) {
             let signature =
                 SignVerifier::sign(&secret_key, &Bytes::from(transaction_params.to_abi()));
