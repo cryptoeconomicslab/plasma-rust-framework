@@ -85,16 +85,41 @@ impl StateUpdate {
             == "there_exists_such_that(q_tx(placeholder),bytes,signed_by(address,placeholder))"
     }
 
+    pub fn is_order_state(&self) -> bool {
+        self.property.get_type_string() == "there_exists_such_that(q_tx(placeholder),bytes,or(verify_tx(placeholder,address,integer,address),signed_by(address,placeholder)))"
+    }
+
+    pub fn is_exchanged_state(&self) -> bool {
+        self.property.get_type_string()
+            == "there_exists_such_that(q_tx(placeholder),bytes,there_exists_such_that(q_property(integer,address),bytes,there_exists_such_that(q_state_update(placeholder,address,range,placeholder),bytes,or(and(and(for_all_such_that(q_less_than(placeholder),bytes,for_all_such_that(q_block(placeholder,address,range),bytes,is_deprecated(placeholder))),included_at_block(placeholder,placeholder)),signed_by(address,placeholder)),and(not(and(for_all_such_that(q_less_than(placeholder),bytes,for_all_such_that(q_block(placeholder,address,range),bytes,is_deprecated(placeholder))),included_at_block(placeholder,placeholder))),signed_by(address,placeholder))))))"
+    }
     pub fn get_owner(&self) -> Address {
         // if property is ownership
         if self.is_ownership_state() {
             return match &self.property.inputs[2] {
-                PropertyInput::ConstantProperty(property) => match property.inputs[0] {
+                PropertyInput::ConstantProperty(signed_by) => match signed_by.inputs[0] {
                     PropertyInput::ConstantAddress(addr) => addr,
                     _ => panic!("not ownership property."),
                 },
                 _ => panic!("this is not ownership property."),
             };
+        } else if self.is_exchanged_state() {
+            let p = &self.get_property().inputs[2];
+            if let PropertyInput::ConstantProperty(q_property) = p {
+                if let PropertyInput::ConstantProperty(q_su) = &q_property.inputs[2] {
+                    if let PropertyInput::ConstantProperty(or) = &q_su.inputs[2] {
+                        if let PropertyInput::ConstantProperty(and) = &or.inputs[0] {
+                            if let PropertyInput::ConstantProperty(signed_by) = &and.inputs[1] {
+                                if let PropertyInput::ConstantAddress(address) = signed_by.inputs[0]
+                                {
+                                    return address;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            panic!("Not exchanged property");
         }
         panic!("Not ownership property.");
         // TODO: handle other property.

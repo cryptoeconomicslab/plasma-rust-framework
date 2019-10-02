@@ -616,7 +616,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         // TODO: decide if this property is owner's property.
         self.get_state_updates(deposit_contract_address)
             .iter()
-            .filter(|su| su.is_ownership_state())
+            .filter(|su| su.is_ownership_state() || su.is_exchanged_state())
             .filter(|su| su.get_owner() == owner)
             .map(|su| su.get_range())
             .find(|range| amount <= range.get_end() - range.get_start())
