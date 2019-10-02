@@ -33,6 +33,7 @@ pub struct PlasmaAggregator<KVS: KeyValueStore> {
 
 impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     pub fn new(
+        db_name: &str,
         aggregator_address: Address,
         deposit_contract_address: Address,
         commitment_contract_address: Address,
@@ -54,6 +55,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
             decider: PropertyExecutor::new(PropertyExecuterOptions {
                 // If is_aggregator is true, decider skips checking RangeAtBlockDb.
                 is_aggregator: true,
+                db_name: db_name.to_string(),
             }),
         }
     }
@@ -144,6 +146,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     }
 
     pub fn insert_test_ranges(&mut self) {
+        if !self.get_all_state_updates().is_empty() {
+            return;
+        }
         let mut state_db = StateDb::new(self.decider.get_range_db());
         let eth_token_address = Address::zero();
         let dai_token_address = string_to_address("0000000000000000000000000000000000000001");
@@ -219,6 +224,7 @@ mod tests {
     #[test]
     fn test_ingest() {
         let mut aggregator: PlasmaAggregator<CoreDbMemoryImpl> = PlasmaAggregator::new(
+            "test",
             Address::zero(),
             Address::zero(),
             Address::zero(),

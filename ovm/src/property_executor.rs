@@ -168,12 +168,14 @@ where
 
 pub struct PropertyExecuterOptions {
     pub is_aggregator: bool,
+    pub db_name: String,
 }
 
 impl Default for PropertyExecuterOptions {
     fn default() -> Self {
         Self {
             is_aggregator: false,
+            db_name: "property_executer".to_string(),
         }
     }
 }
@@ -205,9 +207,10 @@ where
     KVS: KeyValueStore + DatabaseTrait,
 {
     pub fn new(options: PropertyExecuterOptions) -> Self {
+        let db_name = options.db_name.clone();
         PropertyExecutor {
-            db: KVS::open("kvs"),
-            range_db: RangeDbImpl::from(KVS::open("range")),
+            db: KVS::open(&format!("{}-{}", db_name, "kvs")),
+            range_db: RangeDbImpl::from(KVS::open(&format!("{}-{}", db_name, "range"))),
             variables: RwLock::new(Default::default()),
             options,
         }

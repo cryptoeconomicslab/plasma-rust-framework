@@ -10,20 +10,20 @@ use plasma_clients::plasma::{
     utils::string_to_address, Command, FetchBlockRequest, PlasmaAggregator,
 };
 use plasma_core::data_structure::Transaction;
-use plasma_db::impls::kvs::CoreDbMemoryImpl;
+use plasma_db::prelude::*;
 use pubsub_messaging::{spawn_server, Message, Sender, ServerHandler, WsMessage};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::timer::Interval;
 
 struct Handle {
-    plasma_aggregator: Arc<Mutex<PlasmaAggregator<CoreDbMemoryImpl>>>,
+    plasma_aggregator: Arc<Mutex<PlasmaAggregator<CoreDbLevelDbImpl>>>,
     interval: Interval,
     interval_sec: u64,
 }
 
 impl Handle {
-    fn new(plasma_aggregator: PlasmaAggregator<CoreDbMemoryImpl>, interval_sec: u64) -> Self {
+    fn new(plasma_aggregator: PlasmaAggregator<CoreDbLevelDbImpl>, interval_sec: u64) -> Self {
         Self {
             plasma_aggregator: Arc::new(Mutex::new(plasma_aggregator)),
             interval: Interval::new_interval(Duration::from_secs(interval_sec)),
@@ -93,6 +93,7 @@ impl ServerHandler for Handle {
 
 fn main() {
     let mut aggregator = PlasmaAggregator::new(
+        "aggregator", // db name
         string_to_address("627306090abab3a6e1400e9345bc60c78a8bef57"),
         Address::zero(),
         string_to_address("9FBDa871d559710256a2502A2517b794B482Db40"),

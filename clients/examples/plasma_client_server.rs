@@ -400,11 +400,12 @@ pub fn main() {
 
     HttpServer::new(move || {
         let mut client = PlasmaClientShell::new(
+            "client", // db name
             "127.0.0.1:8080".to_owned(),
             string_to_address("9FBDa871d559710256a2502A2517b794B482Db40"),
         );
         client.connect();
-
+        client.initialize();
         let data = web::Data::new(client);
         App::new()
             .wrap(Logger::default())

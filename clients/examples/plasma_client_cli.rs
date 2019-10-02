@@ -78,6 +78,7 @@ fn main() {
 
     let session_str = value_t!(matches, "session", String).unwrap();
     let mut shell = PlasmaClientShell::new(
+        "cli", // db name
         "127.0.0.1:8080".to_string(),
         string_to_address("9FBDa871d559710256a2502A2517b794B482Db40"),
     );

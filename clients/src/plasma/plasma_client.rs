@@ -15,7 +15,11 @@ use ethsign::SecretKey;
 use event_watcher::event_db::EventDbImpl;
 use event_watcher::event_watcher::{EventHandler, EventWatcher, Log};
 use ovm::{
-    db::*, deciders::SignVerifier, property_executor::PropertyExecutor, types::*, DeciderManager,
+    db::*,
+    deciders::SignVerifier,
+    property_executor::{PropertyExecuterOptions, PropertyExecutor},
+    types::*,
+    DeciderManager,
 };
 use plasma_core::data_structure::{Metadata, Range, Transaction, TransactionParams};
 use plasma_db::prelude::*;
@@ -26,14 +30,20 @@ use std::io::BufReader;
 use std::sync::{Arc, Mutex};
 
 pub struct PlasmaClientShell {
+    db_name: String,
     aggregator_endpoint: String,
     commitment_contract_address: Address,
     controller: Option<PlasmaClientController>,
 }
 
 impl PlasmaClientShell {
-    pub fn new(aggregator_endpoint: String, commitment_contract_address: Address) -> Self {
+    pub fn new(
+        db_name: &str,
+        aggregator_endpoint: String,
+        commitment_contract_address: Address,
+    ) -> Self {
         Self {
+            db_name: db_name.to_string(),
             aggregator_endpoint,
             commitment_contract_address,
             controller: None,
@@ -97,7 +107,8 @@ impl PlasmaClientShell {
     }
 
     pub fn connect(&mut self) {
-        let plasma_client = PlasmaClient::<CoreDbLevelDbImpl>::new(Address::zero());
+        let plasma_client =
+            PlasmaClient::<CoreDbLevelDbImpl>::new(self.db_name.clone(), Address::zero());
         let controller = PlasmaClientController::new(plasma_client);
         let pubsub_client = connect(self.aggregator_endpoint.clone(), controller.clone()).unwrap();
         self.controller = Some(controller.clone_by_pubsub_client(pubsub_client));
@@ -375,10 +386,13 @@ pub struct PlasmaClient<KVS: KeyValueStore> {
 }
 
 impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
-    pub fn new(deposit_contract_address: Address) -> Self {
+    pub fn new(dbname: String, deposit_contract_address: Address) -> Self {
         PlasmaClient {
             deposit_contract_address,
-            decider: Default::default(),
+            decider: PropertyExecutor::new(PropertyExecuterOptions {
+                is_aggregator: false,
+                db_name: dbname,
+            }),
             wallet_db: KVS::open("wallet"),
         }
     }
@@ -555,6 +569,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
     }
 
     pub fn insert_test_ranges(&mut self) {
+        if !self.get_all_state_updates().is_empty() {
+            return;
+        }
         let mut state_updates = vec![];
         let eth_token_address = Address::zero();
         let dai_token_address = string_to_address("0000000000000000000000000000000000000001");
