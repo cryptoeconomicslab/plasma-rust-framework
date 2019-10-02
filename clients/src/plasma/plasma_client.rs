@@ -131,7 +131,7 @@ impl PlasmaClientShell {
         let kvs = CoreDbMemoryImpl::open("eventdb");
         let db = EventDbImpl::from(kvs);
         let watcher = EventWatcher::new(
-            "http://localhost:8545",
+            "http://192.168.0.9:8545",
             self.commitment_contract_address,
             abi,
             db,

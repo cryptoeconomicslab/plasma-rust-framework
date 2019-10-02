@@ -18,4 +18,4 @@ failure = "0.1.5"
 git = "https://github.com/cryptoeconomicslab/rust-web3"
 branch = 'ethabi-tuple'
 default-features = false
-features = ["http", "tls", "ws"]
+features = ["http", "ws"]

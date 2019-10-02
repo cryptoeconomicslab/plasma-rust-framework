@@ -21,6 +21,11 @@ impl AndroidClient {
         encode_session(session)
     }
 
+    pub fn get_address(session: String) -> String {
+        let address = GLOBAL_CLIENT.get_my_address(&decode_session(session.clone()).unwrap()).unwrap();
+        address.to_string()
+    }
+
     pub fn get_balance(session: String) -> u64 {
         let eth_address = Address::zero();
         *GLOBAL_CLIENT

@@ -112,7 +112,7 @@ fn main() {
     let h = handle.clone();
     tokio::run(future::lazy(move || {
         tokio::spawn(Worker { handle: h });
-        if let Ok(server) = spawn_server("127.0.0.1:8080".to_owned(), handle.clone()) {
+        if let Ok(server) = spawn_server("0.0.0.0:8080".to_owned(), handle.clone()) {
             let _ = server.handle.join();
         }
         Ok(())
