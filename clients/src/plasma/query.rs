@@ -12,10 +12,30 @@ pub fn query_balance(
     let balances: HashMap<Address, u64> = state_updates
         .iter()
         .filter(|s| {
-            let p = &s.get_property().inputs[2];
-            if let PropertyInput::ConstantProperty(signed_by) = p {
-                if let PropertyInput::ConstantAddress(address) = signed_by.inputs[0] {
-                    return address == my_address;
+            let property = s.get_property();
+            if s.is_ownership_state() {
+                let p = &property.inputs[2];
+                if let PropertyInput::ConstantProperty(signed_by) = p {
+                    if let PropertyInput::ConstantAddress(address) = signed_by.inputs[0] {
+                        return address == my_address;
+                    }
+                }
+            } else if s.is_exchanged_state() {
+                let p = &property.inputs[2];
+                if let PropertyInput::ConstantProperty(q_property) = p {
+                    if let PropertyInput::ConstantProperty(q_su) = &q_property.inputs[2] {
+                        if let PropertyInput::ConstantProperty(or) = &q_su.inputs[2] {
+                            if let PropertyInput::ConstantProperty(and) = &or.inputs[0] {
+                                if let PropertyInput::ConstantProperty(signed_by) = &and.inputs[1] {
+                                    if let PropertyInput::ConstantAddress(address) =
+                                        signed_by.inputs[0]
+                                    {
+                                        return address == my_address;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
             false
@@ -37,15 +57,28 @@ pub fn query_orders(
     state_updates
         .iter()
         .filter_map(|s| {
-            let or = &s.get_property().inputs[2];
-            if let PropertyInput::ConstantProperty(or) = or {
-                if let PropertyInput::ConstantProperty(verify_tx) = &or.inputs[0] {
-                    if let PropertyInput::ConstantAddress(token_address) = verify_tx.inputs[1] {
-                        if let PropertyInput::ConstantInteger(amount) = verify_tx.inputs[2] {
-                            if let PropertyInput::ConstantAddress(maker_address) =
-                                verify_tx.inputs[3]
+            if s.is_order_state() {
+                let property = s.get_property();
+                if property.inputs.len() >= 3 {
+                    let or = &property.inputs[2];
+                    if let PropertyInput::ConstantProperty(or) = or {
+                        if let PropertyInput::ConstantProperty(verify_tx) = &or.inputs[0] {
+                            if let PropertyInput::ConstantAddress(token_address) =
+                                verify_tx.inputs[1]
                             {
-                                return Some((s.clone(), token_address, amount, maker_address));
+                                if let PropertyInput::ConstantInteger(amount) = verify_tx.inputs[2]
+                                {
+                                    if let PropertyInput::ConstantAddress(maker_address) =
+                                        verify_tx.inputs[3]
+                                    {
+                                        return Some((
+                                            s.clone(),
+                                            token_address,
+                                            amount,
+                                            maker_address,
+                                        ));
+                                    }
+                                }
                             }
                         }
                     }
