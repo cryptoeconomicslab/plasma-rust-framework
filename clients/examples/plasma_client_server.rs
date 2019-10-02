@@ -404,7 +404,7 @@ pub fn main() {
             string_to_address("9FBDa871d559710256a2502A2517b794B482Db40"),
         );
         client.connect();
-
+        client.initialize();
         let data = web::Data::new(client);
         App::new()
             .wrap(Logger::default())

@@ -144,6 +144,9 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaAggregator<KVS> {
     }
 
     pub fn insert_test_ranges(&mut self) {
+        if !self.get_all_state_updates().is_empty() {
+            return;
+        }
         let mut state_db = StateDb::new(self.decider.get_range_db());
         let eth_token_address = Address::zero();
         let dai_token_address = string_to_address("0000000000000000000000000000000000000001");
