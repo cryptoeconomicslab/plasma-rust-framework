@@ -4,6 +4,7 @@ use plasma_clients::plasma::{utils::*, PlasmaClientShell};
 
 fn main() {
     let mut shell = PlasmaClientShell::new(
+        "client",
         "127.0.0.1:8080".to_string(),
         string_to_address("9FBDa871d559710256a2502A2517b794B482Db40"),
     );

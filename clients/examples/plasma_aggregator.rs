@@ -93,6 +93,7 @@ impl ServerHandler for Handle {
 
 fn main() {
     let mut aggregator = PlasmaAggregator::new(
+        "aggregator", // db name
         string_to_address("627306090abab3a6e1400e9345bc60c78a8bef57"),
         Address::zero(),
         string_to_address("9FBDa871d559710256a2502A2517b794B482Db40"),
