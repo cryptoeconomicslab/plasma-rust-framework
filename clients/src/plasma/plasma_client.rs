@@ -108,7 +108,7 @@ impl PlasmaClientShell {
 
     pub fn connect(&mut self) {
         let plasma_client =
-            PlasmaClient::<CoreDbLevelDbImpl>::new(self.db_name.clone(), Address::zero());
+            PlasmaClient::<CoreDbMemoryImpl>::new(self.db_name.clone(), Address::zero());
         let controller = PlasmaClientController::new(plasma_client);
         let pubsub_client = connect(self.aggregator_endpoint.clone(), controller.clone()).unwrap();
         self.controller = Some(controller.clone_by_pubsub_client(pubsub_client));
@@ -128,7 +128,7 @@ impl PlasmaClientShell {
             ],
             anonymous: false,
         }];
-        let kvs = CoreDbLevelDbImpl::open("eventdb");
+        let kvs = CoreDbMemoryImpl::open("eventdb");
         let db = EventDbImpl::from(kvs);
         let watcher = EventWatcher::new(
             "http://localhost:8545",
@@ -305,12 +305,12 @@ impl PlasmaClientShell {
 
 #[derive(Clone)]
 pub struct PlasmaClientController {
-    pub plasma_client: Arc<Mutex<PlasmaClient<CoreDbLevelDbImpl>>>,
+    pub plasma_client: Arc<Mutex<PlasmaClient<CoreDbMemoryImpl>>>,
     pub pubsub_client: Option<PubsubClient>,
 }
 
 impl PlasmaClientController {
-    pub fn new(plasma_client: PlasmaClient<CoreDbLevelDbImpl>) -> Self {
+    pub fn new(plasma_client: PlasmaClient<CoreDbMemoryImpl>) -> Self {
         Self {
             plasma_client: Arc::new(Mutex::new(plasma_client)),
             pubsub_client: None,
@@ -407,7 +407,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let reader = BufReader::new(f);
         let contract_abi = ContractABI::load(reader).unwrap();
         let plasma_contract = PlasmaContractAdaptor::new(
-            "http://127.0.0.1:9545",
+            "http://192.168.0.9:9545",
             &self.deposit_contract_address.to_string(),
             contract_abi,
         )

@@ -29,7 +29,8 @@ log = "*"
 env_logger = "*"
 chrono = { version = "0.4", features = ["serde"] }
 libsecp256k1 = "0.2.2"
-rand = "*"
+rand = "0.4.6"
+lazy_static = "1.4.0"
 
 [dependencies.ethsign]
 version = "0.6.1"
@@ -38,4 +39,3 @@ features = ["pure-rust"]
 
 [dependencies.plasma-db]
 path = "../db"
-features = ["require-leveldb"]

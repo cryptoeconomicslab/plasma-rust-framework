@@ -17,13 +17,13 @@ use std::time::Duration;
 use tokio::timer::Interval;
 
 struct Handle {
-    plasma_aggregator: Arc<Mutex<PlasmaAggregator<CoreDbLevelDbImpl>>>,
+    plasma_aggregator: Arc<Mutex<PlasmaAggregator<CoreDbMemoryImpl>>>,
     interval: Interval,
     interval_sec: u64,
 }
 
 impl Handle {
-    fn new(plasma_aggregator: PlasmaAggregator<CoreDbLevelDbImpl>, interval_sec: u64) -> Self {
+    fn new(plasma_aggregator: PlasmaAggregator<CoreDbMemoryImpl>, interval_sec: u64) -> Self {
         Self {
             plasma_aggregator: Arc::new(Mutex::new(plasma_aggregator)),
             interval: Interval::new_interval(Duration::from_secs(interval_sec)),
