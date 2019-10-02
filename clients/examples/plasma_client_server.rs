@@ -9,6 +9,7 @@ use plasma_clients::plasma::{
     utils::*,
     PlasmaClientShell,
 };
+use plasma_core::data_structure::Range;
 use serde::{Deserialize, Serialize};
 
 // Create Account
@@ -306,19 +307,23 @@ fn send_exchange(
             order.counter_party.amount,
             account,
         ) {
+            let will_update_range = Range::new(
+                range.get_start(),
+                range.get_start() + order.counter_party.amount,
+            );
             let maker = order.counter_party.address.unwrap();
             let (property1, metadata1) = plasma_client.ownership_property(&session, maker);
             let (property2, metadata2) = plasma_client.taking_order_property(
                 &session,
                 maker,
                 order.counter_party.token_address,
-                range,
+                will_update_range,
             );
             plasma_client.send_transaction(
                 &session,
                 Some(order.counter_party.token_address),
-                range.get_start(),
-                range.get_end(),
+                will_update_range.get_start(),
+                will_update_range.get_end(),
                 property1,
                 metadata1,
             );
@@ -373,7 +378,7 @@ fn create_exchange_offer(
             &session,
             Some(body.offer.token_address),
             range.get_start(),
-            range.get_end(),
+            range.get_start() + body.offer.amount,
             property,
             metadata,
         );
