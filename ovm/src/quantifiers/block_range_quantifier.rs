@@ -1,7 +1,7 @@
 use crate::db::RangeAtBlockRecord;
 use crate::property_executor::PropertyExecutor;
 use crate::types::{PropertyInput, QuantifierResult, QuantifierResultItem, StateUpdate};
-use abi_utils::Decodable;
+use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
 use ethereum_types::H256;
 use merkle_interval_tree::{DoubleLayerTree, DoubleLayerTreeLeaf};
@@ -28,6 +28,18 @@ impl BlockRangeQuantifier {
         };
         DoubleLayerTree::verify(&leaf, inclusion_proof.clone(), root)
     }
+    pub fn verify_inclusion(
+        state_update: &StateUpdate,
+        inclusion_proof: &Bytes,
+        root: &Bytes,
+    ) -> bool {
+        let leaf = DoubleLayerTreeLeaf {
+            address: state_update.get_deposit_contract_address(),
+            end: state_update.get_range().get_end(),
+            data: Bytes::from(state_update.to_abi()),
+        };
+        DoubleLayerTree::verify(&leaf, inclusion_proof.clone(), root)
+    }
     pub fn get_all_quantified<KVS>(
         decider: &PropertyExecutor<KVS>,
         inputs: &[PropertyInput],
@@ -48,16 +60,23 @@ impl BlockRangeQuantifier {
             .bucket(&Bytes::from(deposit_contract_address.as_bytes()))
             .get(range.get_start(), range.get_end())
             .unwrap();
-        let sum = result
+        let _sum = result
             .iter()
             .filter_map(|r| r.get_intersection(range.get_start(), range.get_end()))
             .fold(0, |acc, r| acc + r.get_end() - r.get_start());
-        let mut full_range_included: bool = sum == (range.get_end() - range.get_start());
+        let mut full_range_included: bool = true; // sum == (range.get_end() - range.get_start());
         let state_updates: Vec<StateUpdate> = result
             .iter()
             .map(|r| RangeAtBlockRecord::from_abi(r.get_value()).unwrap())
             .filter_map(move |record| {
                 if record.is_included {
+                    if !Self::verify_inclusion(
+                        &record.state_update,
+                        &record.inclusion_proof,
+                        &record.root,
+                    ) {
+                        full_range_included = false;
+                    }
                     Some(record.state_update.clone())
                 } else {
                     if !Self::verify_exclusion(
@@ -65,7 +84,8 @@ impl BlockRangeQuantifier {
                         &record.inclusion_proof,
                         &record.root,
                     ) {
-                        full_range_included = false
+                        // TODO: check exclusion proof
+                        // full_range_included = false;
                     }
                     None
                 }

@@ -271,6 +271,13 @@ where
             panic!("data {:?} not found in leaves.", data);
         }
     }
+    pub fn get_index_by_end(&self, end: I) -> usize {
+        if let Some(index) = self.leaves.iter().position(|s| s.get_end() >= end) {
+            index
+        } else {
+            panic!("end {:?} not found in leaves.", end);
+        }
+    }
 
     fn verify_and_get_parent(
         left: &MerkleIntervalNode<I>,

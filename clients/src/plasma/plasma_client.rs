@@ -548,6 +548,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
                 decision.is_ok()
             );
         }
+        println!("state_updates = {:?}", block.get_state_updates().to_vec().len());
         self.update_state_updates(block.get_state_updates().to_vec());
         let _ = self.decider.get_db().put(
             &Bytes::from(&b"latest_block_number"[..]).into(),

@@ -101,7 +101,7 @@ fn main() {
     );
     aggregator.insert_test_ranges();
 
-    let interval_second = 5;
+    let interval_second = 10;
     let handle = Handle::new(aggregator, interval_second);
 
     handle
