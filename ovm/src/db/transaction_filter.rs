@@ -130,7 +130,7 @@ mod tests {
     use super::*;
     use bytes::Bytes;
     use ethereum_types::Address;
-    use plasma_core::data_structure::{Metadata, Range};
+    use plasma_core::data_structure::{Metadata, Range, PAYMENT_TYPE};
 
     #[test]
     /// filters works only for addresses
@@ -144,14 +144,14 @@ mod tests {
                 Range::new(0, 1),
                 Bytes::default(),
                 Bytes::default(),
-                Metadata::new(address, Address::zero()),
+                Metadata::new(PAYMENT_TYPE, address, Address::zero()),
             ),
             Transaction::new(
                 Address::zero(),
                 Range::new(0, 1),
                 Bytes::default(),
                 Bytes::default(),
-                Metadata::new(Address::zero(), address),
+                Metadata::new(PAYMENT_TYPE, Address::zero(), address),
             ),
         ];
 
@@ -177,14 +177,14 @@ mod tests {
                 Range::new(0, 1),
                 Bytes::default(),
                 Bytes::default(),
-                Metadata::new(address, Address::zero()),
+                Metadata::new(PAYMENT_TYPE, address, Address::zero()),
             ),
             Transaction::new(
                 Address::zero(),
                 Range::new(0, 1),
                 Bytes::default(),
                 Bytes::default(),
-                Metadata::new(Address::zero(), address),
+                Metadata::new(PAYMENT_TYPE, Address::zero(), address),
             ),
         ];
 
