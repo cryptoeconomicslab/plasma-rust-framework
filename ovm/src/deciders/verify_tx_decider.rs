@@ -1,8 +1,6 @@
 use crate::error::Error;
 use crate::property_executor::PropertyExecutor;
 use crate::types::{Decider, Decision, PropertyInput};
-use abi_utils::abi::Decodable;
-use plasma_core::data_structure::Transaction;
 use plasma_db::traits::kvs::KeyValueStore;
 
 pub struct VerifyTxDecider {}
