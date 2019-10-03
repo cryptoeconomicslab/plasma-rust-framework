@@ -4,7 +4,7 @@ use chrono::{DateTime, Local};
 use env_logger;
 use ethereum_types::Address;
 use log::info;
-use ovm::types::StateUpdate;
+use ovm::types::Property;
 use plasma_clients::plasma::{
     error::{Error, ErrorKind},
     query::query_exchanged,
@@ -268,9 +268,9 @@ fn get_exchange_history(
         .into_iter()
         .filter_map(|tx| {
             let metadata = tx.get_metadata();
-            let state_update = StateUpdate::from_abi(tx.get_parameters()).unwrap();
+            let state_object = Property::from_abi(tx.get_parameters()).unwrap();
             if metadata.get_meta_type() == EXCHANGE_TYPE {
-                let (c_token, c_range) = query_exchanged(state_update).unwrap();
+                let (c_token, c_range) = query_exchanged(state_object).unwrap();
                 let send = metadata.get_from() == my_address;
                 Some(ExchangeHistory {
                     exchange_id: "00".to_string(),

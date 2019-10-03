@@ -1,7 +1,7 @@
 // plasma_clients::plasma::query is Examples of query to StateUpdate list.
 use abi_utils::Integer;
 use ethereum_types::Address;
-use ovm::types::{PropertyInput, StateUpdate};
+use ovm::types::{Property, PropertyInput, StateUpdate};
 use plasma_core::data_structure::Range;
 use std::collections::HashMap;
 
@@ -90,12 +90,12 @@ pub fn query_orders(
         .collect()
 }
 
-pub fn query_exchanged(state_update: StateUpdate) -> Option<(Address, Range)> {
-    if state_update.is_exchanged_state() {
-        let p = &state_update.get_property().inputs[2];
+pub fn query_exchanged(state_object: Property) -> Option<(Address, Range)> {
+    if state_object.inputs.len() >= 3 {
+        let p = &state_object.inputs[2];
         if let PropertyInput::ConstantProperty(q_property) = p {
             if let PropertyInput::ConstantProperty(there) = &q_property.inputs[2] {
-                if let PropertyInput::ConstantProperty(q_su) = &there.inputs[1] {
+                if let PropertyInput::ConstantProperty(q_su) = &there.inputs[0] {
                     if let PropertyInput::ConstantAddress(token_address) = &q_su.inputs[1] {
                         if let PropertyInput::ConstantRange(range) = &q_su.inputs[2] {
                             return Some((*token_address, *range));
