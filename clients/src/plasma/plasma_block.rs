@@ -117,7 +117,12 @@ impl PlasmaBlock {
             });
             previous_start = s.get_range().get_start();
         }
-        if self.state_updates.iter().position(|s| s.get_deposit_contract_address() == Address::zero()).is_none() {
+        if self
+            .state_updates
+            .iter()
+            .position(|s| s.get_deposit_contract_address() == Address::zero())
+            .is_none()
+        {
             leaves.push(DoubleLayerTreeLeaf {
                 address: Address::zero(),
                 end: 100000,
@@ -125,7 +130,12 @@ impl PlasmaBlock {
             });
         }
         let dai_address = string_to_address("0000000000000000000000000000000000000001");
-        if self.state_updates.iter().position(|s| s.get_deposit_contract_address() == dai_address).is_none() {
+        if self
+            .state_updates
+            .iter()
+            .position(|s| s.get_deposit_contract_address() == dai_address)
+            .is_none()
+        {
             leaves.push(DoubleLayerTreeLeaf {
                 address: dai_address,
                 end: 100000,
