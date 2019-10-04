@@ -60,7 +60,10 @@ impl PlasmaBlock {
     pub fn get_inclusion_proof(&self, state_update: StateUpdate) -> Option<Bytes> {
         // TODO: we shoud use tree.get_index(data)
         if let Some(tree) = &self.tree {
-            let index = tree.get_index(state_update.get_deposit_contract_address(), &Bytes::from(state_update.to_abi()));
+            let index = tree.get_index(
+                state_update.get_deposit_contract_address(),
+                &Bytes::from(state_update.to_abi()),
+            );
             self.get_inclusion_proof_with_index(state_update.get_deposit_contract_address(), index)
         } else {
             None
@@ -69,13 +72,15 @@ impl PlasmaBlock {
     pub fn get_exclusion_proof(&self, state_update: StateUpdate) -> Option<Bytes> {
         // TODO: we shoud use tree.get_index(data)
         if let Some(tree) = &self.tree {
-            let index = tree.get_index_by_end(state_update.get_deposit_contract_address(), state_update.get_range().get_end());
+            let index = tree.get_index_by_end(
+                state_update.get_deposit_contract_address(),
+                state_update.get_range().get_end(),
+            );
             self.get_inclusion_proof_with_index(state_update.get_deposit_contract_address(), index)
         } else {
             None
         }
     }
-    
 
     pub fn merkelize(&mut self) -> Result<Bytes, Error> {
         if self.state_updates.is_empty() {

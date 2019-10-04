@@ -33,13 +33,18 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
 
         self.db
             .bucket(&Bytes::from(&"queued_state_updates"[..]))
-            .bucket(&Bytes::from(state_update.get_deposit_contract_address().as_bytes()))
+            .bucket(&Bytes::from(
+                state_update.get_deposit_contract_address().as_bytes(),
+            ))
             .put(range.get_start(), range.get_end(), &state_update.to_abi())
             .map_err::<Error, _>(Into::into)?;
         Ok(())
     }
 
-    pub fn get_pending_state_updates_by_token(&self, token_address: Address) -> Result<Vec<StateUpdate>, Error> {
+    pub fn get_pending_state_updates_by_token(
+        &self,
+        token_address: Address,
+    ) -> Result<Vec<StateUpdate>, Error> {
         let res = self
             .db
             .bucket(&Bytes::from(&"queued_state_updates"[..]))
@@ -51,17 +56,21 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
         Ok(res)
     }
 
-
     pub fn get_pending_state_updates(&self) -> Result<Vec<StateUpdate>, Error> {
         let mut result = vec![];
         let mut state_updates = self.get_pending_state_updates_by_token(Address::zero())?;
         result.append(&mut state_updates);
-        let mut state_updates = self.get_pending_state_updates_by_token(string_to_address("0000000000000000000000000000000000000001"))?;
+        let mut state_updates = self.get_pending_state_updates_by_token(string_to_address(
+            "0000000000000000000000000000000000000001",
+        ))?;
         result.append(&mut state_updates);
         Ok(result)
     }
 
-    fn delete_all_queued_state_updates_by_address(&self, token_address: Address) -> Result<(), Error> {
+    fn delete_all_queued_state_updates_by_address(
+        &self,
+        token_address: Address,
+    ) -> Result<(), Error> {
         let _ = self
             .db
             .bucket(&Bytes::from(&"queued_state_updates"[..]))
@@ -71,8 +80,10 @@ impl<'a, KVS: KeyValueStore> BlockDb<'a, KVS> {
     }
 
     pub fn delete_all_queued_state_updates(&self) -> Result<(), Error> {
-        let _ = self.delete_all_queued_state_updates_by_address(Address::zero())?;
-        let _ = self.delete_all_queued_state_updates_by_address(string_to_address("0000000000000000000000000000000000000001"))?;
+        self.delete_all_queued_state_updates_by_address(Address::zero())?;
+        self.delete_all_queued_state_updates_by_address(string_to_address(
+            "0000000000000000000000000000000000000001",
+        ))?;
         Ok(())
     }
 
