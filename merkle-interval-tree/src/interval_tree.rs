@@ -93,7 +93,7 @@ where
     pub fn create_empty() -> Self {
         MerkleIntervalNode::Leaf {
             end: I::max_value(),
-            data: hash_leaf(&Bytes::from_static(&[0u8])),
+            data: Bytes::from_static(&[0u8]),
         }
     }
 
@@ -175,9 +175,10 @@ where
 {
     /// generate sum merkle tree
     pub fn generate(leaves: &[MerkleIntervalNode<I>]) -> Self {
+        let fixed_leaves = [leaves, &[MerkleIntervalNode::create_empty()]].concat();
         Self {
-            tree: Self::generate_part(leaves),
-            leaves: leaves.to_vec(),
+            tree: Self::generate_part(&fixed_leaves),
+            leaves: fixed_leaves.to_vec(),
         }
     }
     pub fn generate_part(leaves: &[MerkleIntervalNode<I>]) -> MerkleIntervalNode<I> {
@@ -271,12 +272,17 @@ where
             panic!("data {:?} not found in leaves.", data);
         }
     }
-    pub fn get_index_by_end(&self, end: I) -> usize {
-        if let Some(index) = self.leaves.iter().position(|s| s.get_end() >= end) {
-            index
-        } else {
-            panic!("end {:?} not found in leaves.", end);
+    pub fn get_index_by_range(&self, start: I, end: I) -> Vec<(usize, bool)> {
+        let mut indexes: Vec<(usize, bool)> = vec![];
+        for (i, l) in self.leaves.iter().enumerate() {
+            if l.get_end() > end {
+                break;
+            }
+            if l.get_end() > start {
+                indexes.push((i, l.get_data() != Bytes::from_static(&[0u8])));
+            }
         }
+        indexes
     }
 
     fn verify_and_get_parent(
@@ -437,7 +443,8 @@ mod tests {
         };
         let tree = MerkleIntervalTree::generate(&[leaf1.clone(), leaf2]);
         let inclusion_proof = tree.get_inclusion_proof(0);
-        assert_eq!(inclusion_proof.len(), 40);
+        // because we have 2 exclusion leaves in right
+        assert_eq!(inclusion_proof.len(), 80);
         assert_eq!(
             MerkleIntervalTree::verify(&leaf1.clone(), 0, inclusion_proof, &tree.get_root())
                 .is_ok(),

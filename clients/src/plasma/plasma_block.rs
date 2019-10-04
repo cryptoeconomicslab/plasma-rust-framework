@@ -1,5 +1,6 @@
 use super::command::NewTransactionEvent;
 use super::error::{Error, ErrorKind};
+use super::utils::string_to_address;
 use abi_utils::{Decodable, Encodable, Error as PlasmaCoreError, ErrorKind as PlasmaCoreErrorKind};
 use bytes::Bytes;
 use ethabi::{ParamType, Token};
@@ -7,6 +8,7 @@ use ethereum_types::Address;
 use merkle_interval_tree::{DoubleLayerTree, DoubleLayerTreeLeaf};
 use ovm::types::core::Integer;
 use ovm::types::StateUpdate;
+use plasma_core::data_structure::Range;
 
 pub struct PlasmaBlock {
     block_number: Integer,
@@ -69,14 +71,26 @@ impl PlasmaBlock {
             None
         }
     }
-    pub fn get_exclusion_proof(&self, state_update: StateUpdate) -> Option<Bytes> {
+    pub fn get_exclusion_proof(
+        &self,
+        token_address: Address,
+        range: Range,
+    ) -> Option<Vec<(Bytes, bool)>> {
         // TODO: we shoud use tree.get_index(data)
         if let Some(tree) = &self.tree {
-            let index = tree.get_index_by_end(
-                state_update.get_deposit_contract_address(),
-                state_update.get_range().get_end(),
-            );
-            self.get_inclusion_proof_with_index(state_update.get_deposit_contract_address(), index)
+            let indexes =
+                tree.get_index_by_range(token_address, range.get_start(), range.get_end());
+            let history_items: Vec<(Bytes, bool)> = indexes
+                .iter()
+                .map(|(i, is_included)| {
+                    (
+                        self.get_inclusion_proof_with_index(token_address, *i)
+                            .unwrap(),
+                        *is_included,
+                    )
+                })
+                .collect();
+            Some(history_items)
         } else {
             None
         }
@@ -87,11 +101,35 @@ impl PlasmaBlock {
             return Err(Error::from(ErrorKind::MerkelizingError));
         }
         let mut leaves = vec![];
+        let mut previous_start = 0;
         for s in self.state_updates.iter() {
+            if previous_start < s.get_range().get_start() {
+                leaves.push(DoubleLayerTreeLeaf {
+                    address: s.get_deposit_contract_address(),
+                    end: s.get_range().get_start(),
+                    data: Bytes::from_static(&[0u8]),
+                });
+            }
             leaves.push(DoubleLayerTreeLeaf {
                 address: s.get_deposit_contract_address(),
                 end: s.get_range().get_end(),
                 data: Bytes::from(s.to_abi()),
+            });
+            previous_start = s.get_range().get_start();
+        }
+        if self.state_updates.iter().position(|s| s.get_deposit_contract_address() == Address::zero()).is_none() {
+            leaves.push(DoubleLayerTreeLeaf {
+                address: Address::zero(),
+                end: 100000,
+                data: Bytes::from_static(&[0u8]),
+            });
+        }
+        let dai_address = string_to_address("0000000000000000000000000000000000000001");
+        if self.state_updates.iter().position(|s| s.get_deposit_contract_address() == dai_address).is_none() {
+            leaves.push(DoubleLayerTreeLeaf {
+                address: dai_address,
+                end: 100000,
+                data: Bytes::from_static(&[0u8]),
             });
         }
 

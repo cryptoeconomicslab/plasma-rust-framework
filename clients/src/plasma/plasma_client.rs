@@ -512,6 +512,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
         let signed_by_db = SignedByDb::new(self.decider.get_db());
         let root = block.merkelize().unwrap();
 
+        /*
         for s in block.get_state_updates().iter() {
             assert!(range_at_block_db
                 .store_witness(
@@ -522,6 +523,7 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
                 )
                 .is_ok());
         }
+        */
         for tx in block.get_transactions().iter() {
             for previous_block_number in tx.clone().prev_state_block_numbers {
                 transaction_db.put_transaction(previous_block_number.0, tx.transaction.clone());
@@ -536,6 +538,15 @@ impl<KVS: KeyValueStore + DatabaseTrait> PlasmaClient<KVS> {
                 .is_ok());
         }
         for su in self.get_all_state_updates() {
+            let token_address = su.get_deposit_contract_address();
+            for (inclusion_proof, is_included) in block
+                .get_exclusion_proof(token_address, su.get_range())
+                .unwrap()
+            {
+                assert!(range_at_block_db
+                    .store_witness(root.clone(), is_included, inclusion_proof, su.clone(),)
+                    .is_ok());
+            }
             let property = PlasmaClientShell::create_checkpoint_property(
                 Integer(su.get_block_number().0),
                 su.get_deposit_contract_address(),

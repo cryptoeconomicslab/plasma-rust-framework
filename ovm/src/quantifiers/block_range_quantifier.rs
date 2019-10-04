@@ -60,11 +60,11 @@ impl BlockRangeQuantifier {
             .bucket(&Bytes::from(deposit_contract_address.as_bytes()))
             .get(range.get_start(), range.get_end())
             .unwrap();
-        let _sum = result
+        let sum = result
             .iter()
             .filter_map(|r| r.get_intersection(range.get_start(), range.get_end()))
             .fold(0, |acc, r| acc + r.get_end() - r.get_start());
-        let mut full_range_included: bool = true; // sum == (range.get_end() - range.get_start());
+        let mut full_range_included: bool = sum == (range.get_end() - range.get_start());
         let state_updates: Vec<StateUpdate> = result
             .iter()
             .map(|r| RangeAtBlockRecord::from_abi(r.get_value()).unwrap())
