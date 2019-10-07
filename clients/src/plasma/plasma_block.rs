@@ -125,7 +125,7 @@ impl PlasmaBlock {
         {
             leaves.push(DoubleLayerTreeLeaf {
                 address: Address::zero(),
-                end: 100000,
+                end: 100_000,
                 data: Bytes::from_static(&[0u8]),
             });
         }
@@ -138,7 +138,7 @@ impl PlasmaBlock {
         {
             leaves.push(DoubleLayerTreeLeaf {
                 address: dai_address,
-                end: 100000,
+                end: 100_000,
                 data: Bytes::from_static(&[0u8]),
             });
         }
