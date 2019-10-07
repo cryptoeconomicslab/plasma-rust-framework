@@ -1,15 +1,17 @@
-use abi_utils::Integer;
+use abi_utils::{Decodable, Integer};
 use actix_web::{error, middleware::Logger, web, App, HttpResponse, HttpServer, Result};
 use chrono::{DateTime, Local};
 use env_logger;
 use ethereum_types::Address;
 use log::info;
+use ovm::types::Property;
 use plasma_clients::plasma::{
     error::{Error, ErrorKind},
+    query::query_exchanged,
     utils::*,
     PlasmaClientShell,
 };
-use plasma_core::data_structure::Range;
+use plasma_core::data_structure::{Range, EXCHANGE_TYPE, PAYMENT_TYPE};
 use serde::{Deserialize, Serialize};
 
 // Create Account
@@ -103,24 +105,28 @@ fn get_payment_history(
     let txs = plasma_client.get_related_transactions(&session);
     let history: Vec<PaymentHistory> = txs
         .into_iter()
-        .map(|tx| {
+        .filter_map(|tx| {
             let metadata = tx.get_metadata();
-            let send = metadata.get_from() == my_address;
-            PaymentHistory {
-                history_type: if send {
-                    PaymentHistoryType::SEND
-                } else {
-                    PaymentHistoryType::RECEIVE
-                },
-                amount: tx.get_range().get_amount(),
-                address: if send {
-                    metadata.get_to()
-                } else {
-                    metadata.get_from()
-                },
-                timestamp: Local::now(),
-                status: PaymentHistoryStatus::CONFIRMED,
-                token_name: plasma_client.get_token_name(tx.get_deposit_contract_address()),
+            if metadata.get_meta_type() == PAYMENT_TYPE {
+                let send = metadata.get_from() == my_address;
+                Some(PaymentHistory {
+                    history_type: if send {
+                        PaymentHistoryType::SEND
+                    } else {
+                        PaymentHistoryType::RECEIVE
+                    },
+                    amount: tx.get_range().get_amount(),
+                    address: if send {
+                        metadata.get_to()
+                    } else {
+                        metadata.get_from()
+                    },
+                    timestamp: Local::now(),
+                    status: PaymentHistoryStatus::CONFIRMED,
+                    token_name: plasma_client.get_token_name(tx.get_deposit_contract_address()),
+                })
+            } else {
+                None
             }
         })
         .collect();
@@ -244,28 +250,51 @@ struct GetExchangeHistoryRequest {
 struct ExchangeHistory {
     exchange_id: String,
     history_type: ExchangeHistoryType,
-    token_id: u64,
+    token_address: Address,
     amount: u64,
     status: ExchangeHistoryStatus,
     counter_party: CounterParty,
     timestamp: DateTime<Local>,
 }
 
-fn get_exchange_history(params: web::Query<GetExchangeHistoryRequest>) -> Result<HttpResponse> {
-    info!("PARAMS: {:?}", params);
-    Ok(HttpResponse::Ok().json(vec![ExchangeHistory {
-        exchange_id: "00".to_string(),
-        history_type: ExchangeHistoryType::OFFERED,
-        token_id: 1,
-        amount: 10,
-        status: ExchangeHistoryStatus::CONFIRMED,
-        counter_party: CounterParty {
-            token_address: Address::zero(),
-            amount: 1,
-            address: Some(Address::zero()),
-        },
-        timestamp: Local::now(),
-    }]))
+fn get_exchange_history(
+    params: web::Query<GetExchangeHistoryRequest>,
+    plasma_client: web::Data<PlasmaClientShell>,
+) -> Result<HttpResponse> {
+    let session = decode_session(params.session.clone()).unwrap();
+    let my_address = plasma_client.get_my_address(&session).unwrap();
+    let txs = plasma_client.get_related_transactions(&session);
+    let history: Vec<ExchangeHistory> = txs
+        .into_iter()
+        .filter_map(|tx| {
+            let metadata = tx.get_metadata();
+            let state_object = Property::from_abi(tx.get_parameters()).unwrap();
+            if metadata.get_meta_type() == EXCHANGE_TYPE {
+                let (c_token, c_range) = query_exchanged(state_object).unwrap();
+                let send = metadata.get_from() == my_address;
+                Some(ExchangeHistory {
+                    exchange_id: "00".to_string(),
+                    history_type: if send {
+                        ExchangeHistoryType::OFFERED
+                    } else {
+                        ExchangeHistoryType::OFFER
+                    },
+                    token_address: tx.get_deposit_contract_address(),
+                    amount: tx.get_range().get_amount(),
+                    status: ExchangeHistoryStatus::CONFIRMED,
+                    counter_party: CounterParty {
+                        token_address: c_token,
+                        amount: c_range.get_amount(),
+                        address: None,
+                    },
+                    timestamp: Local::now(),
+                })
+            } else {
+                None
+            }
+        })
+        .collect();
+    Ok(HttpResponse::Ok().json(history))
 }
 
 // Send Exchange

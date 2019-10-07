@@ -69,7 +69,7 @@ mod tests {
     use super::*;
     use bytes::Bytes;
     use ethereum_types::Address;
-    use plasma_core::data_structure::{Metadata, Range};
+    use plasma_core::data_structure::{Metadata, Range, PAYMENT_TYPE};
     use plasma_db::{impls::kvs::CoreDbMemoryImpl, traits::DatabaseTrait, RangeDbImpl};
 
     #[test]
@@ -90,6 +90,7 @@ mod tests {
                     Bytes::default(),
                     Bytes::default(),
                     Metadata::new(
+                        PAYMENT_TYPE,
                         if i % 2 == 0 { Address::zero() } else { address },
                         Address::zero(),
                     ),

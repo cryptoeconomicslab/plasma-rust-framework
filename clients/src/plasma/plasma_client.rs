@@ -21,7 +21,9 @@ use ovm::{
     types::*,
     DeciderManager,
 };
-use plasma_core::data_structure::{Metadata, Range, Transaction, TransactionParams};
+use plasma_core::data_structure::{
+    Metadata, Range, Transaction, TransactionParams, EXCHANGE_TYPE, PAYMENT_TYPE,
+};
 use plasma_db::prelude::*;
 use pubsub_messaging::{connect, Client as PubsubClient, ClientHandler, Message, Sender};
 use std::collections::HashMap;
@@ -192,7 +194,11 @@ impl PlasmaClientShell {
     pub fn ownership_property(&self, session: &Bytes, to_address: Address) -> (Property, Metadata) {
         (
             Self::create_ownership_state_object(to_address),
-            Metadata::new(self.get_my_address(session).unwrap(), to_address),
+            Metadata::new(
+                PAYMENT_TYPE,
+                self.get_my_address(session).unwrap(),
+                to_address,
+            ),
         )
     }
     pub fn open_channel_property(
@@ -217,7 +223,7 @@ impl PlasmaClientShell {
                 counter_party_address,
                 state_update,
             ),
-            Metadata::new(my_address, counter_party_address),
+            Metadata::new(PAYMENT_TYPE, my_address, counter_party_address),
         )
     }
     // Creates order swap property with token address and amount.
@@ -234,7 +240,7 @@ impl PlasmaClientShell {
                 deposit_contract_address,
                 amount,
             ),
-            Metadata::new(my_address, my_address),
+            Metadata::new(PAYMENT_TYPE, my_address, my_address),
         )
     }
     // Creates swap property specifing required range and order maker address
@@ -253,7 +259,7 @@ impl PlasmaClientShell {
                 c_token_address,
                 c_range,
             ),
-            Metadata::new(my_address, order_maker),
+            Metadata::new(EXCHANGE_TYPE, my_address, order_maker),
         )
     }
 
