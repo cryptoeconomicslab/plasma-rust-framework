@@ -56,11 +56,6 @@ impl<KVS: KeyValueStore + DatabaseTrait> BlockManager<KVS> {
             .get_pending_state_updates()
             .map_err::<Error, _>(Into::into)?;
         let transactions = block_db.get_pending_txs().map_err::<Error, _>(Into::into)?;
-        println!(
-            "s={:?}, t={:?}",
-            state_updates.clone().len(),
-            transactions.clone().len()
-        );
         let mut block = PlasmaBlock::new(self.current_block_number, state_updates, transactions);
 
         let root = block.merkelize()?;
