@@ -1,5 +1,3 @@
-extern crate crypto;
-
 pub mod address_tree;
 pub mod double_layered_tree;
 pub mod hash;
