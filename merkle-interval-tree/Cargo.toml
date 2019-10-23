@@ -8,8 +8,11 @@ edition = "2018"
 abi-derive = { path = "../abi-utils/abi-derive"}
 abi-utils = { path = "../abi-utils/abi-utils"}
 ethabi = { git = 'https://github.com/cryptoeconomicslab/ethabi', branch = 'tuple-support-v7.0.0' }
-rust-crypto = {git="https://github.com/debris/rust-crypto.git", branch="android"}
+sha3 = "0.8.2"
 bytes = "0.4.12"
 byteorder = "1.3.1"
 ethereum-types = "^0.5.2"
 num-traits = { version = "0.2.8", default-features = false }
+
+[dev-dependencies]
+hex = "0.4.0"
