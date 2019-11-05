@@ -1,7 +1,7 @@
 use crate::db::RangeAtBlockRecord;
 use crate::property_executor::PropertyExecutor;
 use crate::types::{PropertyInput, QuantifierResult, QuantifierResultItem, StateUpdate};
-use abi_utils::Decodable;
+use abi_utils::{Decodable, Encodable};
 use bytes::Bytes;
 use ethereum_types::H256;
 use merkle_interval_tree::{DoubleLayerTree, DoubleLayerTreeLeaf};
@@ -25,6 +25,18 @@ impl BlockRangeQuantifier {
             address: state_update.get_deposit_contract_address(),
             end: state_update.get_range().get_end(),
             data: Bytes::from(H256::zero().as_bytes()),
+        };
+        DoubleLayerTree::verify(&leaf, inclusion_proof.clone(), root)
+    }
+    pub fn verify_inclusion(
+        state_update: &StateUpdate,
+        inclusion_proof: &Bytes,
+        root: &Bytes,
+    ) -> bool {
+        let leaf = DoubleLayerTreeLeaf {
+            address: state_update.get_deposit_contract_address(),
+            end: state_update.get_range().get_end(),
+            data: Bytes::from(state_update.to_abi()),
         };
         DoubleLayerTree::verify(&leaf, inclusion_proof.clone(), root)
     }
@@ -58,6 +70,13 @@ impl BlockRangeQuantifier {
             .map(|r| RangeAtBlockRecord::from_abi(r.get_value()).unwrap())
             .filter_map(move |record| {
                 if record.is_included {
+                    if !Self::verify_inclusion(
+                        &record.state_update,
+                        &record.inclusion_proof,
+                        &record.root,
+                    ) {
+                        full_range_included = false;
+                    }
                     Some(record.state_update.clone())
                 } else {
                     if !Self::verify_exclusion(
@@ -65,7 +84,8 @@ impl BlockRangeQuantifier {
                         &record.inclusion_proof,
                         &record.root,
                     ) {
-                        full_range_included = false
+                        // TODO: check exclusion proof
+                        // full_range_included = false;
                     }
                     None
                 }

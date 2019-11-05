@@ -91,6 +91,12 @@ impl DoubleLayerTree {
     pub fn get_index(&self, address: Address, data: &Bytes) -> usize {
         self.interval_trees.get(&address).unwrap().get_index(data)
     }
+    pub fn get_index_by_range(&self, address: Address, start: u64, end: u64) -> Vec<(usize, bool)> {
+        self.interval_trees
+            .get(&address)
+            .unwrap()
+            .get_index_by_range(start, end)
+    }
     pub fn get_inclusion_proof(&self, address: Address, idx: usize) -> Bytes {
         let address_tree_inclusion_proof = self.tree.get_inclusion_proof(address);
         let interval_tree_inclusion_proof = self
